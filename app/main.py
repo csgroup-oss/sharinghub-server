@@ -38,16 +38,12 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
-@app.get("/")
+@app.get("/{token}")
 async def root_catalog(request: Request, token: str):
     topics_catalogs = [
         {
             "rel": "child",
-            "href": str(
-                request.url_for("catalog", topic_name=topic).include_query_params(
-                    token=token
-                )
-            ),
+            "href": str(request.url_for("catalog", token=token, topic_name=topic)),
         }
         for topic in GITLAB_TOPICS
     ]
@@ -71,8 +67,8 @@ async def root_catalog(request: Request, token: str):
     }
 
 
-@app.get("/{topic_name:str}")
-async def catalog(request: Request, topic_name: str, token: str):
+@app.get("/{token}/{topic_name:str}")
+async def catalog(request: Request, token: str, topic_name: str):
     topic = await get_topic(GITLAB_API_URL, token, topic_name)
 
     links = []
@@ -85,9 +81,10 @@ async def catalog(request: Request, topic_name: str, token: str):
                     "href": str(
                         request.url_for(
                             "collection",
+                            token=token,
                             topic_name=topic_name,
                             project_path=project["path_with_namespace"],
-                        ).include_query_params(token=token)
+                        )
                     ),
                 }
             )
@@ -103,9 +100,7 @@ async def catalog(request: Request, topic_name: str, token: str):
         "links": [
             {
                 "rel": "root",
-                "href": str(
-                    request.url_for("root_catalog").include_query_params(token=token)
-                ),
+                "href": str(request.url_for("root_catalog", token=token)),
             },
             {
                 "rel": "self",
@@ -113,17 +108,15 @@ async def catalog(request: Request, topic_name: str, token: str):
             },
             {
                 "rel": "parent",
-                "href": str(
-                    request.url_for("root_catalog").include_query_params(token=token)
-                ),
+                "href": str(request.url_for("root_catalog", token=token)),
             },
             *links,
         ],
     }
 
 
-@app.get("/{topic_name:str}/{project_path:path}")
-async def collection(request: Request, topic_name: str, project_path: str, token: str):
+@app.get("/{token}/{topic_name:str}/{project_path:path}")
+async def collection(request: Request, token: str, topic_name: str, project_path: str):
     project, metadata = await get_project_metadata(GITLAB_API_URL, token, project_path)
     collection = {
         "stac_version": "1.0.0",
@@ -141,11 +134,7 @@ async def collection(request: Request, topic_name: str, project_path: str, token
             [
                 {
                     "rel": "root",
-                    "href": str(
-                        request.url_for("root_catalog").include_query_params(
-                            token=token
-                        )
-                    ),
+                    "href": str(request.url_for("root_catalog", token=token)),
                 },
                 {
                     "rel": "self",
@@ -154,9 +143,7 @@ async def collection(request: Request, topic_name: str, project_path: str, token
                 {
                     "rel": "parent",
                     "href": str(
-                        request.url_for(
-                            "catalog", topic_name=topic_name
-                        ).include_query_params(token=token)
+                        request.url_for("catalog", token=token, topic_name=topic_name)
                     ),
                 },
             ]
