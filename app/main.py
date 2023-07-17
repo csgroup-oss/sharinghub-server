@@ -38,7 +38,7 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
-@app.get("/{token}")
+@app.get("/{token}/catalog.json")
 async def root_catalog(request: Request, token: str):
     topics_catalogs = [
         {
@@ -67,7 +67,7 @@ async def root_catalog(request: Request, token: str):
     }
 
 
-@app.get("/{token}/{topic_name:str}")
+@app.get("/{token}/{topic_name:str}/catalog.json")
 async def catalog(request: Request, token: str, topic_name: str):
     topic = await get_topic(GITLAB_API_URL, token, topic_name)
 
@@ -115,7 +115,7 @@ async def catalog(request: Request, token: str, topic_name: str):
     }
 
 
-@app.get("/{token}/{topic_name:str}/{project_path:path}")
+@app.get("/{token}/{topic_name:str}/{project_path:path}/collection.json")
 async def collection(request: Request, token: str, topic_name: str, project_path: str):
     project, metadata = await get_project_metadata(GITLAB_API_URL, token, project_path)
     collection = {
