@@ -37,17 +37,24 @@ class GitlabClient:
                 self.get_readme(project_path),
             )
         )
+        readme_content = readme.split("---")[-1].strip()
         readme_metadata = get_markdown_metadata(readme)
+
+        if not project["description"]:
+            project["description"] = readme_content
+
         return project, readme_metadata
 
     async def get_project(self, project_path: str) -> GitlabProjectInfo:
         return await self._request(f"/projects/{parse.quote(project_path, safe='')}")
 
     async def get_readme(self, project_path: str) -> str:
-        return await self._request(
-            f"/projects/{parse.quote(project_path, safe='')}/repository/files/README.md/raw",
-            media_type="text",
-        )
+        return (
+            await self._request(
+                f"/projects/{parse.quote(project_path, safe='')}/repository/files/README.md/raw",
+                media_type="text",
+            )
+        ).strip()
 
     async def _request(
         self, endpoint: str, media_type="json", collect: bool = False
