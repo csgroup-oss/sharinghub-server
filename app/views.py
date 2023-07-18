@@ -1,4 +1,5 @@
 from fastapi import Request
+from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
 from .config import GITLAB_API_URL, GITLAB_TOPICS, GITLAB_URL
@@ -6,6 +7,11 @@ from .gitlab import get_project_metadata, get_projects, get_topic
 from .utils import slugify
 
 router = APIRouter(prefix="/{token}", tags=["stac"])
+
+
+@router.get("/")
+async def index(request: Request, token: str):
+    return RedirectResponse(request.url_for("root_catalog", token=token))
 
 
 @router.get("/catalog.json")
