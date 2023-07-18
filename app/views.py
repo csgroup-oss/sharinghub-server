@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
 from .config import GITLAB_API_URL, GITLAB_TOPICS, GITLAB_URL
-from .gitlab import get_project_metadata, get_projects
+from .gitlab import GitlabClient
 from .utils import slugify
 
 router = APIRouter(prefix="/{token}", tags=["stac"])
@@ -62,7 +62,9 @@ async def topic_catalog(request: Request, token: str, topic_name: str):
         f"{topic_title} catalog generated from your [Gitlab]({GITLAB_URL}) repositories with STAC Dataset Proxy.",
     )
 
-    projects = await get_projects(GITLAB_API_URL, token, topic_name)
+    gitlab_client = GitlabClient(GITLAB_API_URL, token)
+    projects = await gitlab_client.get_projects(topic_name)
+
     for project in projects:
         links.append(
             {
@@ -104,7 +106,9 @@ async def topic_catalog(request: Request, token: str, topic_name: str):
 
 @router.get("/{topic_name:str}/{project_path:path}/collection.json")
 async def collection(request: Request, token: str, topic_name: str, project_path: str):
-    project, metadata = await get_project_metadata(GITLAB_API_URL, token, project_path)
+    gitlab_client = GitlabClient(GITLAB_API_URL, token)
+    project, metadata = await gitlab_client.get_project_metadata(project_path)
+
     collection = {
         "stac_version": "1.0.0",
         "stac_extensions": ["collection-assets"],
