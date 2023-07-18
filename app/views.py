@@ -1,9 +1,10 @@
 from fastapi import Request
+from fastapi.exceptions import HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
 from .config import GITLAB_API_URL, GITLAB_TOPICS, GITLAB_URL
-from .gitlab import get_project_metadata, get_projects, get_topic
+from .gitlab import get_project_metadata, get_projects
 from .utils import slugify
 
 router = APIRouter(prefix="/{token}", tags=["stac"])
@@ -20,10 +21,10 @@ async def root_catalog(request: Request, token: str):
         {
             "rel": "child",
             "href": str(
-                request.url_for("topic_catalog", token=token, topic_name=topic)
+                request.url_for("topic_catalog", token=token, topic_name=topic_name)
             ),
         }
-        for topic in GITLAB_TOPICS
+        for topic_name in GITLAB_TOPICS
     ]
     return {
         "stac_version": "1.0.0",
@@ -47,34 +48,42 @@ async def root_catalog(request: Request, token: str):
 
 @router.get("/{topic_name:str}/catalog.json")
 async def topic_catalog(request: Request, token: str, topic_name: str):
-    topic = await get_topic(GITLAB_API_URL, token, topic_name)
-
     links = []
-    if topic["id"]:
-        projects = await get_projects(GITLAB_API_URL, token, topic_name)
-        for project in projects:
-            links.append(
-                {
-                    "rel": "child",
-                    "href": str(
-                        request.url_for(
-                            "collection",
-                            token=token,
-                            topic_name=topic_name,
-                            project_path=project["path_with_namespace"],
-                        )
-                    ),
-                }
-            )
+
+    topic = GITLAB_TOPICS.get(topic_name)
+    if not topic:
+        raise HTTPException(
+            status_code=404, detail=f"Topic '{topic_name}' not configured"
+        )
+
+    topic_title = topic.get("title", topic_name)
+    topic_description = topic.get(
+        "description",
+        f"{topic_title} catalog generated from your [Gitlab]({GITLAB_URL}) repositories with STAC Dataset Proxy.",
+    )
+
+    projects = await get_projects(GITLAB_API_URL, token, topic_name)
+    for project in projects:
+        links.append(
+            {
+                "rel": "child",
+                "href": str(
+                    request.url_for(
+                        "collection",
+                        token=token,
+                        topic_name=topic_name,
+                        project_path=project["path_with_namespace"],
+                    )
+                ),
+            }
+        )
 
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
-        "id": f"gitlab-{slugify(topic['name'])}-stac-catalog",
-        "title": topic["title"],
-        "description": topic["description"]
-        if topic["description"]
-        else f"{topic['title']} catalog generated from your [Gitlab]({GITLAB_URL}) repositories with STAC Dataset Proxy.",
+        "id": f"gitlab-{slugify(topic_name)}-stac-catalog",
+        "title": topic_title,
+        "description": topic_description,
         "links": [
             {
                 "rel": "root",

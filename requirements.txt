@@ -2,4 +2,5 @@ aiohttp
 fastapi
 markdown
 markdown-full-yaml-metadata
+pyyaml
 uvicorn

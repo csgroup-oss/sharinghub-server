@@ -1,4 +1,7 @@
 import os
+from pathlib import Path
+
+import yaml
 
 DEBUG = os.environ.get("DEBUG", "False").lower() in ["true", "1"]
 
@@ -12,7 +15,8 @@ ALLOWED_ORIGINS = os.environ.get(
 
 GITLAB_URL = os.environ.get("GITLAB_URL", "https://gitlab.si.c-s.fr").removesuffix("/")
 GITLAB_API_URL = f"{GITLAB_URL}/api/v4"
-GITLAB_TOPICS = os.environ.get(
-    "GITLAB_TOPICS",
-    "ai_model dataset",
-).split()
+_GITLAB_TOPICS_FILE = Path(
+    os.environ.get("GITLAB_TOPICS_FILE", Path(os.getcwd(), "resources", "topics.yaml"))
+)
+with open(_GITLAB_TOPICS_FILE, "r") as f:
+    GITLAB_TOPICS = yaml.load(f, Loader=yaml.SafeLoader)

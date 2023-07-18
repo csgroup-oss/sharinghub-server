@@ -7,15 +7,6 @@ from fastapi import HTTPException
 from .utils import AiohttpClient, get_markdown_metadata
 
 
-class GitlabTopicInfo(TypedDict):
-    id: int | None
-    name: str
-    title: str
-    total_projects_count: int
-    description: str | None
-    avatar_url: str | None
-
-
 class GitlabProjectInfo(TypedDict):
     id: str
     description: str | None
@@ -24,32 +15,6 @@ class GitlabProjectInfo(TypedDict):
     path: str
     path_with_namespace: str
     web_url: str
-
-
-async def get_topic(
-    gitlab_api_url: str, token: str, topic_name: str
-) -> GitlabTopicInfo:
-    async with AiohttpClient().with_headers({"PRIVATE-TOKEN": token}) as client:
-        topic_search = await client.get(
-            f"{gitlab_api_url}/topics?per_page=100&search={topic_name}"
-        )
-        if topic_search.ok:
-            topics = await topic_search.json()
-            for topic in topics:
-                if topic["name"] == topic_name:
-                    return topic
-        else:
-            raise HTTPException(
-                status_code=topic_search.status, detail=await topic_search.text()
-            )
-    return GitlabTopicInfo(
-        id=None,
-        name=topic_name,
-        title=topic_name,
-        total_projects_count=0,
-        description="Empty catalog, topic is missing",
-        avatar_url=None,
-    )
 
 
 async def get_projects(
