@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
 from app.api.gitlab import GitlabClient
+from app.api.stac import build_root_catalog
 from app.config import GITLAB_API_URL, GITLAB_TOPICS, GITLAB_URL
 from app.utils.http import is_local, slugify
 from app.utils.markdown import make_description_from_readme, parse_markdown
@@ -18,33 +19,12 @@ async def index(request: Request, token: str):
 
 @router.get("/catalog.json")
 async def root_catalog(request: Request, token: str):
-    topics_catalogs = [
-        {
-            "rel": "child",
-            "href": str(
-                request.url_for("topic_catalog", token=token, topic_name=topic_name)
-            ),
-        }
-        for topic_name in GITLAB_TOPICS
-    ]
-    return {
-        "stac_version": "1.0.0",
-        "type": "Catalog",
-        "id": "gitlab-stac-catalog",
-        "title": "GitLab STAC Catalog",
-        "description": f"Catalog generated from your [Gitlab]({GITLAB_URL}) repositories with STAC Dataset Proxy.",
-        "links": [
-            {
-                "rel": "root",
-                "href": str(request.url),
-            },
-            {
-                "rel": "self",
-                "href": str(request.url),
-            },
-            *topics_catalogs,
-        ],
-    }
+    return build_root_catalog(
+        topics=GITLAB_TOPICS,
+        description=f"Catalog generated from your [Gitlab]({GITLAB_URL}) repositories with STAC Dataset Proxy.",
+        request=request,
+        token=token,
+    )
 
 
 @router.get("/{topic_name:str}/catalog.json")
