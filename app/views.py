@@ -5,7 +5,7 @@ from fastapi.routing import APIRouter
 
 from .config import GITLAB_API_URL, GITLAB_TOPICS, GITLAB_URL
 from .gitlab import GitlabClient
-from .utils import slugify
+from .utils import get_markdown_metadata, slugify
 
 router = APIRouter(prefix="/{token}", tags=["stac"])
 
@@ -107,7 +107,9 @@ async def topic_catalog(request: Request, token: str, topic_name: str):
 @router.get("/{topic_name:str}/{project_path:path}/collection.json")
 async def collection(request: Request, token: str, topic_name: str, project_path: str):
     gitlab_client = GitlabClient(GITLAB_API_URL, token)
-    project, metadata = await gitlab_client.get_project_metadata(project_path)
+    project, readme = await gitlab_client.get_project_readme(project_path)
+
+    metadata = get_markdown_metadata(readme)
 
     collection = {
         "stac_version": "1.0.0",

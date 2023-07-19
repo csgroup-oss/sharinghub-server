@@ -5,7 +5,7 @@ from urllib import parse
 import aiohttp
 from fastapi import HTTPException
 
-from .utils import AiohttpClient, get_markdown_metadata
+from .utils import AiohttpClient
 
 
 class GitlabProjectInfo(TypedDict):
@@ -28,7 +28,7 @@ class GitlabClient:
             f"/projects?topic={topic_name}&simple=true", collect=True
         )
 
-    async def get_project_metadata(
+    async def get_project_readme(
         self, project_path: str
     ) -> tuple[GitlabProjectInfo, dict[str, Any]]:
         project, readme = await asyncio.gather(
@@ -37,13 +37,7 @@ class GitlabClient:
                 self.get_readme(project_path),
             )
         )
-        readme_content = readme.split("---")[-1].strip()
-        readme_metadata = get_markdown_metadata(readme)
-
-        if not project["description"]:
-            project["description"] = readme_content
-
-        return project, readme_metadata
+        return project, readme
 
     async def get_project(self, project_path: str) -> GitlabProjectInfo:
         return await self._request(f"/projects/{parse.quote(project_path, safe='')}")
