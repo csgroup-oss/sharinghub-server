@@ -5,7 +5,7 @@ from urllib import parse
 import aiohttp
 from fastapi import HTTPException
 
-from .utils import AiohttpClient
+from app.utils.http import AiohttpClient
 
 
 class GitlabProjectInfo(TypedDict):

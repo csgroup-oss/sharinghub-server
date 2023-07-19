@@ -4,9 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-from .config import ALLOWED_ORIGINS, API_PREFIX, DEBUG
-from .utils import AiohttpClient
-from .views import router
+from app.config import ALLOWED_ORIGINS, API_PREFIX, DEBUG
+from app.utils.http import AiohttpClient
+from app.views import router
 
 
 @asynccontextmanager

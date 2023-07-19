@@ -3,9 +3,10 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
-from .config import GITLAB_API_URL, GITLAB_TOPICS, GITLAB_URL
-from .gitlab import GitlabClient
-from .utils import is_local, make_description_from_readme, parse_markdown, slugify
+from app.api.gitlab import GitlabClient
+from app.config import GITLAB_API_URL, GITLAB_TOPICS, GITLAB_URL
+from app.utils.http import is_local, slugify
+from app.utils.markdown import make_description_from_readme, parse_markdown
 
 router = APIRouter(prefix="/{token}", tags=["stac"])
 
