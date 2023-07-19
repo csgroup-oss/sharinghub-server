@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
 from app.api.gitlab import GitlabClient
-from app.api.stac import build_root_catalog
+from app.api.stac import build_root_catalog, build_topic_catalog
 from app.config import GITLAB_API_URL, GITLAB_TOPICS, GITLAB_URL
 from app.utils.http import is_local, slugify
 from app.utils.markdown import make_description_from_readme, parse_markdown
@@ -29,8 +29,6 @@ async def root_catalog(request: Request, token: str):
 
 @router.get("/{topic_name:str}/catalog.json")
 async def topic_catalog(request: Request, token: str, topic_name: str):
-    links = []
-
     topic = GITLAB_TOPICS.get(topic_name)
     if not topic:
         raise HTTPException(
@@ -46,43 +44,14 @@ async def topic_catalog(request: Request, token: str, topic_name: str):
     gitlab_client = GitlabClient(GITLAB_API_URL, token)
     projects = await gitlab_client.get_projects(topic_name)
 
-    for project in projects:
-        links.append(
-            {
-                "rel": "child",
-                "href": str(
-                    request.url_for(
-                        "collection",
-                        token=token,
-                        topic_name=topic_name,
-                        project_path=project["path_with_namespace"],
-                    )
-                ),
-            }
-        )
-
-    return {
-        "stac_version": "1.0.0",
-        "type": "Catalog",
-        "id": f"gitlab-{slugify(topic_name)}-stac-catalog",
-        "title": topic_title,
-        "description": topic_description,
-        "links": [
-            {
-                "rel": "root",
-                "href": str(request.url_for("root_catalog", token=token)),
-            },
-            {
-                "rel": "self",
-                "href": str(request.url),
-            },
-            {
-                "rel": "parent",
-                "href": str(request.url_for("root_catalog", token=token)),
-            },
-            *links,
-        ],
-    }
+    return build_topic_catalog(
+        name=topic_name,
+        title=topic_title,
+        description=topic_description,
+        projects=projects,
+        request=request,
+        token=token,
+    )
 
 
 @router.get("/{topic_name:str}/{project_path:path}/collection.json")
