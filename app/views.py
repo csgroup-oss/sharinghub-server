@@ -5,7 +5,7 @@ from fastapi.routing import APIRouter
 
 from .config import GITLAB_API_URL, GITLAB_TOPICS, GITLAB_URL
 from .gitlab import GitlabClient
-from .utils import get_markdown_metadata, slugify
+from .utils import make_description_from_readme, parse_markdown, slugify
 
 router = APIRouter(prefix="/{token}", tags=["stac"])
 
@@ -108,10 +108,9 @@ async def topic_catalog(request: Request, token: str, topic_name: str):
 async def collection(request: Request, token: str, topic_name: str, project_path: str):
     gitlab_client = GitlabClient(GITLAB_API_URL, token)
     project, readme = await gitlab_client.get_project_readme(project_path)
+    readme_doc, _, readme_metadata = parse_markdown(readme)
 
-    readme_content = readme.split("---")[-1].strip()
-    readme_metadata = get_markdown_metadata(readme)
-
+    description = make_description_from_readme(readme_doc)
     extent = readme_metadata.get("extent", {})
     spatial_bbox = extent.get("bbox", [[-180, -90, 180, 90]])
     temporal_interval = extent.get(
@@ -134,9 +133,7 @@ async def collection(request: Request, token: str, topic_name: str, project_path
         "type": "Collection",
         "id": f"gitlab-{slugify(project['name_with_namespace'])}",
         "title": project["name_with_namespace"],
-        "description": (
-            project["description"] if project["description"] else readme_content
-        ),
+        "description": description,
         "license": license,
         "extent": {
             "spatial": {"bbox": spatial_bbox},
