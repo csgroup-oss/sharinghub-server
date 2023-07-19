@@ -127,6 +127,11 @@ async def collection(request: Request, token: str, topic_name: str, project_path
         license = "proprietary"
         license_url = None
 
+    keywords = readme_metadata.get("keywords", [])
+    topic_keyword = slugify(topic_name)
+    if topic_keyword not in keywords:
+        keywords.append(topic_keyword)
+
     return {
         "stac_version": "1.0.0",
         "stac_extensions": ["collection-assets"],
@@ -134,6 +139,7 @@ async def collection(request: Request, token: str, topic_name: str, project_path
         "id": f"gitlab-{slugify(project['name_with_namespace'])}",
         "title": project["name_with_namespace"],
         "description": description,
+        "keywords": keywords,
         "license": license,
         "extent": {
             "spatial": {"bbox": spatial_bbox},
