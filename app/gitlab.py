@@ -18,6 +18,8 @@ class GitlabProjectInfo(TypedDict):
     web_url: str
     created_at: str
     last_activity_at: str
+    license_url: str | None
+    license: dict[str]
 
 
 class GitlabClient:
@@ -42,7 +44,9 @@ class GitlabClient:
         return project, readme
 
     async def get_project(self, project_path: str) -> GitlabProjectInfo:
-        return await self._request(f"/projects/{parse.quote(project_path, safe='')}")
+        return await self._request(
+            f"/projects/{parse.quote(project_path, safe='')}?license=true"
+        )
 
     async def get_readme(self, project_path: str) -> str:
         return (

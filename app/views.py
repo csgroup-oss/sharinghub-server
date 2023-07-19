@@ -118,6 +118,16 @@ async def collection(request: Request, token: str, topic_name: str, project_path
         "temporal", [[project["created_at"], project["last_activity_at"]]]
     )
 
+    if "license" in readme_metadata:
+        license = readme_metadata["license"]
+        license_url = readme_metadata.get("license_url")
+    elif project["license_url"]:
+        license = project["license"]["key"]
+        license_url = project["license_url"]
+    else:
+        license = "proprietary"
+        license_url = None
+
     return {
         "stac_version": "1.0.0",
         "stac_extensions": ["collection-assets"],
@@ -127,7 +137,7 @@ async def collection(request: Request, token: str, topic_name: str, project_path
         "description": (
             project["description"] if project["description"] else readme_content
         ),
-        "license": None,
+        "license": license,
         "extent": {
             "spatial": {"bbox": spatial_bbox},
             "temporal": {"interval": temporal_interval},
@@ -146,6 +156,10 @@ async def collection(request: Request, token: str, topic_name: str, project_path
                 "href": str(
                     request.url_for("topic_catalog", token=token, topic_name=topic_name)
                 ),
+            },
+            {
+                "rel": "license",
+                "href": license_url,
             },
         ],
     }
