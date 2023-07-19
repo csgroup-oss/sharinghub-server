@@ -16,6 +16,8 @@ class GitlabProjectInfo(TypedDict):
     path: str
     path_with_namespace: str
     web_url: str
+    created_at: str
+    last_activity_at: str
 
 
 class GitlabClient:

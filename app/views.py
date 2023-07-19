@@ -109,38 +109,43 @@ async def collection(request: Request, token: str, topic_name: str, project_path
     gitlab_client = GitlabClient(GITLAB_API_URL, token)
     project, readme = await gitlab_client.get_project_readme(project_path)
 
-    metadata = get_markdown_metadata(readme)
+    readme_content = readme.split("---")[-1].strip()
+    readme_metadata = get_markdown_metadata(readme)
 
-    collection = {
+    extent = readme_metadata.get("extent", {})
+    spatial_bbox = extent.get("bbox", [[-180, -90, 180, 90]])
+    temporal_interval = extent.get(
+        "temporal", [[project["created_at"], project["last_activity_at"]]]
+    )
+
+    return {
         "stac_version": "1.0.0",
         "stac_extensions": ["collection-assets"],
         "type": "Collection",
         "id": f"gitlab-{slugify(project['name_with_namespace'])}",
         "title": project["name_with_namespace"],
-        "description": project["description"]
-        if project["description"]
-        else f"{project['name']} collection generated from [Gitlab]({project['web_url']}) repository with STAC Dataset Proxy.",
+        "description": (
+            project["description"] if project["description"] else readme_content
+        ),
+        "license": None,
+        "extent": {
+            "spatial": {"bbox": spatial_bbox},
+            "temporal": {"interval": temporal_interval},
+        },
+        "links": [
+            {
+                "rel": "root",
+                "href": str(request.url_for("root_catalog", token=token)),
+            },
+            {
+                "rel": "self",
+                "href": str(request.url),
+            },
+            {
+                "rel": "parent",
+                "href": str(
+                    request.url_for("topic_catalog", token=token, topic_name=topic_name)
+                ),
+            },
+        ],
     }
-    collection |= metadata
-    if "links" in collection:
-        collection["links"].extend(
-            [
-                {
-                    "rel": "root",
-                    "href": str(request.url_for("root_catalog", token=token)),
-                },
-                {
-                    "rel": "self",
-                    "href": str(request.url),
-                },
-                {
-                    "rel": "parent",
-                    "href": str(
-                        request.url_for(
-                            "topic_catalog", token=token, topic_name=topic_name
-                        )
-                    ),
-                },
-            ]
-        )
-    return collection
