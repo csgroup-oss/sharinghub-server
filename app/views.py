@@ -141,6 +141,13 @@ async def collection(request: Request, token: str, topic_name: str, project_path
         "description": description,
         "keywords": keywords,
         "license": license,
+        "providers": [
+            {
+                "name": "GitLab",
+                "roles": ["host"],
+                "url": GITLAB_URL,
+            }
+        ],
         "extent": {
             "spatial": {"bbox": spatial_bbox},
             "temporal": {"interval": temporal_interval},
