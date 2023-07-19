@@ -20,6 +20,8 @@ class GitlabProjectInfo(TypedDict):
     last_activity_at: str
     license_url: str | None
     license: dict[str]
+    default_branch: str | None
+    avatar_url: str | None
 
 
 class GitlabClient:

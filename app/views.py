@@ -5,7 +5,7 @@ from fastapi.routing import APIRouter
 
 from .config import GITLAB_API_URL, GITLAB_TOPICS, GITLAB_URL
 from .gitlab import GitlabClient
-from .utils import make_description_from_readme, parse_markdown, slugify
+from .utils import is_local, make_description_from_readme, parse_markdown, slugify
 
 router = APIRouter(prefix="/{token}", tags=["stac"])
 
@@ -108,7 +108,7 @@ async def topic_catalog(request: Request, token: str, topic_name: str):
 async def collection(request: Request, token: str, topic_name: str, project_path: str):
     gitlab_client = GitlabClient(GITLAB_API_URL, token)
     project, readme = await gitlab_client.get_project_readme(project_path)
-    readme_doc, _, readme_metadata = parse_markdown(readme)
+    readme_doc, readme_xml, readme_metadata = parse_markdown(readme)
 
     description = make_description_from_readme(readme_doc)
     extent = readme_metadata.get("extent", {})
@@ -132,7 +132,7 @@ async def collection(request: Request, token: str, topic_name: str, project_path
     if topic_keyword not in keywords:
         keywords.append(topic_keyword)
 
-    return {
+    collection = {
         "stac_version": "1.0.0",
         "stac_extensions": ["collection-assets"],
         "type": "Collection",
@@ -173,3 +173,23 @@ async def collection(request: Request, token: str, topic_name: str, project_path
             },
         ],
     }
+
+    preview = project["avatar_url"]
+    preview = readme_metadata.get("preview", preview)
+    preview = readme_metadata.get("thumbnail", preview)
+    for img in readme_xml.xpath("//img"):
+        if img.get("alt").lower().strip() in ["preview", "thumbnail"]:
+            preview = img.get("src")
+    if is_local(preview):
+        preview = (
+            f"{GITLAB_URL}/{project_path}/raw/{project['default_branch']}/{preview}"
+        )
+    if preview:
+        collection["links"].append(
+            {
+                "rel": "preview",
+                "href": preview,
+            }
+        )
+
+    return collection

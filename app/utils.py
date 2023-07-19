@@ -2,6 +2,7 @@ import io
 import re
 from socket import AF_INET
 from typing import Self
+from urllib.parse import urlparse
 from zipfile import ZipFile
 
 import aiohttp
@@ -26,6 +27,10 @@ def slugify(s: str) -> str:
     s = re.sub(r"[\s_-]+", "-", s)
     s = re.sub(r"^-+|-+$", "", s)
     return s
+
+
+def is_local(url: str) -> bool:
+    return urlparse(url).scheme in ("file", "")
 
 
 def parse_markdown(markdown_content: str) -> tuple[str, etree._Element, dict]:
