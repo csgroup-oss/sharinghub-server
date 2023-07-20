@@ -159,14 +159,24 @@ def build_collection(
     )
 
     if "license" in readme_metadata:
+        # Must be SPDX identifier: https://spdx.org/licenses/
         license = readme_metadata["license"]
-        license_url = readme_metadata.get("license_url")
+        license_url = None
     elif project["license_url"]:
         license = "proprietary"
         license_url = project["license_url"]
     else:
-        license = "proprietary"
+        # Private collection
+        license = None
         license_url = None
+
+    if license:
+        extra_links.append(
+            {
+                "rel": "license",
+                "href": license_url,
+            }
+        )
 
     keywords = readme_metadata.get("keywords", [])
     topic_keyword = slugify(topic_name)
@@ -262,10 +272,6 @@ def build_collection(
                         topic_name=topic_name,
                     )
                 ),
-            },
-            {
-                "rel": "license",
-                "href": license_url,
             },
             *extra_links,
         ],
