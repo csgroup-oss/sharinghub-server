@@ -3,7 +3,7 @@ from typing import NotRequired, TypeAlias, TypedDict, Unpack
 
 from fastapi import Request
 
-from app.api.gitlab import GitlabProjectInfo, gitlab_url
+from app.api.gitlab import GitlabProject, gitlab_url
 from app.utils.http import is_local, slugify
 from app.utils.markdown import increase_headings, parse_markdown
 
@@ -69,7 +69,7 @@ def build_root_catalog(topics: TopicSpec, **context: Unpack[STACContext]) -> dic
 def build_topic_catalog(
     name: str,
     fields: TopicFields,
-    projects: list[GitlabProjectInfo],
+    projects: list[GitlabProject],
     **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
@@ -137,7 +137,7 @@ def build_topic_catalog(
 def build_collection(
     topic_name: str,
     project_path: str,
-    project: GitlabProjectInfo,
+    project: GitlabProject,
     readme: str,
     **context: Unpack[STACContext],
 ) -> dict:

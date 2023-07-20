@@ -15,7 +15,7 @@ def gitlab_api(gitlab_base_uri: str) -> str:
     return f"{gitlab_url(gitlab_base_uri)}/api/v4"
 
 
-class GitlabProjectInfo(TypedDict):
+class GitlabProject(TypedDict):
     id: str
     description: str | None
     name: str
@@ -36,12 +36,12 @@ class GitlabClient:
         self.api_url = api_url
         self.token = token
 
-    async def get_projects(self, topic_name: str) -> list[GitlabProjectInfo]:
+    async def get_projects(self, topic_name: str) -> list[GitlabProject]:
         return await self._request(
             f"/projects?topic={topic_name}&simple=true", collect=True
         )
 
-    async def get_project(self, project_path: str) -> GitlabProjectInfo:
+    async def get_project(self, project_path: str) -> GitlabProject:
         return await self._request(
             f"/projects/{parse.quote(project_path, safe='')}?license=true"
         )
