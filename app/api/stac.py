@@ -1,10 +1,11 @@
+import re
 from typing import NotRequired, TypeAlias, TypedDict, Unpack
 
 from fastapi import Request
 
 from app.api.gitlab import GitlabProjectInfo, gitlab_url
 from app.utils.http import is_local, slugify
-from app.utils.markdown import make_description_from_readme, parse_markdown
+from app.utils.markdown import increase_headings, parse_markdown
 
 
 class STACContext(TypedDict):
@@ -149,7 +150,7 @@ def build_collection(
 
     readme_doc, readme_xml, readme_metadata = parse_markdown(readme)
 
-    description = make_description_from_readme(readme_doc)
+    description = increase_headings(readme_doc, 2)
     extent = readme_metadata.get("extent", {})
     spatial_bbox = extent.get("bbox", [[-180, -90, 180, 90]])
     temporal_interval = extent.get(

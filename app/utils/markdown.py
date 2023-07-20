@@ -1,5 +1,3 @@
-import re
-
 import markdown
 from lxml import etree
 
@@ -16,13 +14,11 @@ def parse_markdown(markdown_content: str) -> tuple[str, etree._Element, dict]:
     return doc, doc_tree, metadata
 
 
-def make_description_from_readme(markdown_content: str) -> str:
-    markdown_content = re.sub(r"^#\s+(.*)\n", "", markdown_content).lstrip()
-    markdown_list = markdown_content.split("\n")
+def increase_headings(markdown_content: str, incr: int = 1) -> str:
     markdown_buff = []
-    for line in markdown_list:
+    for line in markdown_content.split("\n"):
         if line.startswith("#"):
-            markdown_buff.append(f"#{line}")
+            markdown_buff.append(f"{'#' * incr}{line}")
         else:
             markdown_buff.append(line)
     return "\n".join(markdown_buff)
