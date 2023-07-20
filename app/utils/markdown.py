@@ -1,8 +1,10 @@
+import re
+
 import markdown
 from lxml import etree
 
 
-def parse_markdown(markdown_content: str) -> tuple[str, etree._Element, dict]:
+def parse(markdown_content: str) -> tuple[str, etree._Element, dict]:
     md = markdown.Markdown(extensions=["full_yaml_metadata"])
     md.convert(markdown_content)
     metadata = md.Meta if md.Meta else {}
@@ -22,3 +24,9 @@ def increase_headings(markdown_content: str, incr: int = 1) -> str:
         else:
             markdown_buff.append(line)
     return "\n".join(markdown_buff)
+
+
+def remove_images(markdown_content: str) -> str:
+    return re.sub(
+        r"(\n){3,}", "\n\n", re.sub(r"\!\[(.*)\]\((.*)\)", "", markdown_content)
+    )

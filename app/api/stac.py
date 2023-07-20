@@ -3,8 +3,8 @@ from typing import NotRequired, TypeAlias, TypedDict, Unpack
 from fastapi import Request
 
 from app.api.gitlab import GitlabMember, GitlabMemberRole, GitlabProject, gitlab_url
+from app.utils import markdown as md
 from app.utils.http import is_local, slugify
-from app.utils.markdown import increase_headings, parse_markdown
 
 
 class STACContext(TypedDict):
@@ -149,9 +149,10 @@ def build_collection(
     extra_links = []
     extra_providers = []
 
-    readme_doc, readme_xml, readme_metadata = parse_markdown(readme)
+    readme_doc, readme_xml, readme_metadata = md.parse(readme)
 
-    description = increase_headings(readme_doc, 2)
+    description = md.remove_images(md.increase_headings(readme_doc, 2))
+
     extent = readme_metadata.get("extent", {})
     spatial_bbox = extent.get("bbox", [[-180, -90, 180, 90]])
     temporal_interval = extent.get(
