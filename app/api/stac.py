@@ -146,7 +146,7 @@ def build_collection(
     _token = context["token"]
     _gitlab_url = gitlab_url(_gitlab_base_uri)
 
-    links = []
+    extra_links = []
 
     readme_doc, readme_xml, readme_metadata = parse_markdown(readme)
 
@@ -183,7 +183,7 @@ def build_collection(
             f"{_gitlab_url}/{project_path}/raw/{project['default_branch']}/{preview}"
         )
     if preview:
-        links.append(
+        extra_links.append(
             {
                 "rel": "preview",
                 "href": preview,
@@ -240,6 +240,6 @@ def build_collection(
                 "rel": "license",
                 "href": license_url,
             },
-            *links,
+            *extra_links,
         ],
     }
