@@ -1,4 +1,3 @@
-import asyncio
 from typing import Any, TypedDict
 from urllib import parse
 
@@ -33,17 +32,6 @@ class GitlabClient:
         return await self._request(
             f"/projects?topic={topic_name}&simple=true", collect=True
         )
-
-    async def get_project_readme(
-        self, project_path: str
-    ) -> tuple[GitlabProjectInfo, dict[str, Any]]:
-        project, readme = await asyncio.gather(
-            *(
-                self.get_project(project_path),
-                self.get_readme(project_path),
-            )
-        )
-        return project, readme
 
     async def get_project(self, project_path: str) -> GitlabProjectInfo:
         return await self._request(
