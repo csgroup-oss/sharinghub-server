@@ -18,8 +18,8 @@ def slugify(s: str) -> str:
     return s
 
 
-def is_local(url: str) -> bool:
-    return urlparse(url).scheme in ("file", "")
+def is_local(uri: str) -> bool:
+    return urlparse(uri).scheme in ("file", "")
 
 
 class Unzippr:
