@@ -84,7 +84,7 @@ async def collection(request: Request, token: str, topic_name: str, project_path
 
     collection = {
         "stac_version": "1.0.0",
-        "stac_extensions": ["collection-assets"],
+        "stac_extensions": [],
         "type": "Collection",
         "id": f"gitlab-{slugify(project['name_with_namespace'])}",
         "title": project["name_with_namespace"],
