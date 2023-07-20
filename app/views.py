@@ -3,9 +3,9 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
-from app.api.gitlab import GitlabClient
+from app.api.gitlab import GitlabClient, gitlab_api
 from app.api.stac import build_collection, build_root_catalog, build_topic_catalog
-from app.config import GITLAB_API_URL, GITLAB_TOPICS, GITLAB_URL
+from app.config import GITLAB_TOPICS, GITLAB_URL
 
 router = APIRouter(prefix="/{token}", tags=["stac"])
 
@@ -33,7 +33,7 @@ async def topic_catalog(request: Request, token: str, topic_name: str):
             status_code=404, detail=f"Topic '{topic_name}' not configured"
         )
 
-    gitlab_client = GitlabClient(GITLAB_API_URL, token)
+    gitlab_client = GitlabClient(api_url=gitlab_api(GITLAB_URL), token=token)
     projects = await gitlab_client.get_projects(topic_name)
 
     return build_topic_catalog(
@@ -48,7 +48,7 @@ async def topic_catalog(request: Request, token: str, topic_name: str):
 
 @router.get("/{topic_name:str}/{project_path:path}/collection.json")
 async def collection(request: Request, token: str, topic_name: str, project_path: str):
-    gitlab_client = GitlabClient(GITLAB_API_URL, token)
+    gitlab_client = GitlabClient(api_url=gitlab_api(GITLAB_URL), token=token)
     project = await gitlab_client.get_project(project_path)
 
     readme = await gitlab_client.get_readme(project_path)

@@ -14,7 +14,6 @@ ALLOWED_ORIGINS = os.environ.get(
 ]
 
 GITLAB_URL = os.environ.get("GITLAB_URL", "https://gitlab.si.c-s.fr").removesuffix("/")
-GITLAB_API_URL = f"{GITLAB_URL}/api/v4"
 _GITLAB_TOPICS_FILE = Path(
     os.environ.get("GITLAB_TOPICS_FILE", Path(os.getcwd(), "resources", "topics.yaml"))
 )
