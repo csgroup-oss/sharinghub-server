@@ -13,7 +13,6 @@ ALLOWED_ORIGINS = os.environ.get(
     "https://radiantearth.github.io",  # STAC Browser
 ]
 
-GITLAB_URL = os.environ.get("GITLAB_URL", "https://gitlab.si.c-s.fr").removesuffix("/")
 _GITLAB_TOPICS_FILE = Path(
     os.environ.get("GITLAB_TOPICS_FILE", Path(os.getcwd(), "resources", "topics.yaml"))
 )

@@ -2,7 +2,7 @@ from typing import NotRequired, TypeAlias, TypedDict, Unpack
 
 from fastapi import Request
 
-from app.api.gitlab import GitlabProjectInfo
+from app.api.gitlab import GitlabProjectInfo, gitlab_url
 from app.utils.http import is_local, slugify
 from app.utils.markdown import make_description_from_readme, parse_markdown
 
@@ -25,16 +25,22 @@ def build_root_catalog(topics: TopicSpec, **context: Unpack[STACContext]) -> dic
     _request = context["request"]
     _gitlab_base_uri = context["gitlab_base_uri"]
     _token = context["token"]
+    _gitlab_url = gitlab_url(_gitlab_base_uri)
 
     description = (
-        f"Catalog generated from your [Gitlab]({_gitlab_base_uri}) repositories with STAC Dataset Proxy.",
+        f"Catalog generated from your [Gitlab]({_gitlab_url}) repositories with STAC Dataset Proxy.",
     )
 
     topics_catalogs = [
         {
             "rel": "child",
             "href": str(
-                _request.url_for("topic_catalog", token=_token, topic_name=topic_name)
+                _request.url_for(
+                    "topic_catalog",
+                    gitlab_base_uri=_gitlab_base_uri,
+                    token=_token,
+                    topic_name=topic_name,
+                )
             ),
         }
         for topic_name in topics
@@ -68,11 +74,12 @@ def build_topic_catalog(
     _request = context["request"]
     _gitlab_base_uri = context["gitlab_base_uri"]
     _token = context["token"]
+    _gitlab_url = gitlab_url(_gitlab_base_uri)
 
     title = fields["title"]
     description = fields.get(
         "description",
-        f"{title} catalog generated from your [Gitlab]({_gitlab_base_uri}) repositories with STAC Dataset Proxy.",
+        f"{title} catalog generated from your [Gitlab]({_gitlab_url}) repositories with STAC Dataset Proxy.",
     )
 
     links = [
@@ -81,6 +88,7 @@ def build_topic_catalog(
             "href": str(
                 _request.url_for(
                     "collection",
+                    gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
                     topic_name=name,
                     project_path=project["path_with_namespace"],
@@ -98,7 +106,13 @@ def build_topic_catalog(
         "links": [
             {
                 "rel": "root",
-                "href": str(_request.url_for("root_catalog", token=_token)),
+                "href": str(
+                    _request.url_for(
+                        "root_catalog",
+                        gitlab_base_uri=_gitlab_base_uri,
+                        token=_token,
+                    )
+                ),
             },
             {
                 "rel": "self",
@@ -106,7 +120,13 @@ def build_topic_catalog(
             },
             {
                 "rel": "parent",
-                "href": str(_request.url_for("root_catalog", token=_token)),
+                "href": str(
+                    _request.url_for(
+                        "root_catalog",
+                        gitlab_base_uri=_gitlab_base_uri,
+                        token=_token,
+                    )
+                ),
             },
             *links,
         ],
@@ -123,6 +143,7 @@ def build_collection(
     _request = context["request"]
     _gitlab_base_uri = context["gitlab_base_uri"]
     _token = context["token"]
+    _gitlab_url = gitlab_url(_gitlab_base_uri)
 
     links = []
 
@@ -157,7 +178,9 @@ def build_collection(
         if img.get("alt").lower().strip() in ["preview", "thumbnail"]:
             preview = img.get("src")
     if is_local(preview):
-        preview = f"{_gitlab_base_uri}/{project_path}/raw/{project['default_branch']}/{preview}"
+        preview = (
+            f"{_gitlab_url}/{project_path}/raw/{project['default_branch']}/{preview}"
+        )
     if preview:
         links.append(
             {
@@ -179,7 +202,7 @@ def build_collection(
             {
                 "name": "GitLab",
                 "roles": ["host"],
-                "url": _gitlab_base_uri,
+                "url": _gitlab_url,
             }
         ],
         "extent": {
@@ -189,7 +212,13 @@ def build_collection(
         "links": [
             {
                 "rel": "root",
-                "href": str(_request.url_for("root_catalog", token=_token)),
+                "href": str(
+                    _request.url_for(
+                        "root_catalog",
+                        gitlab_base_uri=_gitlab_base_uri,
+                        token=_token,
+                    )
+                ),
             },
             {
                 "rel": "self",
@@ -199,7 +228,10 @@ def build_collection(
                 "rel": "parent",
                 "href": str(
                     _request.url_for(
-                        "topic_catalog", token=_token, topic_name=topic_name
+                        "topic_catalog",
+                        gitlab_base_uri=_gitlab_base_uri,
+                        token=_token,
+                        topic_name=topic_name,
                     )
                 ),
             },

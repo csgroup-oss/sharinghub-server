@@ -7,8 +7,12 @@ from fastapi import HTTPException
 from app.utils.http import AiohttpClient
 
 
+def gitlab_url(gitlab_base_uri: str) -> str:
+    return f"https://{gitlab_base_uri.removesuffix('/')}"
+
+
 def gitlab_api(gitlab_base_uri: str) -> str:
-    return f"{gitlab_base_uri.removesuffix('/')}/api/v4"
+    return f"{gitlab_url(gitlab_base_uri)}/api/v4"
 
 
 class GitlabProjectInfo(TypedDict):
