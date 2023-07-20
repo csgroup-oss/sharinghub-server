@@ -1,3 +1,4 @@
+import asyncio
 import enum
 
 from fastapi import Request
@@ -61,12 +62,16 @@ async def collection(
     gitlab_client = GitlabClient(api_url=gitlab_api(gitlab_base_uri), token=token)
     project = await gitlab_client.get_project(project_path)
 
-    readme = await gitlab_client.get_readme(project_path)
+    readme, members = await asyncio.gather(
+        gitlab_client.get_readme(project_path),
+        gitlab_client.get_members(project_path),
+    )
     return build_collection(
         topic_name=topic_name,
         project_path=project_path,
         project=project,
         readme=readme,
+        members=members,
         request=request,
         gitlab_base_uri=gitlab_base_uri,
         token=token,

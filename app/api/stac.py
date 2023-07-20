@@ -1,9 +1,8 @@
-import re
 from typing import NotRequired, TypeAlias, TypedDict, Unpack
 
 from fastapi import Request
 
-from app.api.gitlab import GitlabProject, gitlab_url
+from app.api.gitlab import GitlabMember, GitlabMemberRole, GitlabProject, gitlab_url
 from app.utils.http import is_local, slugify
 from app.utils.markdown import increase_headings, parse_markdown
 
@@ -139,6 +138,7 @@ def build_collection(
     project_path: str,
     project: GitlabProject,
     readme: str,
+    members: list[GitlabMember],
     **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
@@ -147,6 +147,7 @@ def build_collection(
     _gitlab_url = gitlab_url(_gitlab_base_uri)
 
     extra_links = []
+    extra_providers = []
 
     readme_doc, readme_xml, readme_metadata = parse_markdown(readme)
 
@@ -190,6 +191,31 @@ def build_collection(
             }
         )
 
+    owners = [m for m in members if m["access_level"] == GitlabMemberRole.owner]
+    maintainers = [
+        m for m in members if m["access_level"] == GitlabMemberRole.maintainer
+    ]
+    developers = [m for m in members if m["access_level"] == GitlabMemberRole.developer]
+    producers = (
+        owners
+        if owners
+        else maintainers
+        if maintainers
+        else developers
+        if developers
+        else []
+    )
+    extra_providers.extend(
+        [
+            {
+                "name": f"{member['name']} ({member['username']})",
+                "roles": ["producer"],
+                "url": member["web_url"],
+            }
+            for member in producers
+        ]
+    )
+
     return {
         "stac_version": "1.0.0",
         "stac_extensions": [],
@@ -204,7 +230,8 @@ def build_collection(
                 "name": "GitLab",
                 "roles": ["host"],
                 "url": _gitlab_url,
-            }
+            },
+            *extra_providers,
         ],
         "extent": {
             "spatial": {"bbox": spatial_bbox},

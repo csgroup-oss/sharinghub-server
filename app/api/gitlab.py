@@ -1,3 +1,4 @@
+import enum
 from typing import Any, TypedDict
 from urllib import parse
 
@@ -15,6 +16,18 @@ def gitlab_api(gitlab_base_uri: str) -> str:
     return f"{gitlab_url(gitlab_base_uri)}/api/v4"
 
 
+class GitlabMemberRole(enum.IntEnum):
+    """From https://docs.gitlab.com/ee/api/members.html#roles"""
+
+    no_access = 0
+    minimal_access = 5
+    guest = 10
+    reporter = 20
+    developer = 30
+    maintainer = 40
+    owner = 50
+
+
 class GitlabProject(TypedDict):
     id: str
     description: str | None
@@ -29,6 +42,14 @@ class GitlabProject(TypedDict):
     license: dict[str]
     default_branch: str | None
     avatar_url: str | None
+
+
+class GitlabMember(TypedDict):
+    id: str
+    username: str
+    name: str
+    web_url: str
+    access_level: int
 
 
 class GitlabClient:
@@ -53,6 +74,11 @@ class GitlabClient:
                 media_type="text",
             )
         ).strip()
+
+    async def get_members(self, project_path: str) -> list[GitlabMember]:
+        return await self._request(
+            f"/projects/{parse.quote(project_path, safe='')}/members"
+        )
 
     async def _request(
         self, endpoint: str, media_type="json", collect: bool = False
