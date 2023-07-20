@@ -1,5 +1,6 @@
+import enum
+
 from fastapi import Request
-from fastapi.exceptions import HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
@@ -8,6 +9,8 @@ from app.api.stac import build_collection, build_root_catalog, build_topic_catal
 from app.config import GITLAB_TOPICS
 
 router = APIRouter(prefix="/{gitlab_base_uri}/{token}", tags=["stac"])
+
+TopicName = enum.StrEnum("TopicName", {k: k for k in GITLAB_TOPICS})
 
 
 @router.get("/")
@@ -27,22 +30,19 @@ async def root_catalog(request: Request, gitlab_base_uri: str, token: str):
     )
 
 
-@router.get("/{topic_name:str}/catalog.json")
+@router.get("/{topic_name}/catalog.json")
 async def topic_catalog(
-    request: Request, gitlab_base_uri: str, token: str, topic_name: str
+    request: Request,
+    gitlab_base_uri: str,
+    token: str,
+    topic_name: TopicName,
 ):
-    topic = GITLAB_TOPICS.get(topic_name)
-    if not topic:
-        raise HTTPException(
-            status_code=404, detail=f"Topic '{topic_name}' not configured"
-        )
-
     gitlab_client = GitlabClient(api_url=gitlab_api(gitlab_base_uri), token=token)
     projects = await gitlab_client.get_projects(topic_name)
 
     return build_topic_catalog(
         name=topic_name,
-        fields=topic,
+        fields=GITLAB_TOPICS.get(topic_name),
         projects=projects,
         request=request,
         gitlab_base_uri=gitlab_base_uri,
@@ -50,19 +50,18 @@ async def topic_catalog(
     )
 
 
-@router.get("/{topic_name:str}/{project_path:path}/collection.json")
+@router.get("/{topic_name}/{project_path:path}/collection.json")
 async def collection(
     request: Request,
     gitlab_base_uri: str,
     token: str,
-    topic_name: str,
+    topic_name: TopicName,
     project_path: str,
 ):
     gitlab_client = GitlabClient(api_url=gitlab_api(gitlab_base_uri), token=token)
     project = await gitlab_client.get_project(project_path)
 
     readme = await gitlab_client.get_readme(project_path)
-
     return build_collection(
         topic_name=topic_name,
         project_path=project_path,
