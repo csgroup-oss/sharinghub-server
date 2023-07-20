@@ -19,8 +19,8 @@ async def index(request: Request, token: str):
 async def root_catalog(request: Request, token: str):
     return build_root_catalog(
         topics=GITLAB_TOPICS,
-        description=f"Catalog generated from your [Gitlab]({GITLAB_URL}) repositories with STAC Dataset Proxy.",
         request=request,
+        gitlab_base_uri=GITLAB_URL,
         token=token,
     )
 
@@ -41,6 +41,7 @@ async def topic_catalog(request: Request, token: str, topic_name: str):
         fields=topic,
         projects=projects,
         request=request,
+        gitlab_base_uri=GITLAB_URL,
         token=token,
     )
 
@@ -57,7 +58,7 @@ async def collection(request: Request, token: str, topic_name: str, project_path
         project_path=project_path,
         project=project,
         readme=readme,
-        gitlab_base_uri=GITLAB_URL,
         request=request,
+        gitlab_base_uri=GITLAB_URL,
         token=token,
     )
