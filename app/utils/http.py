@@ -2,7 +2,7 @@ import io
 import re
 from socket import AF_INET
 from typing import Self
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 from zipfile import ZipFile
 
 import aiohttp
@@ -20,6 +20,10 @@ def slugify(s: str) -> str:
 
 def is_local(uri: str) -> bool:
     return urlparse(uri).scheme in ("file", "")
+
+
+def urlsafe_path(path: str) -> str:
+    return quote(path, safe="")
 
 
 class Unzippr:

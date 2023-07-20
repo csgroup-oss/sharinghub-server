@@ -2,7 +2,13 @@ from typing import NotRequired, TypeAlias, TypedDict, Unpack
 
 from fastapi import Request
 
-from app.api.gitlab import GitlabMember, GitlabMemberRole, GitlabProject, gitlab_url
+from app.api.gitlab import (
+    GitlabMember,
+    GitlabMemberRole,
+    GitlabProject,
+    gitlab_url,
+    project_api_file_raw_url,
+)
 from app.utils import markdown as md
 from app.utils.http import is_local, slugify
 
@@ -191,8 +197,8 @@ def build_collection(
         if img.get("alt").lower().strip() in ["preview", "thumbnail"]:
             preview = img.get("src")
     if is_local(preview):
-        preview = (
-            f"{_gitlab_url}/{project_path}/raw/{project['default_branch']}/{preview}"
+        preview = project_api_file_raw_url(
+            gitlab_url=_gitlab_url, project=project, file_path=preview, token=_token
         )
     if preview:
         extra_links.append(

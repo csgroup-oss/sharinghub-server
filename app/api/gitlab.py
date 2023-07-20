@@ -5,15 +5,7 @@ from urllib import parse
 import aiohttp
 from fastapi import HTTPException
 
-from app.utils.http import AiohttpClient
-
-
-def gitlab_url(gitlab_base_uri: str) -> str:
-    return f"https://{gitlab_base_uri.removesuffix('/')}"
-
-
-def gitlab_api(gitlab_base_uri: str) -> str:
-    return f"{gitlab_url(gitlab_base_uri)}/api/v4"
+from app.utils.http import AiohttpClient, urlsafe_path
 
 
 class GitlabMemberRole(enum.IntEnum):
@@ -52,6 +44,28 @@ class GitlabMember(TypedDict):
     access_level: int
 
 
+def gitlab_url(gitlab_base_uri: str) -> str:
+    return f"https://{gitlab_base_uri.removesuffix('/')}"
+
+
+def gitlab_api_url(gitlab_base_uri: str) -> str:
+    return f"{gitlab_url(gitlab_base_uri)}/api/v4"
+
+
+def project_api_url(project_path: str, gitlab_api_url: str = "") -> str:
+    return f"{gitlab_api_url}/projects/{urlsafe_path(project_path)}"
+
+
+def project_api_file_raw_url(
+    gitlab_url: str, project: GitlabProject, file_path: str, token: str
+) -> str:
+    _project_api_url = project_api_url(
+        project["path_with_namespace"],
+        gitlab_api_url(gitlab_url.removeprefix("https://")),
+    )
+    return f"{_project_api_url}/repository/files/{urlsafe_path(file_path)}/raw?ref={project['default_branch']}&private_token={token}"
+
+
 class GitlabClient:
     def __init__(self, api_url: str, token: str) -> None:
         self.api_url = api_url
@@ -63,22 +77,18 @@ class GitlabClient:
         )
 
     async def get_project(self, project_path: str) -> GitlabProject:
-        return await self._request(
-            f"/projects/{parse.quote(project_path, safe='')}?license=true"
-        )
+        return await self._request(f"{project_api_url(project_path)}?license=true")
 
     async def get_readme(self, project_path: str) -> str:
         return (
             await self._request(
-                f"/projects/{parse.quote(project_path, safe='')}/repository/files/README.md/raw",
+                f"{project_api_url(project_path)}/repository/files/README.md/raw",
                 media_type="text",
             )
         ).strip()
 
     async def get_members(self, project_path: str) -> list[GitlabMember]:
-        return await self._request(
-            f"/projects/{parse.quote(project_path, safe='')}/members"
-        )
+        return await self._request(f"{project_api_url(project_path)}/members")
 
     async def _request(
         self, endpoint: str, media_type="json", collect: bool = False

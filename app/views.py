@@ -5,7 +5,7 @@ from fastapi import Request
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
-from app.api.gitlab import GitlabClient, gitlab_api
+from app.api.gitlab import GitlabClient, gitlab_api_url
 from app.api.stac import build_collection, build_root_catalog, build_topic_catalog
 from app.config import GITLAB_TOPICS
 
@@ -38,7 +38,7 @@ async def topic_catalog(
     token: str,
     topic_name: TopicName,
 ):
-    gitlab_client = GitlabClient(api_url=gitlab_api(gitlab_base_uri), token=token)
+    gitlab_client = GitlabClient(api_url=gitlab_api_url(gitlab_base_uri), token=token)
     projects = await gitlab_client.get_projects(topic_name)
 
     return build_topic_catalog(
@@ -59,7 +59,7 @@ async def collection(
     topic_name: TopicName,
     project_path: str,
 ):
-    gitlab_client = GitlabClient(api_url=gitlab_api(gitlab_base_uri), token=token)
+    gitlab_client = GitlabClient(api_url=gitlab_api_url(gitlab_base_uri), token=token)
     project = await gitlab_client.get_project(project_path)
 
     readme, members = await asyncio.gather(
