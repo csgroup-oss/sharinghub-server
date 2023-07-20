@@ -161,7 +161,7 @@ def build_collection(
         license = readme_metadata["license"]
         license_url = readme_metadata.get("license_url")
     elif project["license_url"]:
-        license = project["license"]["key"]
+        license = "proprietary"
         license_url = project["license_url"]
     else:
         license = "proprietary"
