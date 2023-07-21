@@ -1,5 +1,6 @@
 import mimetypes
 import re
+from pathlib import Path
 from typing import NotRequired, TypeAlias, TypedDict, Unpack
 
 from fastapi import Request
@@ -8,10 +9,12 @@ from app.api.gitlab import (
     GitlabMember,
     GitlabMemberRole,
     GitlabProject,
+    GitlabProjectFile,
     gitlab_url,
     project_api_file_raw_url,
     project_url,
 )
+from app.config import ASSETS_FILE_EXTENSIONS
 from app.utils import markdown as md
 from app.utils.http import is_local, slugify
 
@@ -148,6 +151,7 @@ def build_collection(
     project: GitlabProject,
     readme: str,
     members: list[GitlabMember],
+    files: list[GitlabProjectFile],
     **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
@@ -225,6 +229,27 @@ def build_collection(
                 "href": preview,
             }
         )
+
+    assets_globs = readme_metadata.get("assets", [])
+    assets_globs = ["Dockerfile"]
+    for file in files:
+        fpath = Path(file["path"])
+        match_ext = any(file["name"].endswith(ext) for ext in ASSETS_FILE_EXTENSIONS)
+        match_globs = any(fpath.match(glob) for glob in assets_globs)
+        if match_ext or match_globs:
+            media_type, _ = mimetypes.guess_type(file["name"])
+            assets[file["id"]] = {
+                "href": project_api_file_raw_url(
+                    gitlab_base_uri=_gitlab_base_uri,
+                    project=project,
+                    file_path=file["path"],
+                    token=_token,
+                ),
+                "title": file["path"],
+                "roles": ["data"],
+            }
+            if media_type:
+                assets[file["id"]]["type"] = media_type
 
     owners = [m for m in members if m["access_level"] == GitlabMemberRole.owner]
     maintainers = [

@@ -37,6 +37,12 @@ class GitlabProject(TypedDict):
     topics: list[str]
 
 
+class GitlabProjectFile(TypedDict):
+    id: str
+    name: str
+    path: str
+
+
 class GitlabMember(TypedDict):
     id: str
     username: str
@@ -94,6 +100,16 @@ class GitlabClient:
 
     async def get_members(self, project_path: str) -> list[GitlabMember]:
         return await self._request(f"{project_api_url(project_path)}/members")
+
+    async def get_files(self, project_path: str) -> list[GitlabProjectFile]:
+        return [
+            file
+            for file in await self._request(
+                f"{project_api_url(project_path)}/repository/tree?recursive=true",
+                collect=True,
+            )
+            if file["type"] == "blob"
+        ]
 
     async def _request(
         self, endpoint: str, media_type="json", collect: bool = False

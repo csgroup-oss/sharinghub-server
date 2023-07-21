@@ -19,3 +19,8 @@ _CATALOG_TOPICS_FILE = Path(
 )
 with open(_CATALOG_TOPICS_FILE, "r") as f:
     CATALOG_TOPICS = yaml.load(f, Loader=yaml.SafeLoader)
+
+ASSETS_FILE_EXTENSIONS = os.environ.get(
+    "ASSETS_FILE_EXTENSIONS",
+    ".tif .tiff",
+).split()
