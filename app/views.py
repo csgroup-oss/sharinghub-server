@@ -8,7 +8,7 @@ from fastapi.routing import APIRouter
 
 from app.api.gitlab import GitlabClient, gitlab_api_url
 from app.api.stac import build_collection, build_root_catalog, build_topic_catalog
-from app.config import CATALOG_CACHE_TIMEOUT, CATALOG_TOPICS
+from app.config import CATALOG_CACHE_TIMEOUT, CATALOG_TOPICS, DEBUG
 
 router = APIRouter(prefix="/{gitlab_base_uri}/{token}", tags=["stac"])
 
@@ -44,7 +44,8 @@ async def topic_catalog(
 ):
     cache_key = (gitlab_base_uri, topic_name, token)
     if (
-        cache_key in CATALOG_CACHE
+        not DEBUG
+        and cache_key in CATALOG_CACHE
         and time.time() - CATALOG_CACHE[cache_key][0] < CATALOG_CACHE_TIMEOUT
     ):
         return CATALOG_CACHE[cache_key][1]
@@ -85,7 +86,8 @@ async def project_collection(
 
     cache_key = (gitlab_base_uri, project["id"])
     if (
-        cache_key in COLLECTION_CACHE
+        not DEBUG
+        and cache_key in COLLECTION_CACHE
         and COLLECTION_CACHE[cache_key][0] == project["last_activity_at"]
     ):
         return COLLECTION_CACHE[cache_key][1]
