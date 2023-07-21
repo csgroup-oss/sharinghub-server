@@ -1,7 +1,7 @@
 import asyncio
 import enum
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
@@ -61,6 +61,12 @@ async def collection(
 ):
     gitlab_client = GitlabClient(api_url=gitlab_api_url(gitlab_base_uri), token=token)
     project = await gitlab_client.get_project(project_path)
+
+    if topic_name not in project["topics"]:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Project '{project_path}' do not belong to topic '{topic_name}'",
+        )
 
     readme, members = await asyncio.gather(
         gitlab_client.get_readme(project_path),

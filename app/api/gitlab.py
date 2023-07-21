@@ -34,6 +34,7 @@ class GitlabProject(TypedDict):
     license: dict[str]
     default_branch: str | None
     avatar_url: str | None
+    topics: list[str]
 
 
 class GitlabMember(TypedDict):
