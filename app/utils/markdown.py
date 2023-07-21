@@ -1,6 +1,7 @@
 import re
 
 import markdown
+import mistune
 from lxml import etree
 
 
@@ -12,7 +13,7 @@ def parse(markdown_content: str) -> tuple[str, etree._Element, dict]:
         doc = markdown_content.split("---", 2)[-1].lstrip()
     else:
         doc = markdown_content
-    doc_tree = etree.fromstring(f"<root>{markdown.markdown(doc)}</root>")
+    doc_tree = etree.fromstring(f"<root>{mistune.html(doc)}</root>")
     return doc, doc_tree, metadata
 
 
