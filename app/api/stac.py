@@ -299,7 +299,7 @@ def build_collection(
             {
                 "name": "GitLab",
                 "roles": ["host"],
-                "url": _gitlab_url,
+                "url": f"{_gitlab_url}/{project_path}",
             },
             *extra_providers,
         ],
