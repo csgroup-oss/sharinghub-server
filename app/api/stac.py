@@ -1,3 +1,4 @@
+import re
 from typing import NotRequired, TypeAlias, TypedDict, Unpack
 
 from fastapi import Request
@@ -152,6 +153,8 @@ def build_collection(
     _token = context["token"]
     _gitlab_url = gitlab_url(_gitlab_base_uri)
 
+    extensions = []
+    extra_fields = {}
     extra_links = []
     extra_providers = []
 
@@ -233,9 +236,59 @@ def build_collection(
         ]
     )
 
+    if "doi" in readme_metadata:
+        doi_name = readme_metadata["doi"].get("name")
+        doi_link = readme_metadata["doi"].get("link", f"https://doi.org/{doi_name}")
+        doi_citation = readme_metadata["doi"].get("citation")
+    elif match := re.search(
+        r"^DOI\s(?P<doi>.*):\s(?P<citation>.*)", readme_doc, re.MULTILINE
+    ):
+        capture = match.groupdict()
+        doi_name = capture["doi"]
+        doi_link = f"https://doi.org/{doi_name}"
+        doi_citation = capture["citation"]
+    else:
+        doi_name = doi_link = doi_citation = None
+
+    if "publications" in readme_metadata:
+        doi_publications = readme_metadata["doi"].get("publications")
+    elif match := re.search(r"^Publications(\w)?:", readme_doc, re.MULTILINE):
+        doi_publications = []
+        if e := readme_xml.xpath('.//p[starts-with(text(),"Publications")]'):
+            pub = e[0]
+            pub_next = pub.getnext()
+            if pub_next.tag == "ul":
+                for li in pub_next:
+                    content = "".join(li.itertext())
+                    doi, citation = content.split(":", 1)
+                    doi_publications.append(
+                        {
+                            "doi": doi.strip(),
+                            "citation": citation.strip(),
+                        }
+                    )
+    else:
+        doi_publications = None
+
+    if doi_name:
+        extensions.append(
+            "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
+        )
+        extra_fields["sci:doi"] = doi_name
+        extra_links.append(
+            {
+                "rel": "cite-as",
+                "href": doi_link,
+            }
+        )
+        if doi_citation:
+            extra_fields["sci:citation"] = doi_citation
+        if doi_publications:
+            extra_fields["sci:publications"] = doi_publications
+
     return {
         "stac_version": "1.0.0",
-        "stac_extensions": [],
+        "stac_extensions": extensions,
         "type": "Collection",
         "id": f"gitlab-{slugify(project['name_with_namespace'])}",
         "title": project["name_with_namespace"],
@@ -282,4 +335,5 @@ def build_collection(
             },
             *extra_links,
         ],
+        **extra_fields,
     }
