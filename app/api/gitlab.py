@@ -102,7 +102,7 @@ class GitlabClient:
             link = f"{self.api_url}{endpoint}"
             if collect:
                 params = {
-                    "per_page": 20,
+                    "per_page": 100,
                     "pagination": "keyset",
                     "order_by": "id",
                     "sort": "asc",
@@ -146,15 +146,16 @@ class GitlabClient:
                     next_link = self._get_next_link(resp)
                 else:
                     raise HTTPException(status_code=resp.status)
-                next_link = None
 
         return items
 
     def _get_next_link(self, response: aiohttp.ClientResponse) -> str | None:
-        if next_link_header := response.headers.get("Link"):
-            next_link, rel, *_ = next_link_header.split(";")
-            next_link = next_link.strip("<>")
-            rel = rel.strip().removeprefix("rel=").strip('"')
-            if rel == "next":
-                return next_link
+        if link_header := response.headers.get("Link"):
+            links = link_header.split(",")
+            for link_desc in links:
+                link, rel, *_ = link_desc.strip().split(";")
+                link = link.strip("<>")
+                rel = rel.strip().removeprefix("rel=").strip('"')
+                if rel == "next":
+                    return link
         return None
