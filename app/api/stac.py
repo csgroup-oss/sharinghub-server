@@ -1,3 +1,4 @@
+import mimetypes
 import re
 from typing import NotRequired, TypeAlias, TypedDict, Unpack
 
@@ -154,6 +155,7 @@ def build_collection(
     _token = context["token"]
 
     extensions = []
+    assets = {}
     extra_fields = {}
     extra_links = []
     extra_providers = []
@@ -201,6 +203,7 @@ def build_collection(
     for img in readme_xml.xpath("//img"):
         if img.get("alt").lower().strip() in ["preview", "thumbnail"]:
             preview = img.get("src")
+    media_type, _ = mimetypes.guess_type(preview) if preview else (None, None)
     if is_local(preview):
         preview = project_api_file_raw_url(
             gitlab_base_uri=_gitlab_base_uri,
@@ -209,6 +212,13 @@ def build_collection(
             token=_token,
         )
     if preview:
+        assets["preview"] = {
+            "href": preview,
+            "title": "Preview",
+            "roles": ["thumbnail"],
+        }
+        if media_type:
+            assets["preview"]["type"] = media_type
         extra_links.append(
             {
                 "rel": "preview",
@@ -342,5 +352,6 @@ def build_collection(
             },
             *extra_links,
         ],
+        "assets": assets,
         **extra_fields,
     }
