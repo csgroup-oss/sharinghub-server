@@ -67,7 +67,7 @@ async def topic_catalog(
 
 
 @router.get("/{topic_name}/{project_path:path}/collection.json")
-async def collection(
+async def project_collection(
     request: Request,
     gitlab_base_uri: str,
     token: str,

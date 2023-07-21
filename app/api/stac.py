@@ -95,7 +95,7 @@ def build_topic_catalog(
             "rel": "child",
             "href": str(
                 _request.url_for(
-                    "collection",
+                    "project_collection",
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
                     topic_name=name,
