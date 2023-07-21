@@ -1,5 +1,6 @@
 import asyncio
 import enum
+import time
 
 from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -7,11 +8,14 @@ from fastapi.routing import APIRouter
 
 from app.api.gitlab import GitlabClient, gitlab_api_url
 from app.api.stac import build_collection, build_root_catalog, build_topic_catalog
-from app.config import GITLAB_TOPICS
+from app.config import CATALOG_CACHE_TIMEOUT, CATALOG_TOPICS
 
 router = APIRouter(prefix="/{gitlab_base_uri}/{token}", tags=["stac"])
 
-TopicName = enum.StrEnum("TopicName", {k: k for k in GITLAB_TOPICS})
+TopicName = enum.StrEnum("TopicName", {k: k for k in CATALOG_TOPICS})
+
+CATALOG_CACHE = {}
+COLLECTION_CACHE = {}
 
 
 @router.get("/")
@@ -24,7 +28,7 @@ async def index(request: Request, gitlab_base_uri: str, token: str):
 @router.get("/catalog.json")
 async def root_catalog(request: Request, gitlab_base_uri: str, token: str):
     return build_root_catalog(
-        topics=GITLAB_TOPICS,
+        topics=CATALOG_TOPICS,
         request=request,
         gitlab_base_uri=gitlab_base_uri,
         token=token,
@@ -38,17 +42,28 @@ async def topic_catalog(
     token: str,
     topic_name: TopicName,
 ):
+    cache_key = (gitlab_base_uri, topic_name, token)
+    if (
+        cache_key in CATALOG_CACHE
+        and time.time() - CATALOG_CACHE[cache_key][0] < CATALOG_CACHE_TIMEOUT
+    ):
+        return CATALOG_CACHE[cache_key][1]
+
     gitlab_client = GitlabClient(api_url=gitlab_api_url(gitlab_base_uri), token=token)
     projects = await gitlab_client.get_projects(topic_name)
 
-    return build_topic_catalog(
+    catalog = build_topic_catalog(
         name=topic_name,
-        fields=GITLAB_TOPICS.get(topic_name),
+        fields=CATALOG_TOPICS.get(topic_name),
         projects=projects,
         request=request,
         gitlab_base_uri=gitlab_base_uri,
         token=token,
     )
+
+    CATALOG_CACHE[cache_key] = (time.time(), catalog)
+
+    return catalog
 
 
 @router.get("/{topic_name}/{project_path:path}/collection.json")
@@ -68,11 +83,18 @@ async def collection(
             detail=f"Project '{project_path}' do not belong to topic '{topic_name}'",
         )
 
+    cache_key = (gitlab_base_uri, project["id"])
+    if (
+        cache_key in COLLECTION_CACHE
+        and COLLECTION_CACHE[cache_key][0] == project["last_activity_at"]
+    ):
+        return COLLECTION_CACHE[cache_key][1]
+
     readme, members = await asyncio.gather(
         gitlab_client.get_readme(project_path),
         gitlab_client.get_members(project_path),
     )
-    return build_collection(
+    collection = build_collection(
         topic_name=topic_name,
         project_path=project_path,
         project=project,
@@ -82,3 +104,7 @@ async def collection(
         gitlab_base_uri=gitlab_base_uri,
         token=token,
     )
+
+    COLLECTION_CACHE[cache_key] = (project["last_activity_at"], collection)
+
+    return collection
