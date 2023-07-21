@@ -68,7 +68,7 @@ def project_api_file_raw_url(
         project["path_with_namespace"],
         gitlab_api_url(gitlab_base_uri),
     )
-    return f"{_project_api_url}/repository/files/{urlsafe_path(file_path)}/raw?ref={project['default_branch']}&private_token={token}"
+    return f"{_project_api_url}/repository/files/{urlsafe_path(file_path)}/raw?ref={project['default_branch']}&lfs=true&private_token={token}"
 
 
 class GitlabClient:
