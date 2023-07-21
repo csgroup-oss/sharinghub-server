@@ -9,6 +9,7 @@ from app.api.gitlab import (
     GitlabProject,
     gitlab_url,
     project_api_file_raw_url,
+    project_url,
 )
 from app.utils import markdown as md
 from app.utils.http import is_local, slugify
@@ -151,7 +152,6 @@ def build_collection(
     _request = context["request"]
     _gitlab_base_uri = context["gitlab_base_uri"]
     _token = context["token"]
-    _gitlab_url = gitlab_url(_gitlab_base_uri)
 
     extensions = []
     extra_fields = {}
@@ -201,7 +201,10 @@ def build_collection(
             preview = img.get("src")
     if is_local(preview):
         preview = project_api_file_raw_url(
-            gitlab_url=_gitlab_url, project=project, file_path=preview, token=_token
+            gitlab_base_uri=_gitlab_base_uri,
+            project=project,
+            file_path=preview,
+            token=_token,
         )
     if preview:
         extra_links.append(
@@ -299,7 +302,7 @@ def build_collection(
             {
                 "name": "GitLab",
                 "roles": ["host"],
-                "url": f"{_gitlab_url}/{project_path}",
+                "url": project_url(_gitlab_base_uri, project_path),
             },
             *extra_providers,
         ],

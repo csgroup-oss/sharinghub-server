@@ -52,16 +52,20 @@ def gitlab_api_url(gitlab_base_uri: str) -> str:
     return f"{gitlab_url(gitlab_base_uri)}/api/v4"
 
 
+def project_url(gitlab_base_uri: str, project_path: str) -> str:
+    return f"{gitlab_url(gitlab_base_uri)}/{project_path}"
+
+
 def project_api_url(project_path: str, gitlab_api_url: str = "") -> str:
     return f"{gitlab_api_url}/projects/{urlsafe_path(project_path)}"
 
 
 def project_api_file_raw_url(
-    gitlab_url: str, project: GitlabProject, file_path: str, token: str
+    gitlab_base_uri: str, project: GitlabProject, file_path: str, token: str
 ) -> str:
     _project_api_url = project_api_url(
         project["path_with_namespace"],
-        gitlab_api_url(gitlab_url.removeprefix("https://")),
+        gitlab_api_url(gitlab_base_uri),
     )
     return f"{_project_api_url}/repository/files/{urlsafe_path(file_path)}/raw?ref={project['default_branch']}&private_token={token}"
 
