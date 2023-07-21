@@ -160,6 +160,8 @@ def build_collection(
 
     readme_doc, readme_xml, readme_metadata = md.parse(readme)
 
+    # STAC Collection fields
+
     description = md.remove_images(md.increase_headings(readme_doc, 2))
 
     extent = readme_metadata.get("extent", {})
@@ -238,6 +240,8 @@ def build_collection(
             for member in producers
         ]
     )
+
+    # Scientific Citation extension (https://github.com/stac-extensions/scientific)
 
     if "doi" in readme_metadata:
         doi_name = readme_metadata["doi"].get("name")
