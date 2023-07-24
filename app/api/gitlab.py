@@ -42,7 +42,7 @@ class GitlabProjectFile(TypedDict):
     path: str
 
 
-class GitlabMember(TypedDict):
+class GitlabProjectMember(TypedDict):
     id: str
     username: str
     name: str
@@ -102,7 +102,7 @@ class GitlabClient:
                 ) from http_exc
             raise http_exc
 
-    async def get_members(self, project: GitlabProject) -> list[GitlabMember]:
+    async def get_members(self, project: GitlabProject) -> list[GitlabProjectMember]:
         _project_path = project["path_with_namespace"]
         return await self._request(f"{project_api_url(_project_path)}/members")
 

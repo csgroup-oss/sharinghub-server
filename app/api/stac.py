@@ -6,10 +6,10 @@ from typing import NotRequired, TypeAlias, TypedDict, Unpack
 from fastapi import Request
 
 from app.api.gitlab import (
-    GitlabMember,
     GitlabMemberRole,
     GitlabProject,
     GitlabProjectFile,
+    GitlabProjectMember,
     gitlab_url,
     project_api_file_raw_url,
     project_url,
@@ -149,7 +149,7 @@ def build_collection(
     topic_name: str,
     project: GitlabProject,
     readme: str,
-    members: list[GitlabMember],
+    members: list[GitlabProjectMember],
     files: list[GitlabProjectFile],
     **context: Unpack[STACContext],
 ) -> dict:
