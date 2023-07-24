@@ -13,6 +13,7 @@ ALLOWED_ORIGINS = os.environ.get(
     "https://radiantearth.github.io",  # STAC Browser
 ]
 
+# Catalogs
 CATALOG_CACHE_TIMEOUT = float(os.environ.get("CATALOG_CACHE_TIMEOUT", 60.0 * 5))
 _CATALOG_TOPICS_FILE = Path(
     os.environ.get("CATALOG_TOPICS_FILE", Path(os.getcwd(), "resources", "topics.yaml"))
@@ -20,6 +21,7 @@ _CATALOG_TOPICS_FILE = Path(
 with open(_CATALOG_TOPICS_FILE, "r") as f:
     CATALOG_TOPICS = yaml.load(f, Loader=yaml.SafeLoader)
 
+# Assets
 ASSETS_FILE_EXTENSIONS = os.environ.get(
     "ASSETS_FILE_EXTENSIONS",
     ".tif .tiff",

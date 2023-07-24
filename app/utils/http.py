@@ -2,7 +2,7 @@ import io
 import re
 from socket import AF_INET
 from typing import Self
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 from zipfile import ZipFile
 
 import aiohttp
@@ -24,6 +24,12 @@ def is_local(uri: str) -> bool:
 
 def urlsafe_path(path: str) -> str:
     return quote(path, safe="")
+
+
+def url_add_query_params(url: str, query_params: dict) -> str:
+    url_parts = list(urlparse(url))
+    url_parts[4] = urlencode(dict(parse_qsl(url_parts[4])) | query_params)
+    return urlunparse(url_parts)
 
 
 class Unzippr:

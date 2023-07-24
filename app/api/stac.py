@@ -147,7 +147,6 @@ def build_topic_catalog(
 
 def build_collection(
     topic_name: str,
-    project_path: str,
     project: GitlabProject,
     readme: str,
     members: list[GitlabMember],
@@ -341,7 +340,7 @@ def build_collection(
             {
                 "name": "GitLab",
                 "roles": ["host"],
-                "url": project_url(_gitlab_base_uri, project_path),
+                "url": project_url(_gitlab_base_uri, project["path_with_namespace"]),
             },
             *extra_providers,
         ],

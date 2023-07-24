@@ -1,11 +1,10 @@
 import enum
 from typing import Any, TypedDict
-from urllib import parse
 
 import aiohttp
 from fastapi import HTTPException
 
-from app.utils.http import AiohttpClient, urlsafe_path
+from app.utils.http import AiohttpClient, url_add_query_params, urlsafe_path
 
 
 class GitlabMemberRole(enum.IntEnum):
@@ -83,87 +82,90 @@ class GitlabClient:
         self.token = token
 
     async def get_projects(self, topic_name: str) -> list[GitlabProject]:
-        return await self._request(
-            f"/projects?topic={topic_name}&simple=true", collect=True
-        )
+        return await self._request_iterate(f"/projects?topic={topic_name}&simple=true")
 
     async def get_project(self, project_path: str) -> GitlabProject:
         return await self._request(f"{project_api_url(project_path)}?license=true")
 
-    async def get_readme(self, project_path: str) -> str:
-        return (
-            await self._request(
-                f"{project_api_url(project_path)}/repository/files/README.md/raw",
+    async def get_readme(self, project: GitlabProject) -> str:
+        _project_path = project["path_with_namespace"]
+        try:
+            readme = await self._request(
+                f"{project_api_url(_project_path)}/repository/files/README.md/raw",
                 media_type="text",
             )
-        ).strip()
+            return readme.strip()
+        except HTTPException as http_exc:
+            if http_exc.status_code == 404:
+                raise HTTPException(
+                    status_code=422, detail="Missing READMD.md, unprocessable project"
+                ) from http_exc
+            raise http_exc
 
-    async def get_members(self, project_path: str) -> list[GitlabMember]:
-        return await self._request(f"{project_api_url(project_path)}/members")
+    async def get_members(self, project: GitlabProject) -> list[GitlabMember]:
+        _project_path = project["path_with_namespace"]
+        return await self._request(f"{project_api_url(_project_path)}/members")
 
-    async def get_files(self, project_path: str) -> list[GitlabProjectFile]:
+    async def get_files(self, project: GitlabProject) -> list[GitlabProjectFile]:
+        _project_path = project["path_with_namespace"]
         return [
             file
-            for file in await self._request(
-                f"{project_api_url(project_path)}/repository/tree?recursive=true",
-                collect=True,
+            for file in await self._request_iterate(
+                f"{project_api_url(_project_path)}/repository/tree?recursive=true"
             )
             if file["type"] == "blob"
         ]
 
     async def _request(
-        self, endpoint: str, media_type="json", collect: bool = False
+        self, endpoint: str, media_type="json"
     ) -> dict[str, Any] | list[Any] | str:
         async with AiohttpClient() as client:
-            link = f"{self.api_url}{endpoint}"
-            if collect:
-                params = {
-                    "per_page": 100,
-                    "pagination": "keyset",
-                    "order_by": "id",
-                    "sort": "asc",
-                }
-                url_parts = list(parse.urlparse(link))
-                url_parts[4] = parse.urlencode(
-                    dict(parse.parse_qsl(url_parts[4])) | params
-                )
-                link = parse.urlunparse(url_parts)
-            async with client.get(link, headers={"PRIVATE-TOKEN": self.token}) as resp:
+            url = f"{self.api_url}{endpoint}"
+            async with client.get(url, headers={"PRIVATE-TOKEN": self.token}) as resp:
                 if resp.ok:
                     match media_type:
                         case "text":
                             return await resp.text()
                         case "json" | _:
-                            if collect:
-                                return await self._collect(client, resp)
                             return await resp.json()
                 raise HTTPException(
                     status_code=resp.status,
                     detail=f"{resp.url}: {await resp.text()}",
                 )
 
-    async def _collect(
-        self, client: aiohttp.ClientSession, response: aiohttp.ClientResponse
-    ) -> list[Any]:
-        items = await response.json()
+    async def _request_iterate(self, endpoint: str) -> list[Any]:
+        items = []
+        params = {
+            "per_page": 100,
+            "pagination": "keyset",
+            "order_by": "id",
+            "sort": "asc",
+        }
 
-        if not isinstance(items, list):
-            raise HTTPException(
-                status_code=422, detail="Unexpected: requested API do not return a list"
-            )
+        async with AiohttpClient() as client:
+            url = f"{self.api_url}{endpoint}"
+            url = url_add_query_params(url, params)
 
-        next_link = self._get_next_link(response)
-        while next_link:
-            async with client.get(
-                next_link, headers={"PRIVATE-TOKEN": self.token}
-            ) as resp:
-                if resp.ok:
-                    items.extend(await resp.json())
-                    next_link = self._get_next_link(resp)
-                else:
-                    raise HTTPException(status_code=resp.status)
+            while url:
+                async with client.get(
+                    url, headers={"PRIVATE-TOKEN": self.token}
+                ) as resp:
+                    if resp.ok:
+                        content = await resp.json()
+                        if not isinstance(content, list):
+                            raise HTTPException(
+                                status_code=422,
+                                detail="Unexpected: requested API do not return a list",
+                            )
+                        items.extend(content)
+                        url = self._get_next_link(resp)
+                    else:
+                        raise HTTPException(
+                            status_code=resp.status,
+                            detail=f"{resp.url}: {await resp.text()}",
+                        )
 
-        return items
+            return items
 
     def _get_next_link(self, response: aiohttp.ClientResponse) -> str | None:
         if link_header := response.headers.get("Link"):

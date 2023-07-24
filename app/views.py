@@ -61,9 +61,7 @@ async def topic_catalog(
         gitlab_base_uri=gitlab_base_uri,
         token=token,
     )
-
     CATALOG_CACHE[cache_key] = (time.time(), catalog)
-
     return catalog
 
 
@@ -93,13 +91,13 @@ async def project_collection(
         return COLLECTION_CACHE[cache_key][1]
 
     readme, members, files = await asyncio.gather(
-        gitlab_client.get_readme(project_path),
-        gitlab_client.get_members(project_path),
-        gitlab_client.get_files(project_path),
+        gitlab_client.get_readme(project),
+        gitlab_client.get_members(project),
+        gitlab_client.get_files(project),
     )
+
     collection = build_collection(
         topic_name=topic_name,
-        project_path=project_path,
         project=project,
         readme=readme,
         members=members,
@@ -108,7 +106,5 @@ async def project_collection(
         gitlab_base_uri=gitlab_base_uri,
         token=token,
     )
-
     COLLECTION_CACHE[cache_key] = (project["last_activity_at"], collection)
-
     return collection
