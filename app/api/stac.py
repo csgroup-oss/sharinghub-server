@@ -230,7 +230,6 @@ def build_collection(
         )
 
     assets_globs = readme_metadata.get("assets", [])
-    assets_globs = ["Dockerfile"]
     for file in files:
         fpath = Path(file["path"])
         match_ext = any(file["name"].endswith(ext) for ext in ASSETS_FILE_EXTENSIONS)
