@@ -26,3 +26,4 @@ ASSETS_FILE_EXTENSIONS = os.environ.get(
     "ASSETS_FILE_EXTENSIONS",
     ".tif .tiff",
 ).split()
+RELEASE_SOURCE_ASSET_FORMAT = os.environ.get("RELEASE_SOURCE_ASSET_FORMAT", "zip")

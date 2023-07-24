@@ -50,6 +50,25 @@ class GitlabProjectMember(TypedDict):
     access_level: int
 
 
+class GitlabProjectRelease(TypedDict):
+    name: str
+    tag_name: str
+    description: str
+    commit_path: str
+    tag_path: str
+    assets: "_GitlabProjectReleaseAssets"
+
+
+class _GitlabProjectReleaseAssets(TypedDict):
+    count: int
+    sources: list["_GitlabProjectReleaseSources"]
+
+
+class _GitlabProjectReleaseSources(TypedDict):
+    format: str
+    url: str
+
+
 def gitlab_url(gitlab_base_uri: str) -> str:
     return f"https://{gitlab_base_uri.removesuffix('/')}"
 
@@ -115,6 +134,19 @@ class GitlabClient:
             )
             if file["type"] == "blob"
         ]
+
+    async def get_latest_release(
+        self, project: GitlabProject
+    ) -> GitlabProjectRelease | None:
+        _project_path = project["path_with_namespace"]
+        try:
+            return await self._request(
+                f"{project_api_url(_project_path)}/releases/permalink/latest"
+            )
+        except HTTPException as http_exc:
+            if http_exc.status_code == 404:
+                return None
+            raise http_exc
 
     async def _request(
         self, endpoint: str, media_type="json"

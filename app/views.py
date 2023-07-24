@@ -90,10 +90,11 @@ async def project_collection(
     ):
         return COLLECTION_CACHE[cache_key][1]
 
-    readme, members, files = await asyncio.gather(
+    readme, members, files, release = await asyncio.gather(
         gitlab_client.get_readme(project),
         gitlab_client.get_members(project),
         gitlab_client.get_files(project),
+        gitlab_client.get_latest_release(project),
     )
 
     try:
@@ -103,6 +104,7 @@ async def project_collection(
             readme=readme,
             members=members,
             files=files,
+            release=release,
             request=request,
             gitlab_base_uri=gitlab_base_uri,
             token=token,

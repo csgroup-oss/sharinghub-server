@@ -10,11 +10,12 @@ from app.api.gitlab import (
     GitlabProject,
     GitlabProjectFile,
     GitlabProjectMember,
+    GitlabProjectRelease,
     gitlab_url,
     project_file_download_url,
     project_url,
 )
-from app.config import ASSETS_FILE_EXTENSIONS
+from app.config import ASSETS_FILE_EXTENSIONS, RELEASE_SOURCE_ASSET_FORMAT
 from app.utils import markdown as md
 from app.utils.http import is_local, slugify
 
@@ -151,6 +152,7 @@ def build_collection(
     readme: str,
     members: list[GitlabProjectMember],
     files: list[GitlabProjectFile],
+    release: GitlabProjectRelease | None,
     **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
@@ -248,6 +250,23 @@ def build_collection(
             }
             if media_type:
                 assets[file["id"]]["type"] = media_type
+
+    if release:
+        for source in release["assets"]["sources"]:
+            if source["format"] == RELEASE_SOURCE_ASSET_FORMAT:
+                media_type, _ = mimetypes.guess_type(source["url"])
+                assets[release["tag_name"]] = {
+                    "href": source["url"],
+                    "title": f"Release {release['tag_name']}",
+                    "description": release["name"],
+                    "roles": ["data"],
+                }
+                if release["description"]:
+                    assets[release["tag_name"]][
+                        "description"
+                    ] += f":\n\n{release['description']}"
+                if media_type:
+                    assets[release["tag_name"]]["type"] = media_type
 
     owners = [m for m in members if m["access_level"] == GitlabMemberRole.owner]
     maintainers = [
