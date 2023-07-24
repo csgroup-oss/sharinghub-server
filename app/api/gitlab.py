@@ -66,7 +66,7 @@ def project_api_url(project_path: str, gitlab_api_url: str = "") -> str:
     return f"{gitlab_api_url}/projects/{urlsafe_path(project_path)}"
 
 
-def project_api_file_raw_url(
+def project_file_download_url(
     gitlab_base_uri: str, project: GitlabProject, file_path: str, token: str
 ) -> str:
     _project_api_url = project_api_url(

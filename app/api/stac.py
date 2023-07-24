@@ -11,7 +11,7 @@ from app.api.gitlab import (
     GitlabProjectFile,
     GitlabProjectMember,
     gitlab_url,
-    project_api_file_raw_url,
+    project_file_download_url,
     project_url,
 )
 from app.config import ASSETS_FILE_EXTENSIONS
@@ -208,7 +208,7 @@ def build_collection(
             preview = img.get("src")
     media_type, _ = mimetypes.guess_type(preview) if preview else (None, None)
     if is_local(preview):
-        preview = project_api_file_raw_url(
+        preview = project_file_download_url(
             gitlab_base_uri=_gitlab_base_uri,
             project=project,
             file_path=preview,
@@ -237,7 +237,7 @@ def build_collection(
         if match_ext or match_globs:
             media_type, _ = mimetypes.guess_type(file["name"])
             assets[file["id"]] = {
-                "href": project_api_file_raw_url(
+                "href": project_file_download_url(
                     gitlab_base_uri=_gitlab_base_uri,
                     project=project,
                     file_path=file["path"],
