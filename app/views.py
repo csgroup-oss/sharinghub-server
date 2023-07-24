@@ -78,7 +78,7 @@ async def project_collection(
 
     if topic_name not in project["topics"]:
         raise HTTPException(
-            status_code=422,
+            status_code=400,
             detail=f"Project '{project_path}' do not belong to topic '{topic_name}'",
         )
 
@@ -96,15 +96,19 @@ async def project_collection(
         gitlab_client.get_files(project),
     )
 
-    collection = build_collection(
-        topic_name=topic_name,
-        project=project,
-        readme=readme,
-        members=members,
-        files=files,
-        request=request,
-        gitlab_base_uri=gitlab_base_uri,
-        token=token,
-    )
+    try:
+        collection = build_collection(
+            topic_name=topic_name,
+            project=project,
+            readme=readme,
+            members=members,
+            files=files,
+            request=request,
+            gitlab_base_uri=gitlab_base_uri,
+            token=token,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
     COLLECTION_CACHE[cache_key] = (project["last_activity_at"], collection)
     return collection
