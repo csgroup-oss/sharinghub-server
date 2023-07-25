@@ -1,7 +1,7 @@
 import mimetypes
-import re
 from pathlib import Path
 from typing import NotRequired, TypeAlias, TypedDict, Unpack
+from urllib import parse
 
 from fastapi import Request
 
@@ -296,54 +296,54 @@ def build_collection(
     # Scientific Citation extension (https://github.com/stac-extensions/scientific)
 
     if "doi" in readme_metadata:
-        doi_name = readme_metadata["doi"].get("name")
-        doi_link = readme_metadata["doi"].get("link", f"https://doi.org/{doi_name}")
-        doi_citation = readme_metadata["doi"].get("citation")
-    elif match := re.search(
-        r"^DOI\s(?P<doi>.*):\s(?P<citation>.*)", readme_doc, re.MULTILINE
-    ):
-        capture = match.groupdict()
-        doi_name = capture["doi"]
-        doi_link = f"https://doi.org/{doi_name}"
-        doi_citation = capture["citation"]
+        doi = readme_metadata["doi"]
+        if isinstance(doi, str):
+            doi_link = doi
+            doi_citation = None
+        elif isinstance(doi, dict):
+            doi_link = doi.get("link")
+            doi_citation = doi.get("citation")
+        else:
+            doi_link = doi_citation = None
+        doi_publications = []
+    elif doi_match := readme_xml.xpath('//a[starts-with(@href, "https://doi.org")]'):
+        doi, *_publications = doi_match
+        doi_link = doi.get("href")
+        doi_citation = "".join(doi.itertext()).strip()
+        doi_publications = []
+        for link in _publications:
+            href = link.get("href")
+            text = "".join(link.itertext()).strip()
+            doi_publications.append(
+                {
+                    "doi": parse.urlparse(href).path.removeprefix("/"),
+                    "citation": text,
+                }
+            )
     else:
-        doi_name = doi_link = doi_citation = None
+        doi_link = doi_citation = None
+        doi_publications = []
 
     if "publications" in readme_metadata:
-        doi_publications = readme_metadata["doi"].get("publications")
-    elif match := re.search(r"^Publications(\w)?:", readme_doc, re.MULTILINE):
-        doi_publications = []
-        if e := readme_xml.xpath('.//p[starts-with(text(),"Publications")]'):
-            pub = e[0]
-            pub_next = pub.getnext()
-            if pub_next.tag == "ul":
-                for li in pub_next:
-                    content = "".join(li.itertext())
-                    doi, citation = content.split(":", 1)
-                    doi_publications.append(
-                        {
-                            "doi": doi.strip(),
-                            "citation": citation.strip(),
-                        }
-                    )
-    else:
-        doi_publications = None
+        doi_publications.extend(readme_metadata["doi"].get("publications"))
 
-    if doi_name:
+    if any((doi_link, doi_citation, doi_publications)):
         extensions.append(
             "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
         )
-        extra_fields["sci:doi"] = doi_name
+
+    if doi_link:
+        extra_fields["sci:doi"] = parse.urlparse(doi_link).path.removeprefix("/")
         extra_links.append(
             {
                 "rel": "cite-as",
                 "href": doi_link,
             }
         )
-        if doi_citation:
-            extra_fields["sci:citation"] = doi_citation
-        if doi_publications:
-            extra_fields["sci:publications"] = doi_publications
+    if doi_citation:
+        extra_fields["sci:citation"] = doi_citation
+    if doi_publications:
+        extra_fields["sci:publications"] = doi_publications
 
     return {
         "stac_version": "1.0.0",
