@@ -206,10 +206,15 @@ def build_collection(
             }
         )
 
-    keywords = readme_metadata.get("keywords", [])
-    topic_keyword = slugify(topic_name)
-    if topic_keyword not in keywords:
-        keywords.append(topic_keyword)
+    keywords = []
+    _topic_keyword = slugify(topic_name)
+    _namespaces_keywords = [
+        slugify(g) for g in project["path_with_namespace"].split("/")[:-1]
+    ]
+    _readme_keywords = readme_metadata.get("keywords", [])
+    keywords.append(_topic_keyword)
+    keywords.extend(_namespaces_keywords)
+    keywords.extend(_readme_keywords)
 
     preview = project["avatar_url"]
     preview = readme_metadata.get("preview", preview)
@@ -361,7 +366,7 @@ def build_collection(
         "id": f"gitlab-{slugify(project['name_with_namespace'])}",
         "title": project["name_with_namespace"],
         "description": description,
-        "keywords": keywords,
+        "keywords": list(dict.fromkeys(keywords)),
         "license": license,
         "providers": [
             {
