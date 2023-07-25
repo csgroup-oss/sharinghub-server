@@ -6,6 +6,22 @@ from fastapi import HTTPException
 
 from app.utils.http import AiohttpClient, url_add_query_params, urlsafe_path
 
+GITLAB_LICENSES_SPDX_MAPPING = {
+    "agpl-3.0": "AGPL-3.0",
+    "apache-2.0": "Apache-2.0",
+    "bsd-2-clause": "BSD-2-Clause",
+    "bsd-3-clause": "BSD-3-Clause",
+    "bsl-1.0": "BSL-1.0",
+    "cc0-1.0": "CC0-1.0",
+    "epl-2.0": "EPL-2.0",
+    "gpl-2.0": "GPL-2.0",
+    "gpl-3.0": "GPL-3.0",
+    "lgpl-2.1": "LGPL-2.1",
+    "mit": "MIT",
+    "mpl-2.0": "MPL-2.0",
+    "unlicense": "Unlicense",
+}
+
 
 class GitlabMemberRole(enum.IntEnum):
     """From https://docs.gitlab.com/ee/api/members.html#roles"""
@@ -30,10 +46,16 @@ class GitlabProject(TypedDict):
     created_at: str
     last_activity_at: str
     license_url: str | None
-    license: dict[str]
+    license: "_GitlabProjectLicense"
     default_branch: str | None
     avatar_url: str | None
     topics: list[str]
+
+
+class _GitlabProjectLicense(TypedDict):
+    key: str
+    name: str
+    html_url: str
 
 
 class GitlabProjectFile(TypedDict):

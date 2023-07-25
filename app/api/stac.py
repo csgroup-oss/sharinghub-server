@@ -6,6 +6,7 @@ from urllib import parse
 from fastapi import Request
 
 from app.api.gitlab import (
+    GITLAB_LICENSES_SPDX_MAPPING,
     GitlabMemberRole,
     GitlabProject,
     GitlabProjectFile,
@@ -181,9 +182,17 @@ def build_collection(
         # Must be SPDX identifier: https://spdx.org/licenses/
         license = readme_metadata["license"]
         license_url = None
-    elif project["license_url"]:
-        license = "proprietary"
-        license_url = project["license_url"]
+    elif project["license"]:
+        _license = project["license"]["key"]
+        _license_html_url = project["license"]["html_url"]
+        license = GITLAB_LICENSES_SPDX_MAPPING.get(_license, _license.upper())
+        license_url = (
+            project["license_url"]
+            if project["license_url"]
+            else _license_html_url
+            if _license_html_url
+            else None
+        )
     else:
         # Private collection
         license = None
