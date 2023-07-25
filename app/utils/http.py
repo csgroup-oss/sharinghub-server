@@ -68,11 +68,4 @@ class AiohttpClient:
         return self.client
 
     async def __aexit__(self, exc_type, exc, tb) -> bool:
-        if self.client:
-            self.client.headers.clear()
         return False
-
-    def with_headers(self, headers: dict[str, str]) -> Self:
-        if self.client:
-            self.client.headers.extend(headers)
-        return self
