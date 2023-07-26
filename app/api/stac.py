@@ -383,7 +383,7 @@ def build_collection(
             {
                 "name": "GitLab",
                 "roles": ["host"],
-                "url": project_url(_gitlab_base_uri, project["path_with_namespace"]),
+                "url": project_url(_gitlab_base_uri, project),
             },
             *extra_providers,
         ],

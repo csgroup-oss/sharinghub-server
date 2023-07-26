@@ -6,7 +6,7 @@ from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
-from app.api.gitlab import GitlabClient, gitlab_api_url
+from app.api.gitlab import GitlabClient
 from app.api.stac import build_collection, build_root_catalog, build_topic_catalog
 from app.config import CATALOG_CACHE_TIMEOUT, CATALOG_TOPICS, DEBUG
 
@@ -50,7 +50,7 @@ async def topic_catalog(
     ):
         return CATALOG_CACHE[cache_key][1]
 
-    gitlab_client = GitlabClient(api_url=gitlab_api_url(gitlab_base_uri), token=token)
+    gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
     projects = await gitlab_client.get_projects(topic_name)
 
     catalog = build_topic_catalog(
@@ -73,7 +73,7 @@ async def project_collection(
     topic_name: TopicName,
     project_path: str,
 ):
-    gitlab_client = GitlabClient(api_url=gitlab_api_url(gitlab_base_uri), token=token)
+    gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
     project = await gitlab_client.get_project(project_path)
 
     if topic_name not in project["topics"]:

@@ -95,54 +95,56 @@ def gitlab_url(gitlab_base_uri: str) -> str:
     return f"https://{gitlab_base_uri.removesuffix('/')}"
 
 
-def gitlab_api_url(gitlab_base_uri: str) -> str:
-    return f"{gitlab_url(gitlab_base_uri)}/api/v4"
-
-
-def project_url(gitlab_base_uri: str, project_path: str) -> str:
-    return f"{gitlab_url(gitlab_base_uri)}/{project_path}"
-
-
-def project_api_url(project_path: str, gitlab_api_url: str = "") -> str:
-    return f"{gitlab_api_url}/projects/{urlsafe_path(project_path)}"
+def project_url(gitlab_base_uri: str, project: GitlabProject) -> str:
+    return f"{gitlab_url(gitlab_base_uri)}/{project['path_with_namespace']}"
 
 
 def project_file_download_url(
     gitlab_base_uri: str, token: str, project: GitlabProject, file_path: str
 ) -> str:
-    _project_api_url = project_api_url(
-        project["path_with_namespace"],
-        gitlab_api_url(gitlab_base_uri),
+    _project_api_url = _get_project_api_url(
+        project["id"], _get_gitlab_api_url(gitlab_base_uri)
     )
-    return f"{_project_api_url}/repository/files/{urlsafe_path(file_path)}/raw?ref={project['default_branch']}&lfs=true&private_token={token}"
+    _fpath = urlsafe_path(file_path)
+    _ref = project["default_branch"]
+    return f"{_project_api_url}/repository/files/{_fpath}/raw?ref={_ref}&lfs=true&private_token={token}"
 
 
 def project_archive_download_url(
     gitlab_base_uri: str, token: str, project: GitlabProject, ref: str, format: str
 ) -> str:
-    _project_api_url = project_api_url(
-        project["path_with_namespace"],
-        gitlab_api_url(gitlab_base_uri),
+    _project_api_url = _get_project_api_url(
+        project["id"], _get_gitlab_api_url(gitlab_base_uri)
     )
     return f"{_project_api_url}/repository/archive.{format}?sha={ref}&private_token={token}"
 
 
+def _get_gitlab_api_url(gitlab_base_uri: str) -> str:
+    return f"{gitlab_url(gitlab_base_uri)}/api/v4"
+
+
+def _get_project_api_url(project_id: str | int, gitlab_api_url: str = "") -> str:
+    _project_id = urlsafe_path(str(project_id))
+    return f"{gitlab_api_url}/projects/{_project_id}"
+
+
 class GitlabClient:
-    def __init__(self, api_url: str, token: str) -> None:
-        self.api_url = api_url
+    def __init__(self, base_uri: str, token: str) -> None:
+        self.base_uri = base_uri
+        self.url = gitlab_url(base_uri)
+        self.api_url = _get_gitlab_api_url(base_uri)
         self.token = token
 
     async def get_projects(self, topic_name: str) -> list[GitlabProject]:
         return await self._request_iterate(f"/projects?topic={topic_name}&simple=true")
 
     async def get_project(self, project_path: str) -> GitlabProject:
-        return await self._request(f"{project_api_url(project_path)}?license=true")
+        return await self._request(f"{_get_project_api_url(project_path)}?license=true")
 
     async def get_readme(self, project: GitlabProject) -> str:
-        _project_path = project["path_with_namespace"]
         try:
             readme = await self._request(
-                f"{project_api_url(_project_path)}/repository/files/README.md/raw",
+                f"{_get_project_api_url(project['id'])}/repository/files/README.md/raw",
                 media_type="text",
             )
             return readme.strip()
@@ -154,15 +156,13 @@ class GitlabClient:
             raise http_exc
 
     async def get_members(self, project: GitlabProject) -> list[GitlabProjectMember]:
-        _project_path = project["path_with_namespace"]
-        return await self._request(f"{project_api_url(_project_path)}/members")
+        return await self._request(f"{_get_project_api_url(project['id'])}/members")
 
     async def get_files(self, project: GitlabProject) -> list[GitlabProjectFile]:
-        _project_path = project["path_with_namespace"]
         return [
             file
             for file in await self._request_iterate(
-                f"{project_api_url(_project_path)}/repository/tree?recursive=true"
+                f"{_get_project_api_url(project['id'])}/repository/tree?recursive=true"
             )
             if file["type"] == "blob"
         ]
@@ -170,10 +170,9 @@ class GitlabClient:
     async def get_latest_release(
         self, project: GitlabProject
     ) -> GitlabProjectRelease | None:
-        _project_path = project["path_with_namespace"]
         try:
             return await self._request(
-                f"{project_api_url(_project_path)}/releases/permalink/latest"
+                f"{_get_project_api_url(project['id'])}/releases/permalink/latest"
             )
         except HTTPException as http_exc:
             if http_exc.status_code == 404:
