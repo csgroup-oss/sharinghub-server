@@ -226,9 +226,9 @@ def build_collection(
     if is_local(preview):
         preview = project_file_download_url(
             gitlab_base_uri=_gitlab_base_uri,
+            token=_token,
             project=project,
             file_path=preview,
-            token=_token,
         )
     if preview:
         assets["preview"] = {
@@ -255,9 +255,9 @@ def build_collection(
             assets[file["id"]] = {
                 "href": project_file_download_url(
                     gitlab_base_uri=_gitlab_base_uri,
+                    token=_token,
                     project=project,
                     file_path=file["path"],
-                    token=_token,
                 ),
                 "title": file["path"],
                 "roles": ["data"],

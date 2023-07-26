@@ -108,7 +108,7 @@ def project_api_url(project_path: str, gitlab_api_url: str = "") -> str:
 
 
 def project_file_download_url(
-    gitlab_base_uri: str, project: GitlabProject, file_path: str, token: str
+    gitlab_base_uri: str, token: str, project: GitlabProject, file_path: str
 ) -> str:
     _project_api_url = project_api_url(
         project["path_with_namespace"],
