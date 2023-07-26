@@ -13,6 +13,7 @@ from app.api.gitlab import (
     GitlabProjectMember,
     GitlabProjectRelease,
     gitlab_url,
+    project_archive_download_url,
     project_file_download_url,
     project_url,
 )
@@ -274,21 +275,23 @@ def build_collection(
                 assets[key]["type"] = media_type
 
     if release:
-        for source in release["assets"]["sources"]:
-            if source["format"] == RELEASE_SOURCE_ASSET_FORMAT:
-                media_type, _ = mimetypes.guess_type(source["url"])
-                assets[release["tag_name"]] = {
-                    "href": source["url"],
-                    "title": f"Release {release['tag_name']}",
-                    "description": release["name"],
-                    "roles": ["data"],
-                }
-                if release["description"]:
-                    assets[release["tag_name"]][
-                        "description"
-                    ] += f":\n\n{release['description']}"
-                if media_type:
-                    assets[release["tag_name"]]["type"] = media_type
+        archive_url = project_archive_download_url(
+            gitlab_base_uri=_gitlab_base_uri,
+            token=_token,
+            project=project,
+            ref=release["tag_name"],
+            format=RELEASE_SOURCE_ASSET_FORMAT,
+        )
+        media_type, _ = mimetypes.guess_type(f"archive.{RELEASE_SOURCE_ASSET_FORMAT}")
+        assets["release"] = {
+            "href": archive_url,
+            "title": f"Release {release['tag_name']}: {release['name']}",
+            "roles": ["source"],
+        }
+        if release["description"]:
+            assets["release"]["description"] = release["description"]
+        if media_type:
+            assets["release"]["type"] = media_type
 
     owners = [m for m in members if m["access_level"] == GitlabMemberRole.owner]
     maintainers = [

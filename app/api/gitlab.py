@@ -117,6 +117,16 @@ def project_file_download_url(
     return f"{_project_api_url}/repository/files/{urlsafe_path(file_path)}/raw?ref={project['default_branch']}&lfs=true&private_token={token}"
 
 
+def project_archive_download_url(
+    gitlab_base_uri: str, token: str, project: GitlabProject, ref: str, format: str
+) -> str:
+    _project_api_url = project_api_url(
+        project["path_with_namespace"],
+        gitlab_api_url(gitlab_base_uri),
+    )
+    return f"{_project_api_url}/repository/archive.{format}?sha={ref}&private_token={token}"
+
+
 class GitlabClient:
     def __init__(self, api_url: str, token: str) -> None:
         self.api_url = api_url
