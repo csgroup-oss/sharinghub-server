@@ -183,7 +183,7 @@ def build_collection(
         # Must be SPDX identifier: https://spdx.org/licenses/
         license = readme_metadata["license"]
         license_url = None
-    elif project["license"]:
+    elif project.get("license"):
         _license = project["license"]["key"]
         _license_html_url = project["license"]["html_url"]
         license = GITLAB_LICENSES_SPDX_MAPPING.get(_license, _license.upper())

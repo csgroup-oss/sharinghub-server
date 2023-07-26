@@ -1,5 +1,5 @@
 import enum
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import aiohttp
 from fastapi import HTTPException
@@ -45,8 +45,8 @@ class GitlabProject(TypedDict):
     web_url: str
     created_at: str
     last_activity_at: str
-    license_url: str | None
-    license: "_GitlabProjectLicense"
+    license_url: NotRequired[str | None]
+    license: NotRequired["_GitlabProjectLicense"]
     default_branch: str | None
     avatar_url: str | None
     topics: list[str]
