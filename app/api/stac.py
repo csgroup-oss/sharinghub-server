@@ -17,7 +17,11 @@ from app.api.gitlab import (
     project_file_download_url,
     project_url,
 )
-from app.config import ASSETS_FILE_EXTENSIONS, RELEASE_SOURCE_ASSET_FORMAT
+from app.config import (
+    ASSETS_FILE_EXTENSIONS,
+    CATALOG_TOPICS,
+    RELEASE_SOURCE_ASSET_FORMAT,
+)
 from app.utils import markdown as md
 from app.utils.http import is_local, slugify
 
@@ -160,6 +164,7 @@ def build_collection(
     _request = context["request"]
     _gitlab_base_uri = context["gitlab_base_uri"]
     _token = context["token"]
+    _gitlab_url = gitlab_url(_gitlab_base_uri)
 
     extensions = []
     assets = {}
@@ -317,6 +322,25 @@ def build_collection(
             for member in producers
         ]
     )
+
+    links = readme_metadata.get("links", {})
+    for rel, href in links.items():
+        if href.startswith("stac+"):
+            href = href.removeprefix("stac+")
+            for _topic_name in CATALOG_TOPICS:
+                if slugify(rel).startswith(slugify(_topic_name)):
+                    path = href.removeprefix(_gitlab_url).lstrip("/")
+                    href = str(
+                        _request.url_for(
+                            "project_collection",
+                            gitlab_base_uri=_gitlab_base_uri,
+                            token=_token,
+                            topic_name=_topic_name,
+                            project_path=path,
+                        )
+                    )
+                    rel = "collection"
+        extra_links.append({"rel": rel, "href": href})
 
     # Scientific Citation extension (https://github.com/stac-extensions/scientific)
 
