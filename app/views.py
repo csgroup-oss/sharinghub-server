@@ -1,6 +1,7 @@
 import asyncio
 import enum
 import time
+from collections import namedtuple
 
 from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -8,7 +9,12 @@ from fastapi.routing import APIRouter
 
 from app.api.gitlab import GitlabClient
 from app.api.stac import build_collection, build_root_catalog, build_topic_catalog
-from app.config import CATALOG_CACHE_TIMEOUT, CATALOG_TOPICS, DEBUG
+from app.config import (
+    CATALOG_CACHE_TIMEOUT,
+    CATALOG_TOPICS,
+    COLLECTION_CACHE_TIMEOUT,
+    DEBUG,
+)
 
 router = APIRouter(prefix="/{gitlab_base_uri}/{token}", tags=["stac"])
 
@@ -16,6 +22,11 @@ TopicName = enum.StrEnum("TopicName", {k: k for k in CATALOG_TOPICS})
 
 CATALOG_CACHE = {}
 COLLECTION_CACHE = {}
+
+CachedCatalog = namedtuple("CachedCatalog", ["time", "catalog"])
+CachedCollection = namedtuple(
+    "CachedCollection", ["time", "last_activity", "collection"]
+)
 
 
 @router.get("/")
@@ -46,9 +57,9 @@ async def topic_catalog(
     if (
         not DEBUG
         and cache_key in CATALOG_CACHE
-        and time.time() - CATALOG_CACHE[cache_key][0] < CATALOG_CACHE_TIMEOUT
+        and time.time() - CATALOG_CACHE[cache_key].time < CATALOG_CACHE_TIMEOUT
     ):
-        return CATALOG_CACHE[cache_key][1]
+        return CATALOG_CACHE[cache_key].catalog
 
     gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
     projects = await gitlab_client.get_projects(topic_name)
@@ -61,7 +72,7 @@ async def topic_catalog(
         gitlab_base_uri=gitlab_base_uri,
         token=token,
     )
-    CATALOG_CACHE[cache_key] = (time.time(), catalog)
+    CATALOG_CACHE[cache_key] = CachedCatalog(time=time.time(), catalog=catalog)
     return catalog
 
 
@@ -73,6 +84,14 @@ async def project_collection(
     topic_name: TopicName,
     project_path: str,
 ):
+    cache_key = (gitlab_base_uri, project_path)
+    if (
+        not DEBUG
+        and cache_key in COLLECTION_CACHE
+        and time.time() - COLLECTION_CACHE[cache_key].time < COLLECTION_CACHE_TIMEOUT
+    ):
+        return COLLECTION_CACHE[cache_key].collection
+
     gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
     project = await gitlab_client.get_project(project_path)
 
@@ -82,13 +101,18 @@ async def project_collection(
             detail=f"Project '{project_path}' do not belong to topic '{topic_name}'",
         )
 
-    cache_key = (gitlab_base_uri, project["id"])
     if (
         not DEBUG
         and cache_key in COLLECTION_CACHE
-        and COLLECTION_CACHE[cache_key][0] == project["last_activity_at"]
+        and COLLECTION_CACHE[cache_key].last_activity == project["last_activity_at"]
     ):
-        return COLLECTION_CACHE[cache_key][1]
+        collection = COLLECTION_CACHE[cache_key].collection
+        COLLECTION_CACHE[cache_key] = CachedCollection(
+            time=time.time(),
+            last_activity=project["last_activity_at"],
+            collection=collection,
+        )
+        return collection
 
     readme, members, files, release = await asyncio.gather(
         gitlab_client.get_readme(project),
@@ -112,5 +136,9 @@ async def project_collection(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
-    COLLECTION_CACHE[cache_key] = (project["last_activity_at"], collection)
+    COLLECTION_CACHE[cache_key] = CachedCollection(
+        time=time.time(),
+        last_activity=project["last_activity_at"],
+        collection=collection,
+    )
     return collection

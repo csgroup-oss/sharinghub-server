@@ -21,6 +21,10 @@ _CATALOG_TOPICS_FILE = Path(
 with open(_CATALOG_TOPICS_FILE, "r") as f:
     CATALOG_TOPICS = yaml.load(f, Loader=yaml.SafeLoader)
 
+# Collections
+
+COLLECTION_CACHE_TIMEOUT = float(os.environ.get("COLLECTION_CACHE_TIMEOUT", 60.0 * 5))
+
 # Assets
 ASSETS_FILE_EXTENSIONS = os.environ.get(
     "ASSETS_FILE_EXTENSIONS",
