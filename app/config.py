@@ -24,6 +24,6 @@ with open(_CATALOG_TOPICS_FILE, "r") as f:
 # Assets
 ASSETS_FILE_EXTENSIONS = os.environ.get(
     "ASSETS_FILE_EXTENSIONS",
-    ".tif .tiff",
+    ".tif .tiff .geojson",
 ).split()
 RELEASE_SOURCE_ASSET_FORMAT = os.environ.get("RELEASE_SOURCE_ASSET_FORMAT", "zip")
