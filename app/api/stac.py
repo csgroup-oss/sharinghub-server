@@ -251,8 +251,9 @@ def build_collection(
         match_ext = any(file["name"].endswith(ext) for ext in ASSETS_FILE_EXTENSIONS)
         match_globs = any(fpath.match(glob) for glob in assets_globs)
         if match_ext or match_globs:
+            key = f"file:/{file['path']}"
             media_type, _ = mimetypes.guess_type(file["name"])
-            assets[file["id"]] = {
+            assets[key] = {
                 "href": project_file_download_url(
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
@@ -263,7 +264,7 @@ def build_collection(
                 "roles": ["data"],
             }
             if media_type:
-                assets[file["id"]]["type"] = media_type
+                assets[key]["type"] = media_type
 
     if release:
         for source in release["assets"]["sources"]:
