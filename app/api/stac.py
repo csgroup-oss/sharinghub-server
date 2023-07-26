@@ -344,6 +344,7 @@ def build_collection(
 
     # Scientific Citation extension (https://github.com/stac-extensions/scientific)
 
+    DOI_PREFIX = "DOI:"
     if "doi" in readme_metadata:
         doi = readme_metadata["doi"]
         if isinstance(doi, str):
@@ -356,19 +357,21 @@ def build_collection(
             doi_link = doi_citation = None
         doi_publications = []
     elif doi_match := readme_xml.xpath('//a[starts-with(@href, "https://doi.org")]'):
-        doi, *_publications = doi_match
-        doi_link = doi.get("href")
-        doi_citation = "".join(doi.itertext()).strip()
+        doi_link = doi_citation = None
         doi_publications = []
-        for link in _publications:
+        for link in doi_match:
             href = link.get("href")
             text = "".join(link.itertext()).strip()
-            doi_publications.append(
-                {
-                    "doi": parse.urlparse(href).path.removeprefix("/"),
-                    "citation": text,
-                }
-            )
+            if text.startswith(DOI_PREFIX):
+                doi_link = href
+                doi_citation = text.removeprefix(DOI_PREFIX).lstrip()
+            else:
+                doi_publications.append(
+                    {
+                        "doi": parse.urlparse(href).path.removeprefix("/"),
+                        "citation": text,
+                    }
+                )
     else:
         doi_link = doi_citation = None
         doi_publications = []
