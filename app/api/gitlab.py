@@ -196,10 +196,10 @@ class GitlabClient:
                     detail=f"{resp.url}: {await resp.text()}",
                 )
 
-    async def _request_iterate(self, endpoint: str) -> list[Any]:
+    async def _request_iterate(self, endpoint: str, per_page=100) -> list[Any]:
         items = []
         params = {
-            "per_page": 100,
+            "per_page": per_page,
             "pagination": "keyset",
             "order_by": "id",
             "sort": "asc",
@@ -221,7 +221,8 @@ class GitlabClient:
                                 detail="Unexpected: requested API do not return a list",
                             )
                         items.extend(content)
-                        url = self._get_next_link(resp)
+                        links = self._get_links_from_headers(resp)
+                        url = links.get("next") if len(content) == per_page else None
                     else:
                         raise HTTPException(
                             status_code=resp.status,
@@ -230,13 +231,13 @@ class GitlabClient:
 
             return items
 
-    def _get_next_link(self, response: aiohttp.ClientResponse) -> str | None:
+    def _get_links_from_headers(self, response: aiohttp.ClientResponse) -> dict:
+        links = {}
         if link_header := response.headers.get("Link"):
-            links = link_header.split(",")
-            for link_desc in links:
+            links_raw = link_header.split(",")
+            for link_desc in links_raw:
                 link, rel, *_ = link_desc.strip().split(";")
                 link = link.strip("<>")
                 rel = rel.strip().removeprefix("rel=").strip('"')
-                if rel == "next":
-                    return link
-        return None
+                links[rel] = link
+        return links
