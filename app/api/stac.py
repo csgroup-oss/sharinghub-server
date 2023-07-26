@@ -253,6 +253,13 @@ def build_collection(
         if match_ext or match_globs:
             key = f"file:/{file['path']}"
             media_type, _ = mimetypes.guess_type(file["name"])
+            extensions = fpath.suffixes
+            if len(extensions) > 1 and media_type == "image/tiff":
+                match extensions[-2]:
+                    case ".geo":
+                        media_type += "; application=geotiff"
+                    case ".cog":
+                        media_type += "; application=geotiff; profile=cloud-optimized"
             assets[key] = {
                 "href": project_file_download_url(
                     gitlab_base_uri=_gitlab_base_uri,
