@@ -17,7 +17,7 @@ from app.api.gitlab import (
     project_file_download_url,
     project_url,
 )
-from app.config import ASSETS_FILE_EXTENSIONS, RELEASE_SOURCE_ASSET_FORMAT
+from app.config import ASSETS_PATTERNS, RELEASE_SOURCE_FORMAT
 from app.utils import markdown as md
 from app.utils.http import is_local, slugify
 
@@ -247,12 +247,10 @@ def build_collection(
             }
         )
 
-    assets_globs = readme_metadata.get("assets", [])
+    assets_globs = [*ASSETS_PATTERNS, *readme_metadata.get("assets", [])]
     for file in files:
         fpath = Path(file["path"])
-        match_ext = any(file["name"].endswith(ext) for ext in ASSETS_FILE_EXTENSIONS)
-        match_globs = any(fpath.match(glob) for glob in assets_globs)
-        if match_ext or match_globs:
+        if any(fpath.match(glob) for glob in assets_globs):
             key = f"file:/{file['path']}"
             media_type, _ = mimetypes.guess_type(file["name"])
             extensions = fpath.suffixes
@@ -281,9 +279,9 @@ def build_collection(
             token=_token,
             project=project,
             ref=release["tag_name"],
-            format=RELEASE_SOURCE_ASSET_FORMAT,
+            format=RELEASE_SOURCE_FORMAT,
         )
-        media_type, _ = mimetypes.guess_type(f"archive.{RELEASE_SOURCE_ASSET_FORMAT}")
+        media_type, _ = mimetypes.guess_type(f"archive.{RELEASE_SOURCE_FORMAT}")
         assets["release"] = {
             "href": archive_url,
             "title": f"Release {release['tag_name']}: {release['name']}",

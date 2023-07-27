@@ -26,10 +26,10 @@ with open(_CATALOG_TOPICS_FILE, "r") as f:
 COLLECTION_CACHE_TIMEOUT = float(os.environ.get("COLLECTION_CACHE_TIMEOUT", 60.0 * 5))
 
 # Assets
-ASSETS_FILE_EXTENSIONS = os.environ.get(
-    "ASSETS_FILE_EXTENSIONS",
-    ".tif .tiff .geojson",
+ASSETS_PATTERNS = os.environ.get(
+    "ASSETS_PATTERNS",
+    "*.tif *.tiff *.geojson",
 ).split()
-RELEASE_SOURCE_ASSET_FORMAT = (
-    os.environ.get("RELEASE_SOURCE_ASSET_FORMAT", "zip").lower().lstrip(".")
+RELEASE_SOURCE_FORMAT = (
+    os.environ.get("RELEASE_SOURCE_FORMAT", "zip").lower().lstrip(".")
 )
