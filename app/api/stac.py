@@ -17,11 +17,7 @@ from app.api.gitlab import (
     project_file_download_url,
     project_url,
 )
-from app.config import (
-    ASSETS_FILE_EXTENSIONS,
-    CATALOG_TOPICS,
-    RELEASE_SOURCE_ASSET_FORMAT,
-)
+from app.config import ASSETS_FILE_EXTENSIONS, RELEASE_SOURCE_ASSET_FORMAT
 from app.utils import markdown as md
 from app.utils.http import is_local, slugify
 
@@ -323,23 +319,26 @@ def build_collection(
         ]
     )
 
-    links = readme_metadata.get("links", {})
-    for rel, href in links.items():
-        if href.startswith("stac+"):
-            href = href.removeprefix("stac+")
-            for _topic_name in CATALOG_TOPICS:
-                if slugify(rel).startswith(slugify(_topic_name)):
-                    path = href.removeprefix(_gitlab_url).lstrip("/")
-                    href = str(
-                        _request.url_for(
-                            "project_collection",
-                            gitlab_base_uri=_gitlab_base_uri,
-                            token=_token,
-                            topic_name=_topic_name,
-                            project_path=path,
-                        )
-                    )
-                    rel = "collection"
+    resources = readme_metadata.get("resources", {})
+    stac_resources = resources.pop("stac", {})
+
+    for topic, val in stac_resources.items():
+        links = val if isinstance(val, list) else [val] if isinstance(val, str) else ()
+        for link in links:
+            path = link.removeprefix(_gitlab_url).strip("/")
+            href = str(
+                _request.url_for(
+                    "project_collection",
+                    gitlab_base_uri=_gitlab_base_uri,
+                    token=_token,
+                    topic_name=topic,
+                    project_path=path,
+                )
+            )
+            extra_links.append(
+                {"rel": "derived_from", "href": href, "title": f"{topic}: {path}"}
+            )
+    for rel, href in resources.items():
         extra_links.append({"rel": rel, "href": href})
 
     # Scientific Citation extension (https://github.com/stac-extensions/scientific)
