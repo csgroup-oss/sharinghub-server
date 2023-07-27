@@ -21,6 +21,12 @@ from app.config import ASSETS_PATTERNS, RELEASE_SOURCE_FORMAT
 from app.utils import markdown as md
 from app.utils.http import is_local, slugify
 
+MEDIA_TYPES = {
+    "geotiff": "image/tiff; application=geotiff",
+    "cog": "image/tiff; application=geotiff; profile=cloud-optimized",
+    "geojson": "application/geo+json",
+}
+
 
 class STACContext(TypedDict):
     request: Request
@@ -248,18 +254,28 @@ def build_collection(
         )
 
     assets_globs = [*ASSETS_PATTERNS, *readme_metadata.get("assets", [])]
+    media_types = readme_metadata.get("media_types", [])
+
+    media_types_mapping = {}
+    for media_type_rule in media_types:
+        eq_match = media_type_rule.split("=")
+        glob_match = media_type_rule.split("://")
+        if len(eq_match) == 2:
+            file_ext_glob = f"*.{eq_match[0].lstrip('.')}"
+            media_type = eq_match[1]
+            media_types_mapping[media_type] = file_ext_glob
+        elif len(glob_match) == 2:
+            media_types_mapping[glob_match[0]] = glob_match[1]
+
     for file in files:
         fpath = Path(file["path"])
         if any(fpath.match(glob) for glob in assets_globs):
             key = f"file:/{file['path']}"
             media_type, _ = mimetypes.guess_type(file["name"])
-            extensions = fpath.suffixes
-            if len(extensions) > 1 and media_type == "image/tiff":
-                match extensions[-2]:
-                    case ".geo":
-                        media_type += "; application=geotiff"
-                    case ".cog":
-                        media_type += "; application=geotiff; profile=cloud-optimized"
+            for mt, mt_glob in media_types_mapping.items():
+                if fpath.match(mt_glob) and mt in MEDIA_TYPES:
+                    media_type = MEDIA_TYPES[mt]
+                    break
             assets[key] = {
                 "href": project_file_download_url(
                     gitlab_base_uri=_gitlab_base_uri,
