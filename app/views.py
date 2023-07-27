@@ -114,9 +114,8 @@ async def project_collection(
         )
         return collection
 
-    readme, members, files, release = await asyncio.gather(
+    readme, files, release = await asyncio.gather(
         gitlab_client.get_readme(project),
-        gitlab_client.get_members(project),
         gitlab_client.get_files(project),
         gitlab_client.get_latest_release(project),
     )
@@ -126,7 +125,6 @@ async def project_collection(
             topic_name=topic_name,
             project=project,
             readme=readme,
-            members=members,
             files=files,
             release=release,
             request=request,

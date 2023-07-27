@@ -23,18 +23,6 @@ GITLAB_LICENSES_SPDX_MAPPING = {
 }
 
 
-class GitlabMemberRole(enum.IntEnum):
-    """From https://docs.gitlab.com/ee/api/members.html#roles"""
-
-    no_access = 0
-    minimal_access = 5
-    guest = 10
-    reporter = 20
-    developer = 30
-    maintainer = 40
-    owner = 50
-
-
 class GitlabProject(TypedDict):
     id: str
     description: str | None
@@ -62,14 +50,6 @@ class GitlabProjectFile(TypedDict):
     id: str
     name: str
     path: str
-
-
-class GitlabProjectMember(TypedDict):
-    id: str
-    username: str
-    name: str
-    web_url: str
-    access_level: int
 
 
 class GitlabProjectRelease(TypedDict):
@@ -154,9 +134,6 @@ class GitlabClient:
                     status_code=418, detail="Missing READMD.md, unprocessable project"
                 ) from http_exc
             raise http_exc
-
-    async def get_members(self, project: GitlabProject) -> list[GitlabProjectMember]:
-        return await self._request(f"{_get_project_api_url(project['id'])}/members")
 
     async def get_files(self, project: GitlabProject) -> list[GitlabProjectFile]:
         return [

@@ -7,10 +7,8 @@ from fastapi import Request
 
 from app.api.gitlab import (
     GITLAB_LICENSES_SPDX_MAPPING,
-    GitlabMemberRole,
     GitlabProject,
     GitlabProjectFile,
-    GitlabProjectMember,
     GitlabProjectRelease,
     gitlab_url,
     project_archive_download_url,
@@ -158,7 +156,6 @@ def build_collection(
     topic_name: str,
     project: GitlabProject,
     readme: str,
-    members: list[GitlabProjectMember],
     files: list[GitlabProjectFile],
     release: GitlabProjectRelease | None,
     **context: Unpack[STACContext],
@@ -308,29 +305,17 @@ def build_collection(
         if media_type:
             assets["release"]["type"] = media_type
 
-    owners = [m for m in members if m["access_level"] == GitlabMemberRole.owner]
-    maintainers = [
-        m for m in members if m["access_level"] == GitlabMemberRole.maintainer
-    ]
-    developers = [m for m in members if m["access_level"] == GitlabMemberRole.developer]
-    producers = (
-        owners
-        if owners
-        else maintainers
-        if maintainers
-        else developers
-        if developers
-        else []
-    )
-    extra_providers.extend(
-        [
-            {
-                "name": f"{member['name']} ({member['username']})",
-                "roles": ["producer"],
-                "url": member["web_url"],
-            }
-            for member in producers
-        ]
+    owner = project["name_with_namespace"].split("/")[0].rstrip()
+    _owner_path = project["path_with_namespace"].split("/")[0]
+    owner_url = f"{_gitlab_url}/{_owner_path}"
+    owner = readme_metadata.get("owner", owner)
+    owner_url = readme_metadata.get("owner_url", owner_url)
+    extra_providers.append(
+        {
+            "name": owner,
+            "roles": ["producer"],
+            "url": owner_url,
+        }
     )
 
     resources = readme_metadata.get("resources", {})
