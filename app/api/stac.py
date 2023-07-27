@@ -407,7 +407,7 @@ def build_collection(
         "license": license,
         "providers": [
             {
-                "name": "GitLab",
+                "name": f"GitLab ({_gitlab_base_uri})",
                 "roles": ["host"],
                 "url": project_url(_gitlab_base_uri, project),
             },
