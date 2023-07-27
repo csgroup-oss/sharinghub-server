@@ -5,6 +5,31 @@ import yaml
 
 DEBUG = os.environ.get("DEBUG", "False").lower() in ["true", "1"]
 
+LOG_LEVEL = "DEBUG" if DEBUG else "INFO"
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "()": "uvicorn.logging.DefaultFormatter",
+            "fmt": "%(levelprefix)s [%(asctime)s] %(message)s",
+            "datefmt": "%H:%M:%S",
+        },
+    },
+    "handlers": {
+        "default": {
+            "formatter": "default",
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "app": {
+            "handlers": ["default"],
+            "level": LOG_LEVEL,
+        }
+    },
+}
+
 API_PREFIX = os.environ.get("API_PREFIX", "")
 ALLOWED_ORIGINS = os.environ.get(
     "ALLOWED_ORIGINS",

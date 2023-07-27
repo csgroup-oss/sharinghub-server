@@ -1,10 +1,12 @@
-import enum
+import logging
 from typing import Any, NotRequired, TypedDict
 
 import aiohttp
 from fastapi import HTTPException
 
 from app.utils.http import AiohttpClient, url_add_query_params, urlsafe_path
+
+logger = logging.getLogger("app")
 
 GITLAB_LICENSES_SPDX_MAPPING = {
     "agpl-3.0": "AGPL-3.0",
@@ -161,6 +163,7 @@ class GitlabClient:
     ) -> dict[str, Any] | list[Any] | str:
         async with AiohttpClient() as client:
             url = f"{self.api_url}{endpoint}"
+            logger.debug(f"Request {endpoint}")
             async with client.get(url, headers={"PRIVATE-TOKEN": self.token}) as resp:
                 if resp.ok:
                     match media_type:
@@ -186,7 +189,9 @@ class GitlabClient:
             url = f"{self.api_url}{endpoint}"
             url = url_add_query_params(url, params)
 
+            logger.debug(f"Request iterate {endpoint}")
             while url:
+                logger.debug(f"\t- {url}")
                 async with client.get(
                     url, headers={"PRIVATE-TOKEN": self.token}
                 ) as resp:
