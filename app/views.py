@@ -13,7 +13,7 @@ from app.config import (
     CATALOG_CACHE_TIMEOUT,
     CATALOG_TOPICS,
     COLLECTION_CACHE_TIMEOUT,
-    DEBUG,
+    ENABLE_CACHE,
 )
 
 CATALOG_CACHE = {}
@@ -54,8 +54,7 @@ async def topic_catalog(
 ):
     cache_key = (gitlab_base_uri, topic, token)
     if (
-        not DEBUG
-        and cache_key in CATALOG_CACHE
+        cache_key in CATALOG_CACHE
         and time.time() - CATALOG_CACHE[cache_key].time < CATALOG_CACHE_TIMEOUT
     ):
         return CATALOG_CACHE[cache_key].catalog
@@ -71,7 +70,10 @@ async def topic_catalog(
         gitlab_base_uri=gitlab_base_uri,
         token=token,
     )
-    CATALOG_CACHE[cache_key] = CachedCatalog(time=time.time(), catalog=catalog)
+
+    if ENABLE_CACHE:
+        CATALOG_CACHE[cache_key] = CachedCatalog(time=time.time(), catalog=catalog)
+
     return catalog
 
 
@@ -85,8 +87,7 @@ async def project_collection(
 ):
     cache_key = (gitlab_base_uri, project_path)
     if (
-        not DEBUG
-        and cache_key in COLLECTION_CACHE
+        cache_key in COLLECTION_CACHE
         and time.time() - COLLECTION_CACHE[cache_key].time < COLLECTION_CACHE_TIMEOUT
     ):
         return COLLECTION_CACHE[cache_key].collection
@@ -101,8 +102,7 @@ async def project_collection(
         )
 
     if (
-        not DEBUG
-        and cache_key in COLLECTION_CACHE
+        cache_key in COLLECTION_CACHE
         and COLLECTION_CACHE[cache_key].last_activity == project["last_activity_at"]
     ):
         collection = COLLECTION_CACHE[cache_key].collection
@@ -133,9 +133,11 @@ async def project_collection(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
-    COLLECTION_CACHE[cache_key] = CachedCollection(
-        time=time.time(),
-        last_activity=project["last_activity_at"],
-        collection=collection,
-    )
+    if ENABLE_CACHE:
+        COLLECTION_CACHE[cache_key] = CachedCollection(
+            time=time.time(),
+            last_activity=project["last_activity_at"],
+            collection=collection,
+        )
+
     return collection

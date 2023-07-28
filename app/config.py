@@ -46,12 +46,13 @@ STAC_CONFIG_PATH = os.environ.get(
 with open(STAC_CONFIG_PATH, "r") as f:
     STAC_CONFIG = yaml.load(f, Loader=yaml.SafeLoader)
 
+ENABLE_CACHE = os.environ.get("ENABLE_CACHE", str(not DEBUG)).lower() in ["true", "1"]
+
 # Catalogs
 CATALOG_CACHE_TIMEOUT = float(os.environ.get("CATALOG_CACHE_TIMEOUT", 60.0 * 5))
 CATALOG_TOPICS = STAC_CONFIG.get("topics", {})
 
 # Collections
-
 COLLECTION_CACHE_TIMEOUT = float(os.environ.get("COLLECTION_CACHE_TIMEOUT", 60.0 * 5))
 
 # Assets
