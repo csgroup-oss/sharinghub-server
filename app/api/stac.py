@@ -13,6 +13,7 @@ from app.api.gitlab import (
     gitlab_url,
     project_archive_download_url,
     project_file_download_url,
+    project_issues_url,
     project_url,
 )
 from app.config import ASSETS_PATTERNS, RELEASE_SOURCE_FORMAT, STAC_CONFIG
@@ -317,6 +318,14 @@ def build_collection(
             "name": owner,
             "roles": ["producer"],
             "url": owner_url,
+        }
+    )
+
+    extra_links.append(
+        {
+            "rel": "bug_tracker",
+            "title": "Issues",
+            "href": project_issues_url(_gitlab_base_uri, project),
         }
     )
 

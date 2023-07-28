@@ -81,6 +81,10 @@ def project_url(gitlab_base_uri: str, project: GitlabProject) -> str:
     return f"{gitlab_url(gitlab_base_uri)}/{project['path_with_namespace']}"
 
 
+def project_issues_url(gitlab_base_uri: str, project: GitlabProject) -> str:
+    return f"{project_url(gitlab_base_uri, project)}/issues"
+
+
 def project_file_download_url(
     gitlab_base_uri: str, token: str, project: GitlabProject, file_path: str
 ) -> str:
