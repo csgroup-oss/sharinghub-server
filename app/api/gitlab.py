@@ -117,8 +117,8 @@ class GitlabClient:
         self.api_url = _get_gitlab_api_url(base_uri)
         self.token = token
 
-    async def get_projects(self, topic_name: str) -> list[GitlabProject]:
-        return await self._request_iterate(f"/projects?topic={topic_name}&simple=true")
+    async def get_projects(self, topic: str) -> list[GitlabProject]:
+        return await self._request_iterate(f"/projects?topic={topic}&simple=true")
 
     async def get_project(self, project_path: str) -> GitlabProject:
         return await self._request(f"{_get_project_api_url(project_path)}?license=true")

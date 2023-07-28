@@ -16,17 +16,16 @@ from app.config import (
     DEBUG,
 )
 
-router = APIRouter(prefix="/{gitlab_base_uri}/{token}", tags=["stac"])
-
-TopicName = enum.StrEnum("TopicName", {k: k for k in CATALOG_TOPICS})
-
 CATALOG_CACHE = {}
 COLLECTION_CACHE = {}
 
+TopicName = enum.StrEnum("TopicName", {k: k for k in CATALOG_TOPICS})
 CachedCatalog = namedtuple("CachedCatalog", ["time", "catalog"])
 CachedCollection = namedtuple(
     "CachedCollection", ["time", "last_activity", "collection"]
 )
+
+router = APIRouter(prefix="/{gitlab_base_uri}/{token}", tags=["stac"])
 
 
 @router.get("/")
@@ -46,14 +45,14 @@ async def root_catalog(request: Request, gitlab_base_uri: str, token: str):
     )
 
 
-@router.get("/{topic_name}/catalog.json")
+@router.get("/{topic}/catalog.json")
 async def topic_catalog(
     request: Request,
     gitlab_base_uri: str,
     token: str,
-    topic_name: TopicName,
+    topic: TopicName,
 ):
-    cache_key = (gitlab_base_uri, topic_name, token)
+    cache_key = (gitlab_base_uri, topic, token)
     if (
         not DEBUG
         and cache_key in CATALOG_CACHE
@@ -62,11 +61,11 @@ async def topic_catalog(
         return CATALOG_CACHE[cache_key].catalog
 
     gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
-    projects = await gitlab_client.get_projects(topic_name)
+    projects = await gitlab_client.get_projects(topic)
 
     catalog = build_topic_catalog(
-        name=topic_name,
-        fields=CATALOG_TOPICS.get(topic_name),
+        name=topic,
+        fields=CATALOG_TOPICS.get(topic),
         projects=projects,
         request=request,
         gitlab_base_uri=gitlab_base_uri,
@@ -76,12 +75,12 @@ async def topic_catalog(
     return catalog
 
 
-@router.get("/{topic_name}/{project_path:path}/collection.json")
+@router.get("/{topic}/{project_path:path}/collection.json")
 async def project_collection(
     request: Request,
     gitlab_base_uri: str,
     token: str,
-    topic_name: TopicName,
+    topic: TopicName,
     project_path: str,
 ):
     cache_key = (gitlab_base_uri, project_path)
@@ -95,10 +94,10 @@ async def project_collection(
     gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
     project = await gitlab_client.get_project(project_path)
 
-    if topic_name not in project["topics"]:
+    if topic not in project["topics"]:
         raise HTTPException(
             status_code=400,
-            detail=f"Project '{project_path}' do not belong to topic '{topic_name}'",
+            detail=f"Project '{project_path}' do not belong to topic '{topic}'",
         )
 
     if (
@@ -122,7 +121,7 @@ async def project_collection(
 
     try:
         collection = build_collection(
-            topic_name=topic_name,
+            topic=topic,
             project=project,
             readme=readme,
             files=files,

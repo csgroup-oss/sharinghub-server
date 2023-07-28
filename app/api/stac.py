@@ -60,11 +60,11 @@ def build_root_catalog(topics: TopicSpec, **context: Unpack[STACContext]) -> dic
                     "topic_catalog",
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
-                    topic_name=topic_name,
+                    topic=topic,
                 )
             ),
         }
-        for topic_name in topics
+        for topic in topics
     ]
     return {
         "stac_version": "1.0.0",
@@ -111,7 +111,7 @@ def build_topic_catalog(
                     "project_collection",
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
-                    topic_name=name,
+                    topic=name,
                     project_path=project["path_with_namespace"],
                 )
             ),
@@ -155,7 +155,7 @@ def build_topic_catalog(
 
 
 def build_collection(
-    topic_name: str,
+    topic: str,
     project: GitlabProject,
     readme: str,
     files: list[GitlabProjectFile],
@@ -214,7 +214,7 @@ def build_collection(
         )
 
     keywords = []
-    _topic_keyword = slugify(topic_name)
+    _topic_keyword = slugify(topic)
     _namespaces_keywords = [
         slugify(g) for g in project["path_with_namespace"].split("/")[:-1]
     ]
@@ -323,7 +323,7 @@ def build_collection(
     resources = readme_metadata.get("resources", {})
     stac_resources = resources.pop("stac", {})
 
-    for topic, val in stac_resources.items():
+    for _topic, val in stac_resources.items():
         links = val if isinstance(val, list) else [val] if isinstance(val, str) else ()
         for link in links:
             path = link.removeprefix(_gitlab_url).strip("/")
@@ -332,12 +332,12 @@ def build_collection(
                     "project_collection",
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
-                    topic_name=topic,
+                    topic=_topic,
                     project_path=path,
                 )
             )
             extra_links.append(
-                {"rel": "derived_from", "href": href, "title": f"{topic}: {path}"}
+                {"rel": "derived_from", "href": href, "title": f"{_topic}: {path}"}
             )
     for rel, href in resources.items():
         extra_links.append({"rel": rel, "href": href})
@@ -440,7 +440,7 @@ def build_collection(
                         "topic_catalog",
                         gitlab_base_uri=_gitlab_base_uri,
                         token=_token,
-                        topic_name=topic_name,
+                        topic=topic,
                     )
                 ),
             },

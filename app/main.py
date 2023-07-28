@@ -11,7 +11,6 @@ from app.utils.http import AiohttpClient
 from app.views import router
 
 dictConfig(LOGGING)
-
 logger = logging.getLogger("app")
 
 
