@@ -7,6 +7,7 @@ from fastapi import Request
 
 from app.api.gitlab import (
     GITLAB_LICENSES_SPDX_MAPPING,
+    GitlabPagination,
     GitlabProject,
     GitlabProjectFile,
     GitlabProjectRelease,
@@ -88,9 +89,10 @@ def build_root_catalog(topics: TopicSpec, **context: Unpack[STACContext]) -> dic
 
 
 def build_topic_catalog(
-    name: str,
+    topic: str,
     fields: TopicFields,
     projects: list[GitlabProject],
+    pagination: GitlabPagination,
     **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
@@ -112,17 +114,47 @@ def build_topic_catalog(
                     "project_collection",
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
-                    topic=name,
+                    topic=topic,
                     project_path=project["path_with_namespace"],
                 )
             ),
         }
         for project in projects
     ]
+
+    _current_topic_url = _request.url_for(
+        "topic_catalog",
+        gitlab_base_uri=_gitlab_base_uri,
+        token=_token,
+        topic=topic,
+    )
+    if pagination["prev_page"]:
+        links.append(
+            {
+                "rel": "prev",
+                "href": str(
+                    _current_topic_url.include_query_params(
+                        page=pagination["prev_page"]
+                    )
+                ),
+            }
+        )
+    if pagination["next_page"]:
+        links.append(
+            {
+                "rel": "next",
+                "href": str(
+                    _current_topic_url.include_query_params(
+                        page=pagination["next_page"]
+                    )
+                ),
+            }
+        )
+
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
-        "id": f"gitlab-{slugify(name)}-stac-catalog",
+        "id": f"gitlab-{slugify(topic)}-stac-catalog",
         "title": title,
         "description": description,
         "links": [

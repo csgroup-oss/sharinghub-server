@@ -24,6 +24,24 @@ GITLAB_LICENSES_SPDX_MAPPING = {
     "unlicense": "Unlicense",
 }
 
+GITLAB_PAGINATION_HEADERS = [
+    "X-Next-Page",
+    "X-Page",
+    "X-Per-Page",
+    "X-Prev-Page",
+    "X-Total",
+    "X-Total-Pages",
+]
+
+
+class GitlabPagination(TypedDict):
+    page: int
+    next_page: int | None
+    prev_page: int | None
+    per_page: int
+    total: int
+    total_pages: int
+
 
 class GitlabProject(TypedDict):
     id: str
@@ -121,8 +139,12 @@ class GitlabClient:
         self.api_url = _get_gitlab_api_url(base_uri)
         self.token = token
 
-    async def get_projects(self, topic: str) -> list[GitlabProject]:
-        return await self._request_iterate(f"/projects?topic={topic}&simple=true")
+    async def get_projects(
+        self, topic: str, page: int = 1, per_page: int = 12
+    ) -> tuple[GitlabPagination, list[GitlabProject]]:
+        return await self._request_paginate(
+            f"/projects?topic={topic}&simple=true", page=page, per_page=per_page
+        )
 
     async def get_project(self, project_path: str) -> GitlabProject:
         return await self._request(f"{_get_project_api_url(project_path)}?license=true")
@@ -180,19 +202,61 @@ class GitlabClient:
                     detail=f"{resp.url}: {await resp.text()}",
                 )
 
+    async def _request_paginate(
+        self, endpoint: str, page=1, per_page=20
+    ) -> tuple[GitlabPagination, list[Any]]:
+        params = {
+            "page": page,
+            "per_page": per_page,
+            "order_by": "id",
+            "sort": "asc",
+        }
+        url = f"{self.api_url}{endpoint}"
+        url = url_add_query_params(url, params)
+        async with AiohttpClient() as client:
+            logger.debug(f"Request page {page} (per page: {per_page}) {endpoint}")
+            async with client.get(url, headers={"PRIVATE-TOKEN": self.token}) as resp:
+                if resp.ok:
+                    items = await resp.json()
+                    if not isinstance(items, list):
+                        raise HTTPException(
+                            status_code=422,
+                            detail="Unexpected: requested API do not return a list",
+                        )
+                    try:
+                        pagination = {
+                            k.lower()
+                            .removeprefix("x-")
+                            .replace("-", "_"): (
+                                int(resp.headers[k]) if resp.headers[k] != "" else None
+                            )
+                            for k in GITLAB_PAGINATION_HEADERS
+                        }
+                    except (KeyError, TypeError) as err:
+                        logger.error(f"Headers: {dict(resp.headers)}")
+                        logger.exception(err)
+                        raise HTTPException(
+                            status_code=500,
+                            detail="Missing or malformed pagination headers",
+                        )
+                    return pagination, items
+                raise HTTPException(
+                    status_code=resp.status,
+                    detail=f"{resp.url}: {await resp.text()}",
+                )
+
     async def _request_iterate(self, endpoint: str, per_page=100) -> list[Any]:
-        items = []
         params = {
             "per_page": per_page,
             "pagination": "keyset",
             "order_by": "id",
             "sort": "asc",
         }
+        url = f"{self.api_url}{endpoint}"
+        url = url_add_query_params(url, params)
 
+        items = []
         async with AiohttpClient() as client:
-            url = f"{self.api_url}{endpoint}"
-            url = url_add_query_params(url, params)
-
             logger.debug(f"Request iterate {endpoint}")
             while url:
                 logger.debug(f"\t- {url}")

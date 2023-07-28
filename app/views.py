@@ -13,6 +13,7 @@ from app.config import (
     CATALOG_CACHE_TIMEOUT,
     CATALOG_TOPICS,
     COLLECTION_CACHE_TIMEOUT,
+    COLLECTIONS_PER_PAGE,
     ENABLE_CACHE,
 )
 
@@ -51,6 +52,7 @@ async def topic_catalog(
     gitlab_base_uri: str,
     token: str,
     topic: TopicName,
+    page: int = 1,
 ):
     cache_key = (gitlab_base_uri, topic, token)
     if (
@@ -60,12 +62,15 @@ async def topic_catalog(
         return CATALOG_CACHE[cache_key].catalog
 
     gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
-    projects = await gitlab_client.get_projects(topic)
+    pagination, projects = await gitlab_client.get_projects(
+        topic, page=page, per_page=COLLECTIONS_PER_PAGE
+    )
 
     catalog = build_topic_catalog(
-        name=topic,
+        topic=topic,
         fields=CATALOG_TOPICS.get(topic),
         projects=projects,
+        pagination=pagination,
         request=request,
         gitlab_base_uri=gitlab_base_uri,
         token=token,

@@ -51,6 +51,7 @@ ENABLE_CACHE = os.environ.get("ENABLE_CACHE", str(not DEBUG)).lower() in ["true"
 # Catalogs
 CATALOG_CACHE_TIMEOUT = float(os.environ.get("CATALOG_CACHE_TIMEOUT", 60.0 * 5))
 CATALOG_TOPICS = STAC_CONFIG.get("topics", {})
+COLLECTIONS_PER_PAGE = int(os.environ.get("COLLECTIONS_PER_PAGE", 12))
 
 # Collections
 COLLECTION_CACHE_TIMEOUT = float(os.environ.get("COLLECTION_CACHE_TIMEOUT", 60.0 * 5))
