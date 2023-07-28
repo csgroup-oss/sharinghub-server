@@ -15,7 +15,7 @@ from app.api.gitlab import (
     project_file_download_url,
     project_url,
 )
-from app.config import ASSETS_PATTERNS, RELEASE_SOURCE_FORMAT
+from app.config import ASSETS_PATTERNS, RELEASE_SOURCE_FORMAT, STAC_CONFIG
 from app.utils import markdown as md
 from app.utils.http import is_local, slugify
 
@@ -46,7 +46,9 @@ def build_root_catalog(topics: TopicSpec, **context: Unpack[STACContext]) -> dic
     _token = context["token"]
     _gitlab_url = gitlab_url(_gitlab_base_uri)
 
-    description = (
+    title = STAC_CONFIG.get("title", "GitLab STAC Catalog")
+    description = STAC_CONFIG.get(
+        "description",
         f"Catalog generated from your [Gitlab]({_gitlab_url}) repositories with STAC Dataset Proxy.",
     )
 
@@ -68,7 +70,7 @@ def build_root_catalog(topics: TopicSpec, **context: Unpack[STACContext]) -> dic
         "stac_version": "1.0.0",
         "type": "Catalog",
         "id": "gitlab-stac-catalog",
-        "title": "GitLab STAC Catalog",
+        "title": title,
         "description": description,
         "links": [
             {
