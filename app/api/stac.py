@@ -68,10 +68,12 @@ def build_root_catalog(topics: TopicSpec, **context: Unpack[STACContext]) -> dic
         }
         for topic in topics
     ]
+
+    catalog_id = f"{slugify(_gitlab_base_uri).replace('-', '')}-catalog"
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
-        "id": "gitlab-stac-catalog",
+        "id": catalog_id,
         "title": title,
         "description": description,
         "links": [
@@ -151,10 +153,13 @@ def build_topic_catalog(
             }
         )
 
+    catalog_id = (
+        f"{slugify(_gitlab_base_uri).replace('-', '')}-{slugify(topic)}-catalog"
+    )
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
-        "id": f"gitlab-{slugify(topic)}-stac-catalog",
+        "id": catalog_id,
         "title": title,
         "description": description,
         "links": [
@@ -438,11 +443,14 @@ def build_collection(
     if doi_publications:
         extra_fields["sci:publications"] = doi_publications
 
+    catalog_id = (
+        f"{slugify(_gitlab_base_uri).replace('-', '')}-{slugify(topic)}-{project['id']}"
+    )
     return {
         "stac_version": "1.0.0",
         "stac_extensions": extensions,
         "type": "Collection",
-        "id": f"gitlab-{slugify(project['name_with_namespace'])}",
+        "id": catalog_id,
         "title": project["name_with_namespace"],
         "description": description,
         "keywords": list(dict.fromkeys(keywords)),
