@@ -57,10 +57,7 @@ PROJECTS_PER_PAGE = int(os.environ.get("PROJECTS_PER_PAGE", 12))
 PROJECT_CACHE_TIMEOUT = float(os.environ.get("PROJECT_CACHE_TIMEOUT", 60.0 * 5))
 
 # Assets
-ASSETS_PATTERNS = os.environ.get(
-    "ASSETS_PATTERNS",
-    "*.tif *.tiff *.geojson",
-).split()
+ASSETS_RULES = os.environ.get("ASSETS_RULES", "*.tif *.tiff *.geojson").split()
 RELEASE_SOURCE_FORMAT = (
     os.environ.get("RELEASE_SOURCE_FORMAT", "zip").lower().lstrip(".")
 )

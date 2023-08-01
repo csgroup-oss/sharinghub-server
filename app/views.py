@@ -10,11 +10,14 @@ from fastapi.routing import APIRouter
 from app.api.gitlab import GitlabClient
 from app.api.stac import build_stac_for_project, build_stac_root, build_stac_topic
 from app.config import (
+    ASSETS_RULES,
     CATALOG_CACHE_TIMEOUT,
     CATALOG_TOPICS,
     ENABLE_CACHE,
     PROJECT_CACHE_TIMEOUT,
     PROJECTS_PER_PAGE,
+    RELEASE_SOURCE_FORMAT,
+    STAC_CONFIG,
 )
 
 CATALOG_CACHE = {}
@@ -37,6 +40,7 @@ async def index(request: Request, gitlab_base_uri: str, token: str):
 @router.get("/catalog.json")
 async def stac_root(request: Request, gitlab_base_uri: str, token: str):
     return build_stac_root(
+        config=STAC_CONFIG,
         topics=CATALOG_TOPICS,
         request=request,
         gitlab_base_uri=gitlab_base_uri,
@@ -129,6 +133,8 @@ async def stac_project(
             readme=readme,
             files=files,
             release=release,
+            assets_rules=ASSETS_RULES,
+            release_source_format=RELEASE_SOURCE_FORMAT,
             request=request,
             gitlab_base_uri=gitlab_base_uri,
             token=token,

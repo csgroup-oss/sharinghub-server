@@ -17,7 +17,6 @@ from app.api.gitlab import (
     project_issues_url,
     project_url,
 )
-from app.config import ASSETS_PATTERNS, RELEASE_SOURCE_FORMAT, STAC_CONFIG
 from app.utils import markdown as md
 from app.utils.http import is_local, slugify
 
@@ -42,14 +41,16 @@ class TopicFields(TypedDict):
 TopicSpec: TypeAlias = dict[str, TopicFields]
 
 
-def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
+def build_stac_root(
+    config: dict, topics: TopicSpec, **context: Unpack[STACContext]
+) -> dict:
     _request = context["request"]
     _gitlab_base_uri = context["gitlab_base_uri"]
     _token = context["token"]
     _gitlab_url = gitlab_url(_gitlab_base_uri)
 
-    title = STAC_CONFIG.get("title", "GitLab STAC Catalog")
-    description = STAC_CONFIG.get(
+    title = config.get("title", "GitLab STAC Catalog")
+    description = config.get(
         "description",
         f"Catalog generated from your [Gitlab]({_gitlab_url}) repositories with STAC Dataset Proxy.",
     )
@@ -196,6 +197,8 @@ def build_stac_for_project(
     readme: str,
     files: list[GitlabProjectFile],
     release: GitlabProjectRelease | None,
+    assets_rules: list[str],
+    release_source_format: str,
     **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
@@ -288,9 +291,8 @@ def build_stac_for_project(
             }
         )
 
-    assets_rules = [*ASSETS_PATTERNS, *readme_metadata.get("assets", [])]
     assets_mapping = {}
-    for asset_rule in assets_rules:
+    for asset_rule in (*assets_rules, *readme_metadata.get("assets", [])):
         eq_match = asset_rule.split("=")
         glob_match = asset_rule.split("://")
         if len(eq_match) == 2:
@@ -330,9 +332,9 @@ def build_stac_for_project(
             token=_token,
             project=project,
             ref=release["tag_name"],
-            format=RELEASE_SOURCE_FORMAT,
+            format=release_source_format,
         )
-        media_type, _ = mimetypes.guess_type(f"archive.{RELEASE_SOURCE_FORMAT}")
+        media_type, _ = mimetypes.guess_type(f"archive.{release_source_format}")
         assets["release"] = {
             "href": archive_url,
             "title": f"Release {release['tag_name']}: {release['name']}",
