@@ -8,23 +8,21 @@ from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
 from app.api.gitlab import GitlabClient
-from app.api.stac import build_collection, build_root_catalog, build_topic_catalog
+from app.api.stac import build_stac_for_project, build_stac_root, build_stac_topic
 from app.config import (
     CATALOG_CACHE_TIMEOUT,
     CATALOG_TOPICS,
-    COLLECTION_CACHE_TIMEOUT,
-    COLLECTIONS_PER_PAGE,
     ENABLE_CACHE,
+    PROJECT_CACHE_TIMEOUT,
+    PROJECTS_PER_PAGE,
 )
 
 CATALOG_CACHE = {}
-COLLECTION_CACHE = {}
+PROJECT_CACHE = {}
 
 TopicName = enum.StrEnum("TopicName", {k: k for k in CATALOG_TOPICS})
 CachedCatalog = namedtuple("CachedCatalog", ["time", "catalog"])
-CachedCollection = namedtuple(
-    "CachedCollection", ["time", "last_activity", "collection"]
-)
+CachedProject = namedtuple("CachedProject", ["time", "last_activity", "stac"])
 
 router = APIRouter(prefix="/{gitlab_base_uri}/{token}", tags=["stac"])
 
@@ -32,13 +30,13 @@ router = APIRouter(prefix="/{gitlab_base_uri}/{token}", tags=["stac"])
 @router.get("/")
 async def index(request: Request, gitlab_base_uri: str, token: str):
     return RedirectResponse(
-        request.url_for("root_catalog", gitlab_base_uri=gitlab_base_uri, token=token)
+        request.url_for("stac_root", gitlab_base_uri=gitlab_base_uri, token=token)
     )
 
 
 @router.get("/catalog.json")
-async def root_catalog(request: Request, gitlab_base_uri: str, token: str):
-    return build_root_catalog(
+async def stac_root(request: Request, gitlab_base_uri: str, token: str):
+    return build_stac_root(
         topics=CATALOG_TOPICS,
         request=request,
         gitlab_base_uri=gitlab_base_uri,
@@ -47,7 +45,7 @@ async def root_catalog(request: Request, gitlab_base_uri: str, token: str):
 
 
 @router.get("/{topic}/catalog.json")
-async def topic_catalog(
+async def stac_topic(
     request: Request,
     gitlab_base_uri: str,
     token: str,
@@ -63,10 +61,10 @@ async def topic_catalog(
 
     gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
     pagination, projects = await gitlab_client.get_projects(
-        topic, page=page, per_page=COLLECTIONS_PER_PAGE
+        topic, page=page, per_page=PROJECTS_PER_PAGE
     )
 
-    catalog = build_topic_catalog(
+    catalog = build_stac_topic(
         topic=topic,
         fields=CATALOG_TOPICS.get(topic),
         projects=projects,
@@ -82,8 +80,8 @@ async def topic_catalog(
     return catalog
 
 
-@router.get("/{topic}/{project_path:path}/collection.json")
-async def project_collection(
+@router.get("/{topic}/{project_path:path}")
+async def stac_project(
     request: Request,
     gitlab_base_uri: str,
     token: str,
@@ -92,10 +90,10 @@ async def project_collection(
 ):
     cache_key = (gitlab_base_uri, project_path)
     if (
-        cache_key in COLLECTION_CACHE
-        and time.time() - COLLECTION_CACHE[cache_key].time < COLLECTION_CACHE_TIMEOUT
+        cache_key in PROJECT_CACHE
+        and time.time() - PROJECT_CACHE[cache_key].time < PROJECT_CACHE_TIMEOUT
     ):
-        return COLLECTION_CACHE[cache_key].collection
+        return PROJECT_CACHE[cache_key].stac
 
     gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
     project = await gitlab_client.get_project(project_path)
@@ -107,16 +105,16 @@ async def project_collection(
         )
 
     if (
-        cache_key in COLLECTION_CACHE
-        and COLLECTION_CACHE[cache_key].last_activity == project["last_activity_at"]
+        cache_key in PROJECT_CACHE
+        and PROJECT_CACHE[cache_key].last_activity == project["last_activity_at"]
     ):
-        collection = COLLECTION_CACHE[cache_key].collection
-        COLLECTION_CACHE[cache_key] = CachedCollection(
+        stac = PROJECT_CACHE[cache_key].stac
+        PROJECT_CACHE[cache_key] = CachedProject(
             time=time.time(),
             last_activity=project["last_activity_at"],
-            collection=collection,
+            stac=stac,
         )
-        return collection
+        return stac
 
     readme, files, release = await asyncio.gather(
         gitlab_client.get_readme(project),
@@ -125,7 +123,7 @@ async def project_collection(
     )
 
     try:
-        collection = build_collection(
+        stac = build_stac_for_project(
             topic=topic,
             project=project,
             readme=readme,
@@ -139,10 +137,10 @@ async def project_collection(
         raise HTTPException(status_code=500, detail=str(exc))
 
     if ENABLE_CACHE:
-        COLLECTION_CACHE[cache_key] = CachedCollection(
+        PROJECT_CACHE[cache_key] = CachedProject(
             time=time.time(),
             last_activity=project["last_activity_at"],
-            collection=collection,
+            stac=stac,
         )
 
-    return collection
+    return stac

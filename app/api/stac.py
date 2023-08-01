@@ -42,7 +42,7 @@ class TopicFields(TypedDict):
 TopicSpec: TypeAlias = dict[str, TopicFields]
 
 
-def build_root_catalog(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
+def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
     _request = context["request"]
     _gitlab_base_uri = context["gitlab_base_uri"]
     _token = context["token"]
@@ -59,7 +59,7 @@ def build_root_catalog(topics: TopicSpec, **context: Unpack[STACContext]) -> dic
             "rel": "child",
             "href": str(
                 _request.url_for(
-                    "topic_catalog",
+                    "stac_topic",
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
                     topic=topic,
@@ -69,11 +69,11 @@ def build_root_catalog(topics: TopicSpec, **context: Unpack[STACContext]) -> dic
         for topic in topics
     ]
 
-    catalog_id = f"{slugify(_gitlab_base_uri).replace('-', '')}-catalog"
+    stac_id = f"{slugify(_gitlab_base_uri).replace('-', '')}-catalog"
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
-        "id": catalog_id,
+        "id": stac_id,
         "title": title,
         "description": description,
         "links": [
@@ -90,7 +90,7 @@ def build_root_catalog(topics: TopicSpec, **context: Unpack[STACContext]) -> dic
     }
 
 
-def build_topic_catalog(
+def build_stac_topic(
     topic: str,
     fields: TopicFields,
     projects: list[GitlabProject],
@@ -113,7 +113,7 @@ def build_topic_catalog(
             "rel": "child",
             "href": str(
                 _request.url_for(
-                    "project_collection",
+                    "stac_project",
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
                     topic=topic,
@@ -125,7 +125,7 @@ def build_topic_catalog(
     ]
 
     _current_topic_url = _request.url_for(
-        "topic_catalog",
+        "stac_topic",
         gitlab_base_uri=_gitlab_base_uri,
         token=_token,
         topic=topic,
@@ -153,13 +153,11 @@ def build_topic_catalog(
             }
         )
 
-    catalog_id = (
-        f"{slugify(_gitlab_base_uri).replace('-', '')}-{slugify(topic)}-catalog"
-    )
+    stac_id = f"{slugify(_gitlab_base_uri).replace('-', '')}-{slugify(topic)}-catalog"
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
-        "id": catalog_id,
+        "id": stac_id,
         "title": title,
         "description": description,
         "links": [
@@ -167,7 +165,7 @@ def build_topic_catalog(
                 "rel": "root",
                 "href": str(
                     _request.url_for(
-                        "root_catalog",
+                        "stac_root",
                         gitlab_base_uri=_gitlab_base_uri,
                         token=_token,
                     )
@@ -181,7 +179,7 @@ def build_topic_catalog(
                 "rel": "parent",
                 "href": str(
                     _request.url_for(
-                        "root_catalog",
+                        "stac_root",
                         gitlab_base_uri=_gitlab_base_uri,
                         token=_token,
                     )
@@ -192,7 +190,7 @@ def build_topic_catalog(
     }
 
 
-def build_collection(
+def build_stac_for_project(
     topic: str,
     project: GitlabProject,
     readme: str,
@@ -213,7 +211,7 @@ def build_collection(
 
     readme_doc, readme_xml, readme_metadata = md.parse(readme)
 
-    # STAC Collection fields
+    # STAC fields
 
     description = md.remove_images(md.increase_headings(readme_doc, 2))
 
@@ -239,7 +237,7 @@ def build_collection(
             else None
         )
     else:
-        # Private collection
+        # Private
         license = None
         license_url = None
 
@@ -375,7 +373,7 @@ def build_collection(
             path = link.removeprefix(_gitlab_url).strip("/")
             href = str(
                 _request.url_for(
-                    "project_collection",
+                    "stac_project",
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
                     topic=_topic,
@@ -443,14 +441,14 @@ def build_collection(
     if doi_publications:
         extra_fields["sci:publications"] = doi_publications
 
-    catalog_id = (
+    stac_id = (
         f"{slugify(_gitlab_base_uri).replace('-', '')}-{slugify(topic)}-{project['id']}"
     )
     return {
         "stac_version": "1.0.0",
         "stac_extensions": extensions,
         "type": "Collection",
-        "id": catalog_id,
+        "id": stac_id,
         "title": project["name_with_namespace"],
         "description": description,
         "keywords": list(dict.fromkeys(keywords)),
@@ -472,7 +470,7 @@ def build_collection(
                 "rel": "root",
                 "href": str(
                     _request.url_for(
-                        "root_catalog",
+                        "stac_root",
                         gitlab_base_uri=_gitlab_base_uri,
                         token=_token,
                     )
@@ -486,7 +484,7 @@ def build_collection(
                 "rel": "parent",
                 "href": str(
                     _request.url_for(
-                        "topic_catalog",
+                        "stac_topic",
                         gitlab_base_uri=_gitlab_base_uri,
                         token=_token,
                         topic=topic,
