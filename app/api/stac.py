@@ -38,6 +38,10 @@ class TopicFields(TypedDict):
     description: NotRequired[str]
 
 
+class Topic(TopicFields):
+    name: str
+
+
 TopicSpec: TypeAlias = dict[str, TopicFields]
 
 
@@ -70,7 +74,8 @@ def build_stac_root(
         for topic in topics
     ]
 
-    stac_id = f"{slugify(_gitlab_base_uri).replace('-', '')}-catalog"
+    _gitlab_base_uri_slug = slugify(_gitlab_base_uri).replace("-", "")
+    stac_id = f"{_gitlab_base_uri_slug}-catalog"
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
@@ -92,8 +97,7 @@ def build_stac_root(
 
 
 def build_stac_topic(
-    topic: str,
-    fields: TopicFields,
+    topic: Topic,
     projects: list[GitlabProject],
     pagination: GitlabPagination,
     **context: Unpack[STACContext],
@@ -103,8 +107,8 @@ def build_stac_topic(
     _token = context["token"]
     _gitlab_url = gitlab_url(_gitlab_base_uri)
 
-    title = fields["title"]
-    description = fields.get(
+    title = topic["title"]
+    description = topic.get(
         "description",
         f"{title} catalog generated from your [Gitlab]({_gitlab_url}) repositories with STAC Dataset Proxy.",
     )
@@ -117,7 +121,7 @@ def build_stac_topic(
                     "stac_project",
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
-                    topic=topic,
+                    topic=topic["name"],
                     project_path=project["path_with_namespace"],
                 )
             ),
@@ -129,7 +133,7 @@ def build_stac_topic(
         "stac_topic",
         gitlab_base_uri=_gitlab_base_uri,
         token=_token,
-        topic=topic,
+        topic=topic["name"],
     )
     if pagination["prev_page"]:
         links.append(
@@ -154,7 +158,8 @@ def build_stac_topic(
             }
         )
 
-    stac_id = f"{slugify(_gitlab_base_uri).replace('-', '')}-{slugify(topic)}-catalog"
+    _gitlab_base_uri_slug = slugify(_gitlab_base_uri).replace("-", "")
+    stac_id = f"{_gitlab_base_uri_slug}-{slugify(topic['name'])}-catalog"
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
@@ -192,7 +197,7 @@ def build_stac_topic(
 
 
 def build_stac_for_project(
-    topic: str,
+    topic: Topic,
     project: GitlabProject,
     readme: str,
     files: list[GitlabProjectFile],
@@ -253,7 +258,7 @@ def build_stac_for_project(
         )
 
     keywords = []
-    _topic_keyword = slugify(topic)
+    _topic_keyword = slugify(topic["name"])
     _namespaces_keywords = [
         slugify(g) for g in project["path_with_namespace"].split("/")[:-1]
     ]
@@ -443,9 +448,8 @@ def build_stac_for_project(
     if doi_publications:
         extra_fields["sci:publications"] = doi_publications
 
-    stac_id = (
-        f"{slugify(_gitlab_base_uri).replace('-', '')}-{slugify(topic)}-{project['id']}"
-    )
+    _gitlab_base_uri_slug = slugify(_gitlab_base_uri).replace("-", "")
+    stac_id = f"{_gitlab_base_uri_slug}-{slugify(topic['name'])}-{project['id']}"
     return {
         "stac_version": "1.0.0",
         "stac_extensions": extensions,
@@ -489,7 +493,7 @@ def build_stac_for_project(
                         "stac_topic",
                         gitlab_base_uri=_gitlab_base_uri,
                         token=_token,
-                        topic=topic,
+                        topic=topic["name"],
                     )
                 ),
             },

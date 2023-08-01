@@ -69,8 +69,7 @@ async def stac_topic(
     )
 
     catalog = build_stac_topic(
-        topic=topic,
-        fields=CATALOG_TOPICS.get(topic),
+        topic={"name": topic, **CATALOG_TOPICS[topic]},
         projects=projects,
         pagination=pagination,
         request=request,
@@ -128,7 +127,7 @@ async def stac_project(
 
     try:
         stac = build_stac_for_project(
-            topic=topic,
+            topic={"name": topic, **CATALOG_TOPICS[topic]},
             project=project,
             readme=readme,
             files=files,
