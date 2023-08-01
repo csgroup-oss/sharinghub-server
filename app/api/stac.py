@@ -290,41 +290,41 @@ def build_collection(
             }
         )
 
-    assets_globs = [*ASSETS_PATTERNS, *readme_metadata.get("assets", [])]
-    media_types = readme_metadata.get("media_types", [])
-
-    media_types_mapping = {}
-    for media_type_rule in media_types:
-        eq_match = media_type_rule.split("=")
-        glob_match = media_type_rule.split("://")
+    assets_rules = [*ASSETS_PATTERNS, *readme_metadata.get("assets", [])]
+    assets_mapping = {}
+    for asset_rule in assets_rules:
+        eq_match = asset_rule.split("=")
+        glob_match = asset_rule.split("://")
         if len(eq_match) == 2:
             file_ext_glob = f"*.{eq_match[0].lstrip('.')}"
-            media_type = eq_match[1]
-            media_types_mapping[media_type] = file_ext_glob
+            assets_mapping[file_ext_glob] = MEDIA_TYPES.get(eq_match[1])
         elif len(glob_match) == 2:
-            media_types_mapping[glob_match[0]] = glob_match[1]
+            assets_mapping[glob_match[1]] = MEDIA_TYPES.get(glob_match[0])
+        else:
+            assets_mapping[asset_rule] = None
 
     for file in files:
         fpath = Path(file["path"])
-        if any(fpath.match(glob) for glob in assets_globs):
-            key = f"file:/{file['path']}"
-            media_type, _ = mimetypes.guess_type(file["name"])
-            for mt, mt_glob in media_types_mapping.items():
-                if fpath.match(mt_glob) and mt in MEDIA_TYPES:
-                    media_type = MEDIA_TYPES[mt]
-                    break
-            assets[key] = {
-                "href": project_file_download_url(
-                    gitlab_base_uri=_gitlab_base_uri,
-                    token=_token,
-                    project=project,
-                    file_path=file["path"],
-                ),
-                "title": file["path"],
-                "roles": ["data"],
-            }
-            if media_type:
-                assets[key]["type"] = media_type
+        for glob in assets_mapping:
+            if fpath.match(glob):
+                if assets_mapping[glob]:
+                    media_type = assets_mapping[glob]
+                else:
+                    media_type = None
+                    media_type, _ = mimetypes.guess_type(fpath)
+                asset_id = f"file://{fpath}"
+                assets[asset_id] = {
+                    "href": project_file_download_url(
+                        gitlab_base_uri=_gitlab_base_uri,
+                        token=_token,
+                        project=project,
+                        file_path=file["path"],
+                    ),
+                    "title": file["path"],
+                    "roles": ["data"],
+                }
+                if media_type:
+                    assets[asset_id]["type"] = media_type
 
     if release:
         archive_url = project_archive_download_url(
