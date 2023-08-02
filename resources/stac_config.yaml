@@ -4,6 +4,7 @@ description: Custom description for this [GitLab](https://gitlab.si.c-s.fr) inst
 topics:
   ai_model:
     title: AI Model
+    description: Custom AI models hosted on [GitLab](https://gitlab.si.c-s.fr)
 
   dataset:
     title: Dataset
