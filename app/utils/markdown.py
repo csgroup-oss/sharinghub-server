@@ -1,11 +1,14 @@
 import re
+from typing import TypeAlias
 
 import markdown
 import mistune
 from lxml import etree
 
+XMLElement: TypeAlias = etree._Element
 
-def parse(markdown_content: str) -> tuple[str, etree._Element, dict]:
+
+def parse(markdown_content: str) -> tuple[str, XMLElement, dict]:
     md = markdown.Markdown(extensions=["full_yaml_metadata"])
     md.convert(markdown_content)
     metadata = md.Meta if md.Meta else {}
