@@ -318,7 +318,7 @@ def build_stac_for_project(
 
             if doi_link:
                 fields["sci:doi"] = parse.urlparse(doi_link).path.removeprefix("/")
-                extra_links.append(
+                links.append(
                     {
                         "rel": "cite-as",
                         "href": doi_link,
