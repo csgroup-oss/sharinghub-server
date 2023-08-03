@@ -1,5 +1,6 @@
 import asyncio
 import enum
+import logging
 import time
 from collections import namedtuple
 
@@ -19,6 +20,8 @@ from app.config import (
     RELEASE_SOURCE_FORMAT,
     STAC_CONFIG,
 )
+
+logger = logging.getLogger("app")
 
 CATALOG_CACHE = {}
 PROJECT_CACHE = {}
@@ -140,6 +143,7 @@ async def stac_project(
             token=token,
         )
     except Exception as exc:
+        logger.exception(exc)
         raise HTTPException(status_code=500, detail=str(exc))
 
     if ENABLE_CACHE:
