@@ -8,3 +8,6 @@ topics:
 
   dataset:
     title: Dataset
+
+  processor:
+    title: Processor
