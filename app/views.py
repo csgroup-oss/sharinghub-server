@@ -39,8 +39,9 @@ async def index(request: Request, gitlab_base_uri: str, token: str):
 
 @router.get("/catalog.json")
 async def stac_root(request: Request, gitlab_base_uri: str, token: str):
+    gitlab_config = STAC_CONFIG.get("instances", {}).get(gitlab_base_uri, {})
     return build_stac_root(
-        config=STAC_CONFIG,
+        gitlab_config=gitlab_config,
         topics=CATALOG_TOPICS,
         request=request,
         gitlab_base_uri=gitlab_base_uri,

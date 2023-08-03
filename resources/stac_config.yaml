@@ -1,5 +1,7 @@
-title: GitLab CS STAC Catalog
-description: Custom description for this [GitLab](https://gitlab.si.c-s.fr) instance STAC catalog.
+instances:
+  gitlab.si.c-s.fr:
+    title: GitLab CS STAC Catalog
+    description: Custom description for this [GitLab](https://gitlab.si.c-s.fr) instance STAC catalog.
 
 topics:
   ai_model:

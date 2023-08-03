@@ -47,15 +47,15 @@ TopicSpec: TypeAlias = dict[str, TopicFields]
 
 
 def build_stac_root(
-    config: dict, topics: TopicSpec, **context: Unpack[STACContext]
+    gitlab_config: dict, topics: TopicSpec, **context: Unpack[STACContext]
 ) -> dict:
     _request = context["request"]
     _gitlab_base_uri = context["gitlab_base_uri"]
     _token = context["token"]
     _gitlab_url = gitlab_url(_gitlab_base_uri)
 
-    title = config.get("title", "GitLab STAC Catalog")
-    description = config.get(
+    title = gitlab_config.get("title", "GitLab STAC Catalog")
+    description = gitlab_config.get(
         "description",
         f"Catalog generated from your [Gitlab]({_gitlab_url}) repositories with STAC Dataset Proxy.",
     )
