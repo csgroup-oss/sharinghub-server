@@ -247,6 +247,73 @@ def build_stac_for_project(
         "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
     ]
 
+    fields = {}
+    assets = {}
+    links = [
+        {
+            "rel": "root",
+            "href": str(
+                _request.url_for(
+                    "stac_root",
+                    gitlab_base_uri=_gitlab_base_uri,
+                    token=_token,
+                )
+            ),
+        },
+        {
+            "rel": "self",
+            "href": str(_request.url),
+        },
+        {
+            "rel": "parent",
+            "href": str(
+                _request.url_for(
+                    "stac_topic",
+                    gitlab_base_uri=_gitlab_base_uri,
+                    token=_token,
+                    topic=topic["name"],
+                )
+            ),
+        },
+        {
+            "rel": "bug_tracker",
+            "title": "Issues",
+            "href": project_issues_url(_gitlab_base_uri, project),
+        },
+        *(
+            {"rel": "extras", "href": _href, "title": _title}
+            for _title, _href in extra_links
+        ),
+        *(
+            {
+                "rel": "derived_from",
+                "href": str(
+                    _request.url_for(
+                        "stac_project",
+                        gitlab_base_uri=_gitlab_base_uri,
+                        token=_token,
+                        topic=_topic,
+                        project_path=_path,
+                    )
+                ),
+                "title": _title,
+            }
+            for _title, _topic, _path in stac_links
+        ),
+    ]
+    providers = [
+        {
+            "name": f"GitLab ({_gitlab_base_uri})",
+            "roles": ["host"],
+            "url": project_url(_gitlab_base_uri, project),
+        },
+        {
+            "name": producer,
+            "roles": ["producer"],
+            "url": producer_url,
+        },
+    ]
+
     if is_local(preview):
         preview = project_file_download_url(
             gitlab_base_uri=_gitlab_base_uri,
@@ -254,91 +321,121 @@ def build_stac_for_project(
             project=project,
             file_path=preview,
         )
+    if preview:
+        assets["preview"] = {
+            "href": preview,
+            "title": "Preview",
+            "roles": ["thumbnail"],
+        }
+        if preview_media_type:
+            assets["preview"]["type"] = preview_media_type
+        links.append(
+            {
+                "rel": "preview",
+                "href": preview,
+            }
+        )
+
+    if license_url:
+        links.append(
+            {
+                "rel": "license",
+                "href": license_url,
+            }
+        )
+
+    for file_path, file_media_type in files_assets:
+        asset_id = f"file://{file_path}"
+        assets[asset_id] = {
+            "href": project_file_download_url(
+                gitlab_base_uri=_gitlab_base_uri,
+                token=_token,
+                project=project,
+                file_path=file_path,
+            ),
+            "title": file_path,
+            "roles": ["data"],
+        }
+        if file_media_type:
+            assets[asset_id]["type"] = file_media_type
+
+    if release:
+        archive_url = project_archive_download_url(
+            gitlab_base_uri=_gitlab_base_uri,
+            token=_token,
+            project=project,
+            ref=release["tag_name"],
+            format=release_source_format,
+        )
+        media_type, _ = mimetypes.guess_type(f"archive.{release_source_format}")
+        assets["release"] = {
+            "href": archive_url,
+            "title": f"Release {release['tag_name']}: {release['name']}",
+            "roles": ["source"],
+        }
+        if release["description"]:
+            assets["release"]["description"] = release["description"]
+        if media_type:
+            assets["release"]["type"] = media_type
+
+    if doi_link:
+        fields["sci:doi"] = parse.urlparse(doi_link).path.removeprefix("/")
+        links.append(
+            {
+                "rel": "cite-as",
+                "href": doi_link,
+            }
+        )
+    if doi_citation:
+        fields["sci:citation"] = doi_citation
+    if doi_publications:
+        fields["sci:publications"] = [
+            {
+                "doi": parse.urlparse(_pub_doi_link).path.removeprefix("/"),
+                "citation": _pub_citation,
+            }
+            for _pub_doi_link, _pub_citation in doi_publications
+        ]
 
     match stac_type:
         case "item":
-            return {}
+            if license:
+                fields["license"] = license
+            return {
+                "stac_version": "1.0.0",
+                "stac_extensions": stac_extensions,
+                "type": "Feature",
+                "id": stac_id,
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            (spatial_extent[0], spatial_extent[1]),
+                            (spatial_extent[2], spatial_extent[1]),
+                            (spatial_extent[2], spatial_extent[3]),
+                            (spatial_extent[0], spatial_extent[3]),
+                            (spatial_extent[0], spatial_extent[1]),
+                        ]
+                    ],
+                },
+                "bbox": spatial_extent,
+                "properties": {
+                    "title": title,
+                    "description": description,
+                    "datetime": None,
+                    "start_datetime": temporal_extent[0],
+                    "end_datetime": temporal_extent[1],
+                    "created": temporal_extent[0],
+                    "updated": temporal_extent[1],
+                    "keywords": keywords,
+                    "providers": providers,
+                    **fields,
+                },
+                "links": links,
+                "assets": assets,
+                "collection": None,
+            }
         case "collection":
-            fields = {}
-            links = []
-            assets = {}
-
-            if license_url:
-                links.append(
-                    {
-                        "rel": "license",
-                        "href": license_url,
-                    }
-                )
-
-            if preview:
-                assets["preview"] = {
-                    "href": preview,
-                    "title": "Preview",
-                    "roles": ["thumbnail"],
-                }
-                if preview_media_type:
-                    assets["preview"]["type"] = preview_media_type
-                links.append(
-                    {
-                        "rel": "preview",
-                        "href": preview,
-                    }
-                )
-
-            for file_path, file_media_type in files_assets:
-                asset_id = f"file://{file_path}"
-                assets[asset_id] = {
-                    "href": project_file_download_url(
-                        gitlab_base_uri=_gitlab_base_uri,
-                        token=_token,
-                        project=project,
-                        file_path=file_path,
-                    ),
-                    "title": file_path,
-                    "roles": ["data"],
-                }
-                if file_media_type:
-                    assets[asset_id]["type"] = file_media_type
-
-            if release:
-                archive_url = project_archive_download_url(
-                    gitlab_base_uri=_gitlab_base_uri,
-                    token=_token,
-                    project=project,
-                    ref=release["tag_name"],
-                    format=release_source_format,
-                )
-                media_type, _ = mimetypes.guess_type(f"archive.{release_source_format}")
-                assets["release"] = {
-                    "href": archive_url,
-                    "title": f"Release {release['tag_name']}: {release['name']}",
-                    "roles": ["source"],
-                }
-                if release["description"]:
-                    assets["release"]["description"] = release["description"]
-                if media_type:
-                    assets["release"]["type"] = media_type
-
-            if doi_link:
-                fields["sci:doi"] = parse.urlparse(doi_link).path.removeprefix("/")
-                links.append(
-                    {
-                        "rel": "cite-as",
-                        "href": doi_link,
-                    }
-                )
-            if doi_citation:
-                fields["sci:citation"] = doi_citation
-            if doi_publications:
-                fields["sci:publications"] = [
-                    {
-                        "doi": parse.urlparse(_pub_doi_link).path.removeprefix("/"),
-                        "citation": _pub_citation,
-                    }
-                    for _pub_doi_link, _pub_citation in doi_publications
-                ]
-
             return {
                 "stac_version": "1.0.0",
                 "stac_extensions": stac_extensions,
@@ -348,75 +445,12 @@ def build_stac_for_project(
                 "description": description,
                 "keywords": keywords,
                 "license": license,
-                "providers": [
-                    {
-                        "name": f"GitLab ({_gitlab_base_uri})",
-                        "roles": ["host"],
-                        "url": project_url(_gitlab_base_uri, project),
-                    },
-                    {
-                        "name": producer,
-                        "roles": ["producer"],
-                        "url": producer_url,
-                    },
-                ],
+                "providers": providers,
                 "extent": {
-                    "spatial": {"bbox": spatial_extent},
-                    "temporal": {"interval": temporal_extent},
+                    "spatial": {"bbox": [spatial_extent]},
+                    "temporal": {"interval": [temporal_extent]},
                 },
-                "links": [
-                    {
-                        "rel": "root",
-                        "href": str(
-                            _request.url_for(
-                                "stac_root",
-                                gitlab_base_uri=_gitlab_base_uri,
-                                token=_token,
-                            )
-                        ),
-                    },
-                    {
-                        "rel": "self",
-                        "href": str(_request.url),
-                    },
-                    {
-                        "rel": "parent",
-                        "href": str(
-                            _request.url_for(
-                                "stac_topic",
-                                gitlab_base_uri=_gitlab_base_uri,
-                                token=_token,
-                                topic=topic["name"],
-                            )
-                        ),
-                    },
-                    {
-                        "rel": "bug_tracker",
-                        "title": "Issues",
-                        "href": project_issues_url(_gitlab_base_uri, project),
-                    },
-                    *(
-                        {"rel": "extras", "href": _href, "title": _title}
-                        for _title, _href in extra_links
-                    ),
-                    *(
-                        {
-                            "rel": "derived_from",
-                            "href": str(
-                                _request.url_for(
-                                    "stac_project",
-                                    gitlab_base_uri=_gitlab_base_uri,
-                                    token=_token,
-                                    topic=_topic,
-                                    project_path=_path,
-                                )
-                            ),
-                            "title": _title,
-                        }
-                        for _title, _topic, _path in stac_links
-                    ),
-                    *links,
-                ],
+                "links": links,
                 "assets": assets,
                 **fields,
             }
@@ -504,11 +538,11 @@ def _get_producer(
 
 def _get_extent(
     project: GitlabProject, metadata: dict
-) -> tuple[list[list[float]], list[list[str | None]]]:
+) -> tuple[list[float], list[str | None]]:
     extent = metadata.get("extent", {})
-    spatial_extent = extent.get("bbox", [[-180.0, -90.0, 180.0, 90.0]])
+    spatial_extent = extent.get("bbox", [-180.0, -90.0, 180.0, 90.0])
     temporal_extent = extent.get(
-        "temporal", [[project["created_at"], project["last_activity_at"]]]
+        "temporal", [project["created_at"], project["last_activity_at"]]
     )
     return spatial_extent, temporal_extent
 
