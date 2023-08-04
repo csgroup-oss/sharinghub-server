@@ -21,6 +21,10 @@ from app.utils import markdown as md
 from app.utils.http import is_local, slugify
 
 MEDIA_TYPES = {
+    "text": "text/plain",
+    "json": "application/json",
+    "xml": "application/xml",
+    "zip": "application/zip",
     "geotiff": "image/tiff; application=geotiff",
     "cog": "image/tiff; application=geotiff; profile=cloud-optimized",
     "geojson": "application/geo+json",
