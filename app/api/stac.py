@@ -24,10 +24,12 @@ MEDIA_TYPES = {
     "text": "text/plain",
     "json": "application/json",
     "xml": "application/xml",
+    "yaml": "text/x-yaml",
     "zip": "application/zip",
     "geotiff": "image/tiff; application=geotiff",
     "cog": "image/tiff; application=geotiff; profile=cloud-optimized",
     "geojson": "application/geo+json",
+    "compose": "text/x-yaml; application=compose",
 }
 
 
@@ -332,7 +334,7 @@ def build_stac_for_project(
             }
         )
 
-    for file_path, file_media_type in files_assets:
+    for file_path, file_media_type in files_assets.items():
         asset_id = f"file://{file_path}"
         assets[asset_id] = {
             "href": project_file_download_url(
@@ -537,8 +539,8 @@ def _get_extent(
 
 def _get_files_assets(
     files: list[GitlabProjectFile], assets_mapping: dict[str, str | None]
-) -> list[tuple[str, str | None]]:
-    assets = []
+) -> dict[str, str | None]:
+    assets = {}
     for file in files:
         fpath = Path(file["path"])
         for glob in assets_mapping:
@@ -548,7 +550,8 @@ def _get_files_assets(
                 else:
                     media_type = None
                     media_type, _ = mimetypes.guess_type(fpath)
-                assets.append((file["path"], media_type))
+                if media_type or not assets.get(file["path"]):
+                    assets[file["path"]] = media_type
     return assets
 
 
