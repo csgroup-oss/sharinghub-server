@@ -1,5 +1,6 @@
 import mimetypes
 from pathlib import Path
+from types import EllipsisType
 from typing import NotRequired, TypeAlias, TypedDict, Unpack
 from urllib import parse
 
@@ -30,6 +31,12 @@ MEDIA_TYPES = {
     "cog": "image/tiff; application=geotiff; profile=cloud-optimized",
     "geojson": "application/geo+json",
     "compose": "text/x-yaml; application=compose",
+}
+
+ML_ASSETS_DEFAULT_GLOBS = {
+    "inference-runtime": "inferencing.yml",
+    "training-runtime": "training.yml",
+    "checkpoint": "*.pt",
 }
 
 FILE_ASSET_PREFIX = "file://"
@@ -242,6 +249,11 @@ def build_stac_for_project(
     doi, doi_publications = _get_scientific_citations(readme_metadata, readme_xml)
     doi_link, doi_citation = doi
 
+    ### ML Model Extension Specification (https://github.com/stac-extensions/ml-model)
+    ml_properties, ml_assets, ml_links = _get_machine_learning(
+        readme_metadata, resources_links
+    )
+
     # STAC generation
 
     stac_type = topic.get("default_type")
@@ -388,6 +400,46 @@ def build_stac_for_project(
             }
             for _pub_doi_link, _pub_citation in doi_publications
         ]
+
+    if ml_properties:
+        stac_extensions.append(
+            "https://stac-extensions.github.io/ml-model/v1.0.0/schema.json"
+        )
+
+        for prop, val in ml_properties.items():
+            fields[f"ml-model:{prop}"] = val
+
+        for ml_asset_role, patterns in ml_assets.items():
+            _patterns = (
+                patterns
+                if patterns is not Ellipsis
+                else [ML_ASSETS_DEFAULT_GLOBS.get(ml_asset_role)]
+            )
+            if _patterns:
+                for _pattern in _patterns:
+                    for asset_id in assets:
+                        fpath = Path(asset_id.removeprefix(FILE_ASSET_PREFIX))
+                        if asset_id.startswith(FILE_ASSET_PREFIX) and fpath.match(
+                            _pattern
+                        ):
+                            assets[asset_id]["roles"].append(
+                                f"ml-model:{ml_asset_role}"
+                            )
+
+        for relation_type, (media_type, values) in ml_links.items():
+            hrefs = [href for _, href in values]
+            for link in links:
+                if link["href"] in hrefs:
+                    links.remove(link)
+            for link_title, link_href in values:
+                _link = {
+                    "rel": f"ml-model:{relation_type}",
+                    "href": link_href,
+                    "title": link_title,
+                }
+                if media_type:
+                    _link["type"] = media_type
+                links.append(_link)
 
     match stac_type:
         case "item":
@@ -650,6 +702,83 @@ def _get_scientific_citations(
             )
 
     return (doi_link, doi_citation), doi_publications
+
+
+def _get_machine_learning(
+    metadata: dict, resources_links: list[tuple[str, str, list[str]]]
+) -> tuple[
+    dict[str, str],
+    dict[str, list[str] | EllipsisType],
+    dict[str, tuple[str, list[tuple[str, str]]]],
+]:
+    ml_metadata = metadata.get("ml", {})
+
+    ml_properties = {}
+    ml_assets = {}
+    ml_links = {
+        "inferencing-image": ("docker-image", []),
+        "training-image": ("docker-image", []),
+        "train-data": ("application/json", []),
+        "test-data": ("application/json", []),
+    }
+
+    properties = [
+        "learning_approach",
+        "prediction_type",
+        "architecture",
+    ]
+    training_properties = [
+        "os",
+        "processor-type",
+    ]
+    for prop in properties:
+        if val := ml_metadata.get(prop.replace("_", "-")):
+            ml_properties[prop] = val
+    for prop in training_properties:
+        if val := ml_metadata.get("training", {}).get(prop):
+            ml_properties[f"training-{prop}"] = val
+
+    if ml_properties:
+        ml_properties["type"] = "ml-model"
+
+    inference = ml_metadata.get("inference", {})
+    training = ml_metadata.get("training", {})
+
+    inference_images = inference.get("images", {})
+    training_images = training.get("images", {})
+    for image_title, image in inference_images.items():
+        ml_links["inferencing-image"][1].append((f"{image_title}: {image}", image))
+    for image_title, image in training_images.items():
+        ml_links["training-image"][1].append((f"{image_title}: {image}", image))
+
+    for rc_title, rc_link, rc_labels in resources_links:
+        if "stac" in rc_labels:
+            if "ml-train" in rc_labels:
+                ml_links["train-data"][1].append((rc_title, rc_link))
+            if "ml-test" in rc_labels:
+                ml_links["test-data"][1].append((rc_title, rc_link))
+
+    ml_assets["checkpoint"] = _retrieve_elements(
+        ml_metadata, "checkpoint", "checkpoints"
+    )
+    ml_assets["inference-runtime"] = _retrieve_elements(
+        inference, "runtime", "runtimes"
+    )
+    ml_assets["training-runtime"] = _retrieve_elements(training, "runtime", "runtimes")
+
+    return ml_properties, ml_assets, ml_links
+
+
+def _retrieve_elements(mapping: dict, singular: str, plural: str) -> list:
+    element = mapping.get(singular, ...)
+    elements = mapping.get(plural, ...)
+    if isinstance(elements, list):
+        return elements
+    elif isinstance(element, str):
+        return [element]
+    elif all((element, elements)):
+        return ...
+    return []
 
 
 def _get_file_asset_id(file_path: str) -> str:
