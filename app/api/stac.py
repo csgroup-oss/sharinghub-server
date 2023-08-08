@@ -32,6 +32,8 @@ MEDIA_TYPES = {
     "compose": "text/x-yaml; application=compose",
 }
 
+FILE_ASSET_PREFIX = "file://"
+
 
 class STACContext(TypedDict):
     request: Request
@@ -335,7 +337,7 @@ def build_stac_for_project(
         )
 
     for file_path, file_media_type in files_assets.items():
-        asset_id = f"file://{file_path}"
+        asset_id = _get_file_asset_id(file_path)
         assets[asset_id] = {
             "href": project_file_download_url(
                 gitlab_base_uri=_gitlab_base_uri,
@@ -648,3 +650,7 @@ def _get_scientific_citations(
             )
 
     return (doi_link, doi_citation), doi_publications
+
+
+def _get_file_asset_id(file_path: str) -> str:
+    return f"{FILE_ASSET_PREFIX}{file_path}"
