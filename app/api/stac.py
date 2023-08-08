@@ -230,7 +230,7 @@ def build_stac_for_project(
     producer, producer_url = _get_producer(project, readme_metadata, **context)
     spatial_extent, temporal_extent = _get_extent(project, readme_metadata)
     files_assets = _get_files_assets(files, assets_mapping)
-    stac_links, extra_links = _get_resources_links(readme_metadata)
+    resources_links = _get_resources_links(readme_metadata, **context)
 
     ## Extensions
 
@@ -281,24 +281,12 @@ def build_stac_for_project(
             "href": project_issues_url(_gitlab_base_uri, project),
         },
         *(
-            {"rel": "extras", "href": _href, "title": _title}
-            for _title, _href in extra_links
-        ),
-        *(
             {
-                "rel": "derived_from",
-                "href": str(
-                    _request.url_for(
-                        "stac_project",
-                        gitlab_base_uri=_gitlab_base_uri,
-                        token=_token,
-                        topic=_topic,
-                        project_path=_path,
-                    )
-                ),
+                "rel": "derived_from" if "stac" in _labels else "extras",
+                "href": _href,
                 "title": _title,
             }
-            for _title, _topic, _path in stac_links
+            for _title, _href, _labels in resources_links
         ),
     ]
     providers = [
@@ -565,26 +553,63 @@ def _get_files_assets(
 
 
 def _get_resources_links(
-    metadata: dict,
-) -> tuple[list[tuple[str, str, str]], list[tuple[str, str]]]:
-    stac_links = []
-    extra_links = []
-
+    metadata: dict, **context: STACContext
+) -> list[tuple[str, str]]:
     _metadata_resources = metadata.get("resources", {})
-    _metadata_stac_resources = _metadata_resources.get("stac", {})
+    return _retrieve_resources_links(_metadata_resources, **context)
 
-    for _topic, val in _metadata_stac_resources.items():
-        links = val if isinstance(val, list) else [val] if isinstance(val, str) else []
-        for link in links:
-            path = parse.urlparse(link).path.removeprefix("/")
-            title = f"{_topic}: {path}"
-            stac_links.append((title, _topic, path))
 
-    for title, href in _metadata_resources.items():
-        if title not in ["stac"]:
-            extra_links.append((title, href))
+def _retrieve_resources_links(
+    mapping: dict, labels: list | None = None, **context: STACContext
+) -> list[tuple[str, str]]:
+    links = []
+    labels = labels if labels is not None else []
 
-    return stac_links, extra_links
+    for key, val in mapping.items():
+        if isinstance(val, dict):
+            links.extend(_retrieve_resources_links(val, [key, *labels], **context))
+        elif isinstance(val, list):
+            for raw_link in val:
+                links.append(_parse_resource_link(raw_link, key, labels, **context))
+        elif isinstance(val, str):
+            links.append(_parse_resource_link(val, key, labels, **context))
+    return links
+
+
+def _parse_resource_link(
+    raw_link: str, key: str, labels: list, **context: STACContext
+) -> tuple[str, str, list[str]]:
+    _request = context["request"]
+    _gitlab_base_uri = context["gitlab_base_uri"]
+    _token = context["token"]
+
+    split_link = raw_link.split("::")
+    if len(split_link) >= 2:
+        link_labels = split_link[0].split(",")
+        link = split_link[1]
+    else:
+        link_labels = []
+        link = split_link[0]
+
+    _labels = [*labels, *link_labels]
+
+    if "stac" in _labels:
+        path = parse.urlparse(link).path.removeprefix("/")
+        link = str(
+            _request.url_for(
+                "stac_project",
+                gitlab_base_uri=_gitlab_base_uri,
+                token=_token,
+                topic=key,
+                project_path=path,
+            )
+        )
+        _labels.append(key)
+        title = f"{key}: {path}"
+    else:
+        title = key
+
+    return title, link, _labels
 
 
 def _get_scientific_citations(
