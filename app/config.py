@@ -58,7 +58,7 @@ PROJECT_CACHE_TIMEOUT = float(os.environ.get("PROJECT_CACHE_TIMEOUT", 60.0 * 5))
 
 # Assets
 ASSETS_RULES = os.environ.get(
-    "ASSETS_RULES", "*.tif *.tiff *.geojson yaml://*.yml"
+    "ASSETS_RULES", "*.tif *.tiff *.geojson"
 ).split()
 RELEASE_SOURCE_FORMAT = (
     os.environ.get("RELEASE_SOURCE_FORMAT", "zip").lower().lstrip(".")
