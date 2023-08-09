@@ -19,7 +19,7 @@ from app.api.gitlab import (
     project_url,
 )
 from app.utils import markdown as md
-from app.utils.http import is_local, slugify
+from app.utils.http import is_local, slugify, url_add_query_params, url_for
 
 MEDIA_TYPES = {
     "text": "text/plain",
@@ -78,13 +78,12 @@ def build_stac_root(
     topics_catalogs = [
         {
             "rel": "child",
-            "href": str(
-                _request.url_for(
-                    "stac_topic",
-                    gitlab_base_uri=_gitlab_base_uri,
-                    token=_token,
-                    topic=topic,
-                )
+            "href": url_for(
+                _request,
+                "stac_topic",
+                gitlab_base_uri=_gitlab_base_uri,
+                token=_token,
+                topic=topic,
             ),
         }
         for topic in topics
@@ -101,11 +100,11 @@ def build_stac_root(
         "links": [
             {
                 "rel": "root",
-                "href": str(_request.url),
+                "href": url_for(_request),
             },
             {
                 "rel": "self",
-                "href": str(_request.url),
+                "href": url_for(_request),
             },
             *topics_catalogs,
         ],
@@ -132,20 +131,20 @@ def build_stac_topic(
     links = [
         {
             "rel": "child",
-            "href": str(
-                _request.url_for(
-                    "stac_project",
-                    gitlab_base_uri=_gitlab_base_uri,
-                    token=_token,
-                    topic=topic["name"],
-                    project_path=project["path_with_namespace"],
-                )
+            "href": url_for(
+                _request,
+                "stac_project",
+                gitlab_base_uri=_gitlab_base_uri,
+                token=_token,
+                topic=topic["name"],
+                project_path=project["path_with_namespace"],
             ),
         }
         for project in projects
     ]
 
-    _current_topic_url = _request.url_for(
+    _current_topic_url = url_for(
+        _request,
         "stac_topic",
         gitlab_base_uri=_gitlab_base_uri,
         token=_token,
@@ -155,10 +154,8 @@ def build_stac_topic(
         links.append(
             {
                 "rel": "prev",
-                "href": str(
-                    _current_topic_url.include_query_params(
-                        page=pagination["prev_page"]
-                    )
+                "href": url_add_query_params(
+                    _current_topic_url, {"page": pagination["prev_page"]}
                 ),
             }
         )
@@ -166,10 +163,8 @@ def build_stac_topic(
         links.append(
             {
                 "rel": "next",
-                "href": str(
-                    _current_topic_url.include_query_params(
-                        page=pagination["next_page"]
-                    )
+                "href": url_add_query_params(
+                    _current_topic_url, {"page": pagination["next_page"]}
                 ),
             }
         )
@@ -185,12 +180,11 @@ def build_stac_topic(
         "links": [
             {
                 "rel": "root",
-                "href": str(
-                    _request.url_for(
-                        "stac_root",
-                        gitlab_base_uri=_gitlab_base_uri,
-                        token=_token,
-                    )
+                "href": url_for(
+                    _request,
+                    "stac_root",
+                    gitlab_base_uri=_gitlab_base_uri,
+                    token=_token,
                 ),
             },
             {
@@ -199,12 +193,11 @@ def build_stac_topic(
             },
             {
                 "rel": "parent",
-                "href": str(
-                    _request.url_for(
-                        "stac_root",
-                        gitlab_base_uri=_gitlab_base_uri,
-                        token=_token,
-                    )
+                "href": url_for(
+                    _request,
+                    "stac_root",
+                    gitlab_base_uri=_gitlab_base_uri,
+                    token=_token,
                 ),
             },
             *links,
@@ -268,12 +261,11 @@ def build_stac_for_project(
     links = [
         {
             "rel": "root",
-            "href": str(
-                _request.url_for(
-                    "stac_root",
-                    gitlab_base_uri=_gitlab_base_uri,
-                    token=_token,
-                )
+            "href": url_for(
+                _request,
+                "stac_root",
+                gitlab_base_uri=_gitlab_base_uri,
+                token=_token,
             ),
         },
         {
@@ -282,13 +274,12 @@ def build_stac_for_project(
         },
         {
             "rel": "parent",
-            "href": str(
-                _request.url_for(
-                    "stac_topic",
-                    gitlab_base_uri=_gitlab_base_uri,
-                    token=_token,
-                    topic=topic["name"],
-                )
+            "href": url_for(
+                _request,
+                "stac_topic",
+                gitlab_base_uri=_gitlab_base_uri,
+                token=_token,
+                topic=topic["name"],
             ),
         },
         {
@@ -652,14 +643,13 @@ def _parse_resource_link(
 
     if "stac" in _labels:
         path = parse.urlparse(link).path.removeprefix("/")
-        link = str(
-            _request.url_for(
-                "stac_project",
-                gitlab_base_uri=_gitlab_base_uri,
-                token=_token,
-                topic=key,
-                project_path=path,
-            )
+        link = url_for(
+            _request,
+            "stac_project",
+            gitlab_base_uri=_gitlab_base_uri,
+            token=_token,
+            topic=key,
+            project_path=path,
         )
         _labels.append(key)
         title = f"{key}: {path}"

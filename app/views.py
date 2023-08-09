@@ -20,6 +20,7 @@ from app.config import (
     RELEASE_SOURCE_FORMAT,
     STAC_CONFIG,
 )
+from app.utils.http import url_for
 
 logger = logging.getLogger("app")
 
@@ -36,7 +37,7 @@ router = APIRouter(prefix="/{gitlab_base_uri}/{token}", tags=["stac"])
 @router.get("/")
 async def index(request: Request, gitlab_base_uri: str, token: str):
     return RedirectResponse(
-        request.url_for("stac_root", gitlab_base_uri=gitlab_base_uri, token=token)
+        url_for(request, "stac_root", gitlab_base_uri=gitlab_base_uri, token=token)
     )
 
 

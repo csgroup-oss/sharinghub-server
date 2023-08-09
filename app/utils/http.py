@@ -1,13 +1,21 @@
 import io
 import re
 from socket import AF_INET
-from typing import Self
+from typing import Any
 from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 from zipfile import ZipFile
 
 import aiohttp
+from fastapi import Request
 
 from app.utils import singleton
+
+
+def url_for(request: Request, name: str | None = None, **path_params: Any) -> str:
+    url = request.url_for(name, **path_params) if name else request.url
+    url_parsed = list(urlparse(str(url)))
+    url_parsed[0] = request.headers.get("X-Forwarded-Proto", request.url.scheme)
+    return urlunparse(url_parsed)
 
 
 def slugify(s: str) -> str:
