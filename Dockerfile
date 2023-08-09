@@ -25,4 +25,4 @@ COPY --chown=app:app app/            app/
 COPY --chown=app:app resources/      resources/
 
 USER app
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]  # , "--log-level", "critical"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]  # , "--log-level", "critical"]
