@@ -1,5 +1,14 @@
 # GitLab2STAC
 
+## Setup
+
+You will need first to update the submodules.
+
+```bash
+git submodule init
+git submodule update
+```
+
 ## Development
 
 ### Run with uvicorn
