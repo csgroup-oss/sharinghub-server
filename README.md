@@ -1,4 +1,4 @@
-# STAC Dataset Proxy
+# GitLab2STAC
 
 ## Development
 

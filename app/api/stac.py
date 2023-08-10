@@ -72,7 +72,7 @@ def build_stac_root(
     title = gitlab_config.get("title", "GitLab STAC Catalog")
     description = gitlab_config.get(
         "description",
-        f"Catalog generated from your [Gitlab]({_gitlab_url}) repositories with STAC Dataset Proxy.",
+        f"Catalog generated from your [Gitlab]({_gitlab_url}) repositories with GitLab2STAC.",
     )
 
     topics_catalogs = [
@@ -125,7 +125,7 @@ def build_stac_topic(
     title = topic["title"]
     description = topic.get(
         "description",
-        f"{title} catalog generated from your [Gitlab]({_gitlab_url}) repositories with STAC Dataset Proxy.",
+        f"{title} catalog generated from your [Gitlab]({_gitlab_url}) repositories with GitLab2STAC.",
     )
 
     links = [

@@ -26,8 +26,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     debug=DEBUG,
-    title="STAC Dataset Proxy",
-    description="STAC Dataset Proxy serves a STAC Catalog generated from Gitlab repositories.",
+    title="GitLab2STAC",
+    description="GitLab2STAC serves a STAC Catalog generated from Gitlab repositories.",
     version="0.1.0",
     root_path=API_PREFIX,
     docs_url="/docs",
