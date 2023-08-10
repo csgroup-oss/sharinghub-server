@@ -38,6 +38,10 @@ ALLOWED_ORIGINS = os.environ.get(
     "https://radiantearth.github.io",  # STAC Browser
 ]
 
+#### Browser ####
+
+BROWSER_PATH = os.environ.get("BROWSER_PATH", Path(os.getcwd(), "browser", "dist"))
+
 #### STAC ####
 
 STAC_CONFIG_PATH = os.environ.get(

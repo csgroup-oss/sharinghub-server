@@ -5,8 +5,10 @@ from logging.config import dictConfig
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
-from app.config import ALLOWED_ORIGINS, API_PREFIX, DEBUG, LOGGING
+from app.config import ALLOWED_ORIGINS, API_PREFIX, BROWSER_PATH, DEBUG, LOGGING
 from app.utils.http import AiohttpClient
 from app.views import router
 
@@ -44,8 +46,15 @@ app.add_middleware(
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+app.mount("/browse", StaticFiles(directory=BROWSER_PATH, html=True))
+
 
 @app.get("/")
+async def index():
+    return RedirectResponse("browse")
+
+
+@app.get("/status")
 async def status():
     return [{"status": "ok"}]
 

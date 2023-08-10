@@ -20,6 +20,11 @@ virtualenv -p python3.11 venv
 # or python3 -m venv venv
 source venv/bin/activate
 pip install --no-cache-dir -r requirements.txt
+
+# Build browser static files
+cd browser
+npm install
+RUN npm run build:minimal -- --catalogTitle="GitLab2STAC Browser" --historyMode="hash" --pathPrefix="/browse"
 ```
 
 Then run the development server:

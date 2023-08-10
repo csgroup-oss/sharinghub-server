@@ -1,3 +1,13 @@
+FROM node:lts-alpine3.18 AS browser
+
+WORKDIR /app
+
+COPY browser/package*.json ./
+RUN npm install
+
+COPY browser/ ./
+RUN npm run build:minimal -- --catalogTitle="GitLab2STAC Browser" --historyMode="hash" --pathPrefix="/browse"
+
 FROM amd64/python:3.11-alpine as build
 
 # Add non root user
@@ -21,6 +31,8 @@ RUN [ "$TEST_ENABLED" = "false" ] && echo "skipping tests" || eval "$TEST_COMMAN
 
 FROM build as ship
 WORKDIR /home/app/
+ENV BROWSER_PATH=/home/app/browser
+COPY --chown=app:app --from=browser /app/dist browser/
 COPY --chown=app:app app/            app/
 COPY --chown=app:app resources/      resources/
 
