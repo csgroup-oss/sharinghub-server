@@ -2,14 +2,14 @@ import logging
 from contextlib import asynccontextmanager
 from logging.config import dictConfig
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import ALLOWED_ORIGINS, API_PREFIX, BROWSER_PATH, DEBUG, LOGGING
-from app.utils.http import AiohttpClient
+from app.utils.http import AiohttpClient, url_for
 from app.views import router
 
 dictConfig(LOGGING)
@@ -46,12 +46,12 @@ app.add_middleware(
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-app.mount("/browse", StaticFiles(directory=BROWSER_PATH, html=True))
+app.mount("/browse", StaticFiles(directory=BROWSER_PATH, html=True), name="browser")
 
 
 @app.get("/")
-async def index():
-    return RedirectResponse("browse")
+async def index(request: Request):
+    return RedirectResponse(url_for(request, "browser", path=""))
 
 
 @app.get("/status")
