@@ -24,7 +24,7 @@ pip install --no-cache-dir -r requirements.txt
 # Build browser static files
 cd browser
 npm install
-RUN npm run build:minimal -- --catalogTitle="GitLab2STAC Browser" --historyMode="hash" --pathPrefix="/browse"
+RUN npm run build:minimal -- --catalogTitle="GitLab2STAC Browser" --gitlabUrl="https://gitlab.si.c-s.fr" --historyMode="hash" --pathPrefix="/browse"
 ```
 
 Then run the development server:
@@ -63,8 +63,8 @@ docker login <your-registry>
 # Example: docker login 643vlk6z.gra7.container-registry.ovh.net
 
 # Tag the image for your registry
-docker build -t <registry-tag> .
-# Example: docker build -t 643vlk6z.gra7.container-registry.ovh.net/space_applications/gitlab2stac:latest .
+docker build --build-arg gitlabUrl="<target-gitlab>" -t <registry-tag> .
+# Example: docker build --build-arg gitlabUrl="https://gitlab.si.c-s.fr" -t 643vlk6z.gra7.container-registry.ovh.net/space_applications/gitlab2stac:latest .
 
 # Push
 docker push <registry-tag>

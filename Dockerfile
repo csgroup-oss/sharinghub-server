@@ -1,12 +1,14 @@
 FROM node:lts-alpine3.18 AS browser
 
+ARG gitlabUrl
+
 WORKDIR /app
 
 COPY browser/package*.json ./
 RUN npm install
 
 COPY browser/ ./
-RUN npm run build:minimal -- --catalogTitle="GitLab2STAC Browser" --historyMode="hash" --pathPrefix="/browse"
+RUN npm run build:minimal -- --catalogTitle="GitLab2STAC Browser" --gitlabUrl=${gitlabUrl} --historyMode="hash" --pathPrefix="/browse"
 
 FROM amd64/python:3.11-alpine as build
 
