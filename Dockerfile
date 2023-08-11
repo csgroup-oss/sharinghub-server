@@ -12,6 +12,11 @@ RUN npm run build:minimal -- --catalogTitle="GitLab2STAC Browser" --gitlabUrl=${
 
 FROM amd64/python:3.11-alpine as build
 
+# Install runtime dependencies
+RUN apk add \
+        # MIME TYPES
+        mailcap
+
 # Add non root user
 RUN addgroup -S app && adduser -S app --ingroup app && chown app /home/app
 
