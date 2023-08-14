@@ -1,4 +1,5 @@
 import re
+from functools import cache
 
 import markdown
 
@@ -6,6 +7,7 @@ IMAGE_PATTERN = r"!\[(?P<alt>.*?)\]\((?P<src>.*?)\)"
 LINK_PATTERN = r"(?<!\!)\[(?P<text>[^\]]+)\]\((?P<href>http[s]?://[^)]+)\)"
 
 
+@cache
 def parse(markdown_content: str) -> tuple[str, dict]:
     md = markdown.Markdown(extensions=["full_yaml_metadata"])
     md.convert(markdown_content)
@@ -17,6 +19,7 @@ def parse(markdown_content: str) -> tuple[str, dict]:
     return doc, metadata
 
 
+@cache
 def increase_headings(markdown_content: str, incr: int = 1) -> str:
     markdown_buff = []
     for line in markdown_content.split("\n"):
@@ -27,6 +30,7 @@ def increase_headings(markdown_content: str, incr: int = 1) -> str:
     return "\n".join(markdown_buff)
 
 
+@cache
 def get_images(markdown_content: str) -> list[tuple[str, str]]:
     images = []
     for match_ in re.finditer(IMAGE_PATTERN, markdown_content):
@@ -38,6 +42,7 @@ def get_images(markdown_content: str) -> list[tuple[str, str]]:
     return images
 
 
+@cache
 def get_links(markdown_content: str) -> list[tuple[str, str]]:
     links = []
     for match_ in re.finditer(LINK_PATTERN, markdown_content):
@@ -49,5 +54,6 @@ def get_links(markdown_content: str) -> list[tuple[str, str]]:
     return links
 
 
+@cache
 def remove_images(markdown_content: str) -> str:
     return re.sub(r"(\n){3,}", "\n\n", re.sub(IMAGE_PATTERN, "", markdown_content))
