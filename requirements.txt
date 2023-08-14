@@ -1,8 +1,6 @@
 aiohttp
 fastapi
-lxml
 markdown
 markdown-full-yaml-metadata
-mistune
 pyyaml
 uvicorn

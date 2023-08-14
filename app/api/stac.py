@@ -220,7 +220,7 @@ def build_stac_for_project(
     _token = context["token"]
     _gitlab_base_uri_slug = slugify(_gitlab_base_uri).replace("-", "")
 
-    readme_doc, readme_xml, readme_metadata = md.parse(readme)
+    readme_doc, readme_metadata = md.parse(readme)
     assets_mapping = _get_assets_mapping(assets_rules, readme_metadata)
 
     # STAC data
@@ -229,7 +229,7 @@ def build_stac_for_project(
     title = project["name_with_namespace"]
     description = md.remove_images(md.increase_headings(readme_doc, 2))
     keywords = _get_keywords(topic, project, readme_metadata)
-    preview, preview_media_type = _get_preview(project, readme_metadata, readme_xml)
+    preview, preview_media_type = _get_preview(project, readme_metadata, readme_doc)
     license, license_url = _get_license(project, readme_metadata)
     producer, producer_url = _get_producer(project, readme_metadata, **context)
     spatial_extent, temporal_extent = _get_extent(project, readme_metadata)
@@ -239,7 +239,7 @@ def build_stac_for_project(
     ## Extensions
 
     ### Scientific Citation extension (https://github.com/stac-extensions/scientific)
-    doi, doi_publications = _get_scientific_citations(readme_metadata, readme_xml)
+    doi, doi_publications = _get_scientific_citations(readme_metadata, readme_doc)
     doi_link, doi_citation = doi
 
     ### ML Model Extension Specification (https://github.com/stac-extensions/ml-model)
@@ -520,14 +520,14 @@ def _get_keywords(topic: Topic, project: GitlabProject, metadata: dict) -> list[
 def _get_preview(
     project: GitlabProject,
     metadata: dict,
-    readme_xml: md.XMLElement,
+    md_content: str,
 ) -> tuple[str | None, str | None]:
     preview = project["avatar_url"]
     preview = metadata.get("preview", preview)
     preview = metadata.get("thumbnail", preview)
-    for img in readme_xml.xpath("//img"):
-        if img.get("alt").lower().strip() in ["preview", "thumbnail"]:
-            preview = img.get("src")
+    for link_alt, link_img in md.get_images(md_content):
+        if link_alt.lower().strip() in ["preview", "thumbnail"]:
+            preview = link_img
     media_type, _ = mimetypes.guess_type(preview) if preview else (None, None)
     return preview, media_type
 
@@ -660,7 +660,7 @@ def _parse_resource_link(
 
 
 def _get_scientific_citations(
-    metadata: dict, readme_xml: md.XMLElement
+    metadata: dict, md_content: str
 ) -> tuple[tuple[str | None, str | None], list[tuple[str | None, str | None]]]:
     DOI_PREFIX = "DOI:"
 
@@ -675,15 +675,14 @@ def _get_scientific_citations(
         elif isinstance(doi, dict):
             doi_link = doi.get("link")
             doi_citation = doi.get("citation")
-    elif doi_match := readme_xml.xpath('//a[starts-with(@href, "https://doi.org")]'):
-        for link in doi_match:
-            href = link.get("href")
-            text = "".join(link.itertext()).strip()
-            if text.startswith(DOI_PREFIX):
-                doi_link = href
-                doi_citation = text.removeprefix(DOI_PREFIX).lstrip()
+
+    for link_text, link_href in md.get_links(md_content):
+        if link_href.startswith("https://doi.org"):
+            if link_text.startswith(DOI_PREFIX):
+                doi_link = link_href
+                doi_citation = link_text.removeprefix(DOI_PREFIX).lstrip()
             else:
-                doi_publications.append((href, text))
+                doi_publications.append((link_href, link_text))
 
     if "publications" in metadata:
         for _doi_publication in metadata["publications"]:
