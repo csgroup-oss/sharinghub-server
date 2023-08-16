@@ -1,5 +1,31 @@
 # GitLab2STAC
 
+## Table of contents
+
+- [Setup](#setup)
+- [Configuration](#configuration)
+  - [Variables](#variables)
+    - [Config file path](#config-file-path)
+    - [Debug](#debug)
+    - [Log level](#log-level)
+    - [API prefix](#api-prefix)
+    - [Allowed origins](#allowed-origins)
+    - [Browser path](#browser-path)
+    - [Enable cache](#enable-cache)
+    - [Remotes](#remotes)
+    - [Catalog: cache timeout](#catalog-cache-timeout)
+    - [Catalog: per page items](#catalog-per-page-items)
+    - [Catalog: topics](#catalog-topics)
+    - [Project: cache timeout](#project-cache-timeout)
+    - [Assets rules](#assets-rules)
+    - [Release source format](#release-source-format)
+- [Development](#development)
+  - [Run with uvicorn](#run-with-uvicorn)
+  - [Run with docker container](#run-with-docker-container)
+- [Production](#production)
+  - [Create the Docker image](#create-the-docker-image)
+  - [HELM](#helm)
+
 ## Setup
 
 You will need first to update the submodules.
