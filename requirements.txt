@@ -1,4 +1,5 @@
 aiohttp
+python-dotenv
 fastapi
 markdown
 markdown-full-yaml-metadata

@@ -13,12 +13,12 @@ from app.api.stac import build_stac_for_project, build_stac_root, build_stac_top
 from app.config import (
     ASSETS_RULES,
     CATALOG_CACHE_TIMEOUT,
+    CATALOG_PER_PAGE,
     CATALOG_TOPICS,
     ENABLE_CACHE,
     PROJECT_CACHE_TIMEOUT,
-    PROJECTS_PER_PAGE,
     RELEASE_SOURCE_FORMAT,
-    STAC_CONFIG,
+    REMOTES,
 )
 from app.utils.http import url_for
 
@@ -43,7 +43,7 @@ async def index(request: Request, gitlab_base_uri: str, token: str):
 
 @router.get("/catalog.json")
 async def stac_root(request: Request, gitlab_base_uri: str, token: str):
-    gitlab_config = STAC_CONFIG.get("instances", {}).get(gitlab_base_uri, {})
+    gitlab_config = REMOTES.get(gitlab_base_uri, {})
     return build_stac_root(
         gitlab_config=gitlab_config,
         topics=CATALOG_TOPICS,
@@ -70,7 +70,7 @@ async def stac_topic(
 
     gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
     pagination, projects = await gitlab_client.get_projects(
-        topic, page=page, per_page=PROJECTS_PER_PAGE
+        topic, page=page, per_page=CATALOG_PER_PAGE
     )
 
     catalog = build_stac_topic(

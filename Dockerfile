@@ -40,8 +40,7 @@ FROM build as ship
 WORKDIR /home/app/
 ENV BROWSER_PATH=/home/app/browser
 COPY --chown=app:app --from=browser /app/dist browser/
-COPY --chown=app:app app/            app/
-COPY --chown=app:app resources/      resources/
+COPY --chown=app:app app/ app/
 
 USER app
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]  # , "--log-level", "critical"]
