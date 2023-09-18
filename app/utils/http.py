@@ -1,9 +1,7 @@
-import io
 import re
 from socket import AF_INET
 from typing import Any
 from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
-from zipfile import ZipFile
 
 import aiohttp
 from fastapi import Request
@@ -38,17 +36,6 @@ def url_add_query_params(url: str, query_params: dict) -> str:
     url_parts = list(urlparse(url))
     url_parts[4] = urlencode(dict(parse_qsl(url_parts[4])) | query_params)
     return urlunparse(url_parts)
-
-
-class Unzippr:
-    def __init__(self, response, filename, encoding="utf-8"):
-        self.response = response
-        self.filename = filename
-        self.encoding = encoding
-
-    async def text(self):
-        with ZipFile(io.BytesIO(await self.response.read()), "r") as handle:
-            return handle.read(self.filename).decode(self.encoding)
 
 
 @singleton
