@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import ALLOWED_ORIGINS, API_PREFIX, BROWSER_PATH, DEBUG, LOGGING
 from app.utils.http import AiohttpClient, url_for
-from app.views.stac import router as stac_router
+from app.views import router as views_router
 
 dictConfig(LOGGING)
 logger = logging.getLogger("app")
@@ -58,4 +58,4 @@ async def status():
 
 
 app.mount("/browse", StaticFiles(directory=BROWSER_PATH, html=True), name="browser")
-app.include_router(stac_router, prefix="/stac")
+app.include_router(views_router)

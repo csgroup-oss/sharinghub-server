@@ -31,7 +31,7 @@ TopicName = enum.StrEnum("TopicName", {k: k for k in CATALOG_TOPICS})
 CachedCatalog = namedtuple("CachedCatalog", ["time", "catalog"])
 CachedProject = namedtuple("CachedProject", ["time", "last_activity", "stac"])
 
-router = APIRouter(prefix="/{gitlab_base_uri}/{token}", tags=["stac"])
+router = APIRouter()
 
 
 @router.get("/")
