@@ -6,6 +6,7 @@ from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 import aiohttp
 from fastapi import Request
 
+from app.config import REQUEST_TIMEOUT
 from app.utils import singleton
 
 
@@ -46,7 +47,9 @@ class AiohttpClient:
         self.client: aiohttp.ClientSession | None = None
 
     def connect(self) -> None:
-        timeout = aiohttp.ClientTimeout(total=20)
+        timeout = aiohttp.ClientTimeout(
+            total=REQUEST_TIMEOUT if REQUEST_TIMEOUT else None
+        )
         connector = aiohttp.TCPConnector(
             family=AF_INET, limit_per_host=self.SIZE_POOL_AIOHTTP
         )

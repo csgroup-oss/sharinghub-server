@@ -73,6 +73,10 @@ ALLOWED_ORIGINS: list[str] = conf(
     cast=clist(sep=" "),
 )
 
+REQUEST_TIMEOUT: float = conf(
+    c, "request-timeout", "REQUEST_TIMEOUT", default=300.0, cast=float
+)
+
 #### Browser ####
 
 DEFAULT_BROWSER_PATH = Path(os.getcwd(), "browser", "dist")
@@ -85,7 +89,6 @@ BROWSER_PATH: Path = conf(
 ENABLE_CACHE: bool = conf(c, "cache", "ENABLE_CACHE", default=not DEBUG, cast=cbool())
 
 # Remotes
-
 REMOTES: dict = conf(c, "remotes", default={}, cast=dict)
 
 # Catalogs

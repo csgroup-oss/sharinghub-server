@@ -10,6 +10,7 @@
     - [Log level](#log-level)
     - [API prefix](#api-prefix)
     - [Allowed origins](#allowed-origins)
+    - [Request timeout](#request-timeout)
     - [Browser path](#browser-path)
     - [Enable cache](#enable-cache)
     - [Remotes](#remotes)
@@ -117,6 +118,20 @@ The YAML file path can be changed to point to another one with the environment v
       - http://localhost:7000
       - http://localhost:8000
       - http://localhost:9000
+    ```
+
+#### Request timeout
+
+- Type: floating number
+- Default: `300.0`
+- Environment variable:
+  - Name: `REQUEST_TIMEOUT`
+  - Example value: `600.0`
+- YAML:
+  - Path: `request-timeout`
+  - Example value:
+    ```yaml
+    request-timeout: 600.0
     ```
 
 #### Browser path
