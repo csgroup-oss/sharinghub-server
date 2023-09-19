@@ -13,8 +13,6 @@ from app.api.gitlab import (
     GitlabProjectFile,
     GitlabProjectRelease,
     gitlab_url,
-    project_archive_download_url,
-    project_file_download_url,
     project_issues_url,
     project_url,
 )
@@ -324,11 +322,16 @@ def build_stac_for_project(
     ]
 
     if is_local(preview):
-        preview = project_file_download_url(
-            gitlab_base_uri=_gitlab_base_uri,
-            token=_token,
-            project=project,
-            file_path=preview,
+        preview = url_for(
+            _request,
+            "download_gitlab_file",
+            path=dict(
+                gitlab_base_uri=_gitlab_base_uri,
+                token=_token,
+                project_id=project["id"],
+                ref=project["default_branch"],
+                file_path=preview,
+            ),
         )
     if preview:
         assets["preview"] = {
@@ -356,11 +359,16 @@ def build_stac_for_project(
     for file_path, file_media_type in files_assets.items():
         asset_id = _get_file_asset_id(file_path)
         assets[asset_id] = {
-            "href": project_file_download_url(
-                gitlab_base_uri=_gitlab_base_uri,
-                token=_token,
-                project=project,
-                file_path=file_path,
+            "href": url_for(
+                _request,
+                "download_gitlab_file",
+                path=dict(
+                    gitlab_base_uri=_gitlab_base_uri,
+                    token=_token,
+                    project_id=project["id"],
+                    ref=project["default_branch"],
+                    file_path=file_path,
+                ),
             ),
             "title": file_path,
             "roles": ["data"],
@@ -369,12 +377,16 @@ def build_stac_for_project(
             assets[asset_id]["type"] = file_media_type
 
     if release:
-        archive_url = project_archive_download_url(
-            gitlab_base_uri=_gitlab_base_uri,
-            token=_token,
-            project=project,
-            ref=release["tag_name"],
-            format=release_source_format,
+        archive_url = url_for(
+            _request,
+            "download_gitlab_archive",
+            path=dict(
+                gitlab_base_uri=_gitlab_base_uri,
+                token=_token,
+                project_id=project["id"],
+                ref=release["tag_name"],
+                format=release_source_format,
+            ),
         )
         media_type, _ = mimetypes.guess_type(f"archive.{release_source_format}")
         assets["release"] = {

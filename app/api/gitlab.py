@@ -1,8 +1,12 @@
 import logging
+import os
+from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
 
 import aiohttp
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
+from fastapi.responses import StreamingResponse
+from starlette.background import BackgroundTask
 
 from app.utils.http import AiohttpClient, url_add_query_params, urlsafe_path
 
@@ -32,6 +36,22 @@ GITLAB_PAGINATION_HEADERS = [
     "X-Total",
     "X-Total-Pages",
 ]
+
+
+class GitlabArchiveFormat(StrEnum):
+    """GitLab archive formats.
+
+    Link: https://docs.gitlab.com/ee/api/repositories.html#get-file-archive
+    """
+
+    ZIP = "zip"
+    BZ2 = "bz2"
+    TAR = "tar"
+    TAR_BZ2 = "tar.bz2"
+    TAR_GZ = "tar.gz"
+    TB2 = "tb2"
+    TBZ = "tbz"
+    TBZ2 = "tbz2"
 
 
 class GitlabPagination(TypedDict):
@@ -103,40 +123,11 @@ def project_issues_url(gitlab_base_uri: str, project: GitlabProject) -> str:
     return f"{project_url(gitlab_base_uri, project)}/issues"
 
 
-def project_file_download_url(
-    gitlab_base_uri: str, token: str, project: GitlabProject, file_path: str
-) -> str:
-    _project_api_url = _get_project_api_url(
-        project["id"], _get_gitlab_api_url(gitlab_base_uri)
-    )
-    _fpath = urlsafe_path(file_path)
-    _ref = project["default_branch"]
-    return f"{_project_api_url}/repository/files/{_fpath}/raw?ref={_ref}&lfs=true&private_token={token}"
-
-
-def project_archive_download_url(
-    gitlab_base_uri: str, token: str, project: GitlabProject, ref: str, format: str
-) -> str:
-    _project_api_url = _get_project_api_url(
-        project["id"], _get_gitlab_api_url(gitlab_base_uri)
-    )
-    return f"{_project_api_url}/repository/archive.{format}?sha={ref}&private_token={token}"
-
-
-def _get_gitlab_api_url(gitlab_base_uri: str) -> str:
-    return f"{gitlab_url(gitlab_base_uri)}/api/v4"
-
-
-def _get_project_api_url(project_id: str | int, gitlab_api_url: str = "") -> str:
-    _project_id = urlsafe_path(str(project_id))
-    return f"{gitlab_api_url}/projects/{_project_id}"
-
-
 class GitlabClient:
     def __init__(self, base_uri: str, token: str) -> None:
         self.base_uri = base_uri
         self.url = gitlab_url(base_uri)
-        self.api_url = _get_gitlab_api_url(base_uri)
+        self.api_url = f"{gitlab_url(self.base_uri)}/api/v4"
         self.token = token
 
     async def get_projects(
@@ -147,12 +138,14 @@ class GitlabClient:
         )
 
     async def get_project(self, project_path: str) -> GitlabProject:
-        return await self._request(f"{_get_project_api_url(project_path)}?license=true")
+        return await self._request(
+            f"{self._get_project_api_url(project_path)}?license=true"
+        )
 
     async def get_readme(self, project: GitlabProject) -> str:
         try:
             readme = await self._request(
-                f"{_get_project_api_url(project['id'])}/repository/files/README.md/raw",
+                f"{self._get_project_api_url(project['id'])}/repository/files/README.md/raw",
                 media_type="text",
             )
             return readme.strip()
@@ -167,7 +160,7 @@ class GitlabClient:
         return [
             file
             for file in await self._request_iterate(
-                f"{_get_project_api_url(project['id'])}/repository/tree?recursive=true"
+                f"{self._get_project_api_url(project['id'])}/repository/tree?recursive=true"
             )
             if file["type"] == "blob"
         ]
@@ -177,15 +170,34 @@ class GitlabClient:
     ) -> GitlabProjectRelease | None:
         try:
             return await self._request(
-                f"{_get_project_api_url(project['id'])}/releases/permalink/latest"
+                f"{self._get_project_api_url(project['id'])}/releases/permalink/latest"
             )
         except HTTPException as http_exc:
             if http_exc.status_code == 404:
                 return None
             raise http_exc
 
+    async def download_file(
+        self, request: Request, project_id: int, ref: str, file_path: str
+    ) -> StreamingResponse:
+        fpath = urlsafe_path(file_path)
+        project_endpoint = f"/repository/files/{fpath}/raw?ref={ref}&lfs=true"
+        return await self._request_streaming(
+            f"{self._get_project_api_url(project_id)}{project_endpoint}",
+            request=request,
+            filename=os.path.basename(file_path),
+        )
+
+    async def download_archive(
+        self, project_id: int, ref: str, format: GitlabArchiveFormat
+    ) -> StreamingResponse:
+        project_endpoint = f"/repository/archive.{format}?sha={ref}"
+        return await self._request_streaming(
+            f"{self._get_project_api_url(project_id)}{project_endpoint}"
+        )
+
     async def _request(
-        self, endpoint: str, media_type="json"
+        self, endpoint: str, media_type: str = "json"
     ) -> dict[str, Any] | list[Any] | str:
         async with AiohttpClient() as client:
             url = f"{self.api_url}{endpoint}"
@@ -201,6 +213,58 @@ class GitlabClient:
                     status_code=resp.status,
                     detail=f"{resp.url}: {await resp.text()}",
                 )
+
+    async def _request_streaming(
+        self, endpoint: str, request: Request | None = None, filename: str | None = None
+    ) -> StreamingResponse:
+        request_headers = dict(request.headers) if request else {}
+        request_headers.pop("host", None)
+
+        async with AiohttpClient() as client:
+            url = f"{self.api_url}{endpoint}"
+            request_method = request.method if request else "GET"
+            request_body = await request.body() if request else None
+            logger.debug(f"Request streaming {request_method} {endpoint}")
+            response = await client.request(
+                request_method,
+                url,
+                headers={**request_headers, "PRIVATE-TOKEN": self.token},
+                data=request_body,
+            )
+
+        response_headers = dict(response.headers)
+
+        if filename:
+            default_content_disposition = [
+                "attachment",
+                f'filename="{filename}"',
+                f"filename*=UTF-8''{filename}",
+            ]
+            content_disposition = response_headers.get("Content-Disposition", "").split(
+                ";"
+            )
+            if content_disposition:
+                filename_set = False
+                for i, e in enumerate(content_disposition):
+                    e = e.strip()
+                    if e.startswith("filename=") and filename:
+                        content_disposition[i] = f'filename="{filename}"'
+                        filename_set = True
+                    if e.startswith("filename*=UTF-8''") and filename:
+                        content_disposition[i] = f"filename*=UTF-8''{filename}"
+                        filename_set = True
+                if not filename_set:
+                    content_disposition = default_content_disposition
+            else:
+                content_disposition = default_content_disposition
+            response_headers["Content-Disposition"] = "; ".join(content_disposition)
+
+        return StreamingResponse(
+            response.content.iter_any(),
+            status_code=response.status,
+            headers=response_headers,
+            background=BackgroundTask(response.close),
+        )
 
     async def _request_paginate(
         self, endpoint: str, page=1, per_page=20
@@ -291,3 +355,7 @@ class GitlabClient:
                 rel = rel.strip().removeprefix("rel=").strip('"')
                 links[rel] = link
         return links
+
+    def _get_project_api_url(self, project_id: str | int) -> str:
+        _project_id = urlsafe_path(str(project_id))
+        return f"/projects/{_project_id}"
