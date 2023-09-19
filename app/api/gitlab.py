@@ -124,11 +124,22 @@ def project_issues_url(gitlab_base_uri: str, project: GitlabProject) -> str:
 
 
 class GitlabClient:
-    def __init__(self, base_uri: str, token: str) -> None:
+    def __init__(
+        self, base_uri: str, token: str, request: Request | None = None
+    ) -> None:
         self.base_uri = base_uri
         self.url = gitlab_url(base_uri)
         self.api_url = f"{gitlab_url(self.base_uri)}/api/v4"
         self.token = token
+        self.request = request
+
+    @staticmethod
+    def _get_project_api_url(project_id: str | int) -> str:
+        _project_id = urlsafe_path(str(project_id))
+        return f"/projects/{_project_id}"
+
+    def _resolve(self, endpoint: str) -> str:
+        return f"{self.api_url}{endpoint}"
 
     async def get_projects(
         self, topic: str, page: int = 1, per_page: int = 12
@@ -178,13 +189,12 @@ class GitlabClient:
             raise http_exc
 
     async def download_file(
-        self, request: Request, project_id: int, ref: str, file_path: str
+        self, project_id: int, ref: str, file_path: str
     ) -> StreamingResponse:
         fpath = urlsafe_path(file_path)
         project_endpoint = f"/repository/files/{fpath}/raw?ref={ref}&lfs=true"
         return await self._request_streaming(
             f"{self._get_project_api_url(project_id)}{project_endpoint}",
-            request=request,
             filename=os.path.basename(file_path),
         )
 
@@ -196,35 +206,13 @@ class GitlabClient:
             f"{self._get_project_api_url(project_id)}{project_endpoint}"
         )
 
-    async def _request(
-        self, endpoint: str, media_type: str = "json"
-    ) -> dict[str, Any] | list[Any] | str:
-        async with AiohttpClient() as client:
-            url = f"{self.api_url}{endpoint}"
-            logger.debug(f"Request {endpoint}")
-            async with client.get(url, headers={"PRIVATE-TOKEN": self.token}) as resp:
-                if resp.ok:
-                    match media_type:
-                        case "text":
-                            return await resp.text()
-                        case "json" | _:
-                            return await resp.json()
-                raise HTTPException(
-                    status_code=resp.status,
-                    detail=f"{resp.url}: {await resp.text()}",
-                )
-
-    async def _request_streaming(
-        self, endpoint: str, request: Request | None = None, filename: str | None = None
-    ) -> StreamingResponse:
-        request_headers = dict(request.headers) if request else {}
+    async def _send_request(self, url: str):
+        request_headers = dict(self.request.headers) if self.request else {}
         request_headers.pop("host", None)
-
+        request_method = self.request.method if self.request else "GET"
+        request_body = await self.request.body() if self.request else None
         async with AiohttpClient() as client:
-            url = f"{self.api_url}{endpoint}"
-            request_method = request.method if request else "GET"
-            request_body = await request.body() if request else None
-            logger.debug(f"Request streaming {request_method} {endpoint}")
+            logger.debug(f"Request {request_method}: {url}")
             response = await client.request(
                 request_method,
                 url,
@@ -232,6 +220,30 @@ class GitlabClient:
                 data=request_body,
             )
 
+        if not response.ok:
+            raise HTTPException(
+                status_code=response.status,
+                detail=f"HTTP {response.status} | {request_method} {response.url}: {await response.text()}",
+            )
+
+        return response
+
+    async def _request(
+        self, endpoint: str, media_type: str = "json"
+    ) -> dict[str, Any] | list[Any] | str:
+        url = self._resolve(endpoint)
+        response = await self._send_request(url)
+        match media_type:
+            case "json":
+                return await response.json()
+            case "text" | _:
+                return await response.text()
+
+    async def _request_streaming(
+        self, endpoint: str, filename: str | None = None
+    ) -> StreamingResponse:
+        url = self._resolve(endpoint)
+        response = await self._send_request(url)
         response_headers = dict(response.headers)
 
         if filename:
@@ -275,41 +287,37 @@ class GitlabClient:
             "order_by": "id",
             "sort": "asc",
         }
-        url = f"{self.api_url}{endpoint}"
+        url = self._resolve(endpoint)
         url = url_add_query_params(url, params)
-        async with AiohttpClient() as client:
-            logger.debug(f"Request page {page} (per page: {per_page}) {endpoint}")
-            async with client.get(url, headers={"PRIVATE-TOKEN": self.token}) as resp:
-                if resp.ok:
-                    items = await resp.json()
-                    if not isinstance(items, list):
-                        raise HTTPException(
-                            status_code=422,
-                            detail="Unexpected: requested API do not return a list",
-                        )
-                    try:
-                        pagination = {
-                            k.lower()
-                            .removeprefix("x-")
-                            .replace("-", "_"): (
-                                int(resp.headers[k]) if resp.headers[k] != "" else None
-                            )
-                            for k in GITLAB_PAGINATION_HEADERS
-                        }
-                    except (KeyError, TypeError) as err:
-                        logger.error(f"Headers: {dict(resp.headers)}")
-                        logger.exception(err)
-                        raise HTTPException(
-                            status_code=500,
-                            detail="Missing or malformed pagination headers",
-                        )
-                    return pagination, items
-                raise HTTPException(
-                    status_code=resp.status,
-                    detail=f"{resp.url}: {await resp.text()}",
+        response = await self._send_request(url)
+
+        items = await response.json()
+        if not isinstance(items, list):
+            raise HTTPException(
+                status_code=422,
+                detail="Unexpected: requested API do not return a list",
+            )
+
+        try:
+            pagination = {
+                k.lower()
+                .removeprefix("x-")
+                .replace("-", "_"): (
+                    int(response.headers[k]) if response.headers[k] != "" else None
                 )
+                for k in GITLAB_PAGINATION_HEADERS
+            }
+        except (KeyError, TypeError) as err:
+            logger.error(f"Headers: {dict(response.headers)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Missing or malformed pagination headers",
+            ) from err
+        return pagination, items
 
     async def _request_iterate(self, endpoint: str, per_page=100) -> list[Any]:
+        logger.debug(f"Request iterate {endpoint}")
+
         params = {
             "per_page": per_page,
             "pagination": "keyset",
@@ -320,30 +328,21 @@ class GitlabClient:
         url = url_add_query_params(url, params)
 
         items = []
-        async with AiohttpClient() as client:
-            logger.debug(f"Request iterate {endpoint}")
-            while url:
-                logger.debug(f"\t- {url}")
-                async with client.get(
-                    url, headers={"PRIVATE-TOKEN": self.token}
-                ) as resp:
-                    if resp.ok:
-                        content = await resp.json()
-                        if not isinstance(content, list):
-                            raise HTTPException(
-                                status_code=422,
-                                detail="Unexpected: requested API do not return a list",
-                            )
-                        items.extend(content)
-                        links = self._get_links_from_headers(resp)
-                        url = links.get("next") if len(content) == per_page else None
-                    else:
-                        raise HTTPException(
-                            status_code=resp.status,
-                            detail=f"{resp.url}: {await resp.text()}",
-                        )
+        while url:
+            response = await self._send_request(url)
 
-            return items
+            content = await response.json()
+            if not isinstance(content, list):
+                raise HTTPException(
+                    status_code=422,
+                    detail="Unexpected: requested API do not return a list",
+                )
+            items.extend(content)
+
+            links = self._get_links_from_headers(response)
+            url = links.get("next") if len(content) == per_page else None
+
+        return items
 
     def _get_links_from_headers(self, response: aiohttp.ClientResponse) -> dict:
         links = {}
@@ -355,7 +354,3 @@ class GitlabClient:
                 rel = rel.strip().removeprefix("rel=").strip('"')
                 links[rel] = link
         return links
-
-    def _get_project_api_url(self, project_id: str | int) -> str:
-        _project_id = urlsafe_path(str(project_id))
-        return f"/projects/{_project_id}"

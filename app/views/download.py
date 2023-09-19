@@ -20,9 +20,8 @@ async def download_gitlab_file(
     file_path: str,
 ):
     """Download proxy for a GitLab project repository file."""
-    gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
+    gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token, request=request)
     return await gitlab_client.download_file(
-        request=request,
         project_id=project_id,
         ref=ref,
         file_path=file_path,
@@ -31,6 +30,7 @@ async def download_gitlab_file(
 
 @router.get("/archive/{project_id}/{ref}/archive.{format}")
 async def download_gitlab_archive(
+    request: Request,
     gitlab_base_uri: str,
     token: str,
     project_id: int,
@@ -38,7 +38,7 @@ async def download_gitlab_archive(
     format: GitlabArchiveFormat,
 ):
     """Download proxy for a GitLab project archive."""
-    gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
+    gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token, request=request)
     return await gitlab_client.download_archive(
         project_id=project_id, ref=ref, format=format
     )
