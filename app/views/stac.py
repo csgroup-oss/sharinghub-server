@@ -37,7 +37,14 @@ router = APIRouter()
 @router.get("/")
 async def stac_index(request: Request, gitlab_base_uri: str, token: str):
     return RedirectResponse(
-        url_for(request, "stac_root", gitlab_base_uri=gitlab_base_uri, token=token)
+        url_for(
+            request,
+            "stac_root",
+            path=dict(
+                gitlab_base_uri=gitlab_base_uri,
+                token=token,
+            ),
+        )
     )
 
 

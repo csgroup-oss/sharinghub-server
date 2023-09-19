@@ -10,11 +10,23 @@ from app.config import REQUEST_TIMEOUT
 from app.utils import singleton
 
 
-def url_for(request: Request, name: str | None = None, **path_params: Any) -> str:
-    url = request.url_for(name, **path_params) if name else request.url
-    url_parsed = list(urlparse(str(url)))
+def url_for(
+    request: Request,
+    name: str | None = None,
+    path: dict[str, Any] = None,
+    query: dict[str, Any] = None,
+) -> str:
+    path_params = path if path else {}
+    query_params = query if query else {}
+
+    url_ = request.url_for(name, **path_params) if name else request.url
+    url_parsed = list(urlparse(str(url_)))
     url_parsed[0] = request.headers.get("X-Forwarded-Proto", request.url.scheme)
-    return urlunparse(url_parsed)
+
+    url = urlunparse(url_parsed)
+    if query_params:
+        url = url_add_query_params(url, query_params)
+    return url
 
 
 def slugify(s: str) -> str:

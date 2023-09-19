@@ -49,7 +49,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.get("/")
 async def index(request: Request):
-    return RedirectResponse(url_for(request, "browser", path=""))
+    return RedirectResponse(url_for(request, "browser", path=dict(path="")))
 
 
 @app.get("/status")
