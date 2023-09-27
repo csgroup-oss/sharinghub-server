@@ -8,11 +8,9 @@ catalogs:
     ai_model:
       title: AI Model
       description: Custom AI models hosted on [GitLab](https://gitlab.si.c-s.fr)
-      default_type: item
 
     dataset:
       title: Dataset
-      default_type: collection
 
     processor:
       title: Processor

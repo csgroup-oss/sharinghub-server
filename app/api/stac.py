@@ -259,7 +259,7 @@ def build_stac_for_project(
 
     stac_type = topic.get("default_type")
     stac_type = readme_metadata.get("type", stac_type)
-    stac_type = stac_type if stac_type in ["item", "collection"] else "collection"
+    stac_type = stac_type if stac_type in ["item", "collection"] else "item"
     stac_extensions = [
         "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
     ]
