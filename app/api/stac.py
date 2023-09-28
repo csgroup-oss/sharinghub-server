@@ -261,7 +261,7 @@ def build_stac_for_project(
     title = project["name_with_namespace"]
     description = md.remove_images(md.increase_headings(readme_doc, 2))
     keywords = _get_keywords(topic, project, readme_metadata)
-    preview, preview_media_type = _get_preview(project, readme_metadata, readme_doc)
+    preview, preview_media_type = _get_preview(readme_metadata, readme_doc)
     license, license_url = _get_license(project, readme_metadata)
     producer, producer_url = _get_producer(project, readme_metadata, **context)
     spatial_extent, temporal_extent = _get_extent(project, readme_metadata)
@@ -568,12 +568,10 @@ def _get_keywords(topic: Topic, project: GitlabProject, metadata: dict) -> list[
 
 
 def _get_preview(
-    project: GitlabProject,
     metadata: dict,
     md_content: str,
 ) -> tuple[str | None, str | None]:
-    preview = project["avatar_url"]
-    preview = metadata.get("preview", preview)
+    preview = metadata.get("preview")
     preview = metadata.get("thumbnail", preview)
     for link_alt, link_img in md.get_images(md_content):
         if link_alt.lower().strip() in ["preview", "thumbnail"]:
