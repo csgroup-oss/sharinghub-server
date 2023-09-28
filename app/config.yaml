@@ -5,12 +5,15 @@ remotes:
 
 catalogs:
   topics:
-    ai_model:
+    ai-model:
       title: AI Model
       description: Custom AI models hosted on [GitLab](https://gitlab.si.c-s.fr)
+      gitlab_name: sharinghub:aimodel
 
     dataset:
       title: Dataset
+      gitlab_name: sharinghub:dataset
 
     processor:
       title: Processor
+      gitlab_name: sharinghub:processor
