@@ -78,7 +78,7 @@ def build_stac_root(
         "description",
         f"Catalog generated from your [Gitlab]({_gitlab_url}) repositories with GitLab2STAC.",
     )
-    preview = gitlab_config.get("preview")
+    logo = gitlab_config.get("logo")
 
     links = [
         {
@@ -96,11 +96,11 @@ def build_stac_root(
         for topic_name in topics
     ]
 
-    if preview:
+    if logo:
         links.append(
             {
                 "rel": "preview",
-                "href": preview,
+                "href": logo,
             }
         )
 
@@ -142,7 +142,7 @@ def build_stac_topic(
         "description",
         f"{title} catalog generated from your [Gitlab]({_gitlab_url}) repositories with GitLab2STAC.",
     )
-    preview = topic.get("preview")
+    logo = topic.get("logo")
 
     links = [
         {
@@ -189,11 +189,11 @@ def build_stac_topic(
             }
         )
 
-    if preview:
+    if logo:
         links.append(
             {
                 "rel": "preview",
-                "href": preview,
+                "href": logo,
             }
         )
 
