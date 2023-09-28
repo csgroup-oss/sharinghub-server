@@ -49,6 +49,7 @@ class STACContext(TypedDict):
 class TopicFields(TypedDict):
     title: str
     description: NotRequired[str]
+    preview: NotRequired[str]
     gitlab_name: NotRequired[str]
     default_type: NotRequired[str]
 
@@ -77,8 +78,9 @@ def build_stac_root(
         "description",
         f"Catalog generated from your [Gitlab]({_gitlab_url}) repositories with GitLab2STAC.",
     )
+    preview = gitlab_config.get("preview")
 
-    topics_catalogs = [
+    links = [
         {
             "rel": "child",
             "href": url_for(
@@ -93,6 +95,14 @@ def build_stac_root(
         }
         for topic_name in topics
     ]
+
+    if preview:
+        links.append(
+            {
+                "rel": "preview",
+                "href": preview,
+            }
+        )
 
     _gitlab_base_uri_slug = slugify(_gitlab_base_uri).replace("-", "")
     stac_id = f"{_gitlab_base_uri_slug}-catalog"
@@ -111,7 +121,7 @@ def build_stac_root(
                 "rel": "self",
                 "href": url_for(_request),
             },
-            *topics_catalogs,
+            *links,
         ],
     }
 
@@ -132,6 +142,7 @@ def build_stac_topic(
         "description",
         f"{title} catalog generated from your [Gitlab]({_gitlab_url}) repositories with GitLab2STAC.",
     )
+    preview = topic.get("preview")
 
     links = [
         {
@@ -175,6 +186,14 @@ def build_stac_topic(
                 "href": url_add_query_params(
                     _current_topic_url, {"page": pagination["next_page"]}
                 ),
+            }
+        )
+
+    if preview:
+        links.append(
+            {
+                "rel": "preview",
+                "href": preview,
             }
         )
 
