@@ -9,7 +9,12 @@ from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
 from app.api.gitlab import GitlabClient
-from app.api.stac import build_stac_for_project, build_stac_root, build_stac_topic
+from app.api.stac import (
+    build_stac_for_project,
+    build_stac_root,
+    build_stac_topic,
+    get_gitlab_topic,
+)
 from app.config import (
     ASSETS_RULES,
     CATALOG_CACHE_TIMEOUT,
@@ -60,28 +65,30 @@ async def stac_root(request: Request, gitlab_base_uri: str, token: str):
     )
 
 
-@router.get("/{topic}/catalog.json")
+@router.get("/{topic_name}/catalog.json")
 async def stac_topic(
     request: Request,
     gitlab_base_uri: str,
     token: str,
-    topic: TopicName,
+    topic_name: TopicName,
     page: int = 1,
 ):
-    cache_key = (gitlab_base_uri, topic, token)
+    cache_key = (gitlab_base_uri, topic_name, token)
     if (
         cache_key in CATALOG_CACHE
         and time.time() - CATALOG_CACHE[cache_key].time < CATALOG_CACHE_TIMEOUT
     ):
         return CATALOG_CACHE[cache_key].catalog
 
+    topic = {"name": topic_name, **CATALOG_TOPICS[topic_name]}
+
     gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
     pagination, projects = await gitlab_client.get_projects(
-        topic, page=page, per_page=CATALOG_PER_PAGE
+        topic=get_gitlab_topic(topic), page=page, per_page=CATALOG_PER_PAGE
     )
 
     catalog = build_stac_topic(
-        topic={"name": topic, **CATALOG_TOPICS[topic]},
+        topic=topic,
         projects=projects,
         pagination=pagination,
         request=request,
@@ -95,12 +102,12 @@ async def stac_topic(
     return catalog
 
 
-@router.get("/{topic}/{project_path:path}")
+@router.get("/{topic_name}/{project_path:path}")
 async def stac_project(
     request: Request,
     gitlab_base_uri: str,
     token: str,
-    topic: TopicName,
+    topic_name: TopicName,
     project_path: str,
 ):
     cache_key = (gitlab_base_uri, project_path)
@@ -113,10 +120,13 @@ async def stac_project(
     gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
     project = await gitlab_client.get_project(project_path)
 
-    if topic not in project["topics"]:
+    topic = {"name": topic_name, **CATALOG_TOPICS[topic_name]}
+    gitlab_topic = get_gitlab_topic(topic)
+
+    if gitlab_topic not in project["topics"]:
         raise HTTPException(
             status_code=400,
-            detail=f"Project '{project_path}' do not belong to topic '{topic}'",
+            detail=f"Project '{project_path}' do not belong to topic '{gitlab_topic}'",
         )
 
     if (
@@ -139,7 +149,7 @@ async def stac_project(
 
     try:
         stac = build_stac_for_project(
-            topic={"name": topic, **CATALOG_TOPICS[topic]},
+            topic=topic,
             project=project,
             readme=readme,
             files=files,

@@ -49,6 +49,7 @@ class STACContext(TypedDict):
 class TopicFields(TypedDict):
     title: str
     description: NotRequired[str]
+    gitlab_name: NotRequired[str]
     default_type: NotRequired[str]
 
 
@@ -57,6 +58,10 @@ class Topic(TopicFields):
 
 
 TopicSpec: TypeAlias = dict[str, TopicFields]
+
+
+def get_gitlab_topic(topic: Topic) -> str:
+    return topic.get("gitlab_name", topic["name"])
 
 
 def build_stac_root(
@@ -82,11 +87,11 @@ def build_stac_root(
                 path=dict(
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
-                    topic=topic,
+                    topic_name=topic_name,
                 ),
             ),
         }
-        for topic in topics
+        for topic_name in topics
     ]
 
     _gitlab_base_uri_slug = slugify(_gitlab_base_uri).replace("-", "")
@@ -137,7 +142,7 @@ def build_stac_topic(
                 path=dict(
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
-                    topic=topic["name"],
+                    topic_name=topic["name"],
                     project_path=project["path_with_namespace"],
                 ),
             ),
@@ -151,7 +156,7 @@ def build_stac_topic(
         path=dict(
             gitlab_base_uri=_gitlab_base_uri,
             token=_token,
-            topic=topic["name"],
+            topic_name=topic["name"],
         ),
     )
     if pagination["prev_page"]:
@@ -290,7 +295,7 @@ def build_stac_for_project(
                 path=dict(
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
-                    topic=topic["name"],
+                    topic_name=topic["name"],
                 ),
             ),
         },
@@ -675,7 +680,7 @@ def _parse_resource_link(
             path=dict(
                 gitlab_base_uri=_gitlab_base_uri,
                 token=_token,
-                topic=key,
+                topic_name=key,
                 project_path=path,
             ),
         )
