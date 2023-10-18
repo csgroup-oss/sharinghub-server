@@ -2,14 +2,14 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "gitlab2stac.fullname" . }}
+  name: {{ include "sharinghub.fullname" . }}
   labels:
-    {{- include "gitlab2stac.labels" . | nindent 4 }}
+    {{- include "sharinghub.labels" . | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "gitlab2stac.fullname" . }}
+    name: {{ include "sharinghub.fullname" . }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:

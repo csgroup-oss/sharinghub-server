@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "gitlab2stac.fullname" . }}
+  name: {{ include "sharinghub.fullname" . }}
   labels:
-    {{- include "gitlab2stac.labels" . | nindent 4 }}
+    {{- include "sharinghub.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "gitlab2stac.selectorLabels" . | nindent 6 }}
+      {{- include "sharinghub.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -18,13 +18,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "gitlab2stac.selectorLabels" . | nindent 8 }}
+        {{- include "sharinghub.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "gitlab2stac.serviceAccountName" . }}
+      serviceAccountName: {{ include "sharinghub.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:

@@ -1,5 +1,5 @@
 image:
-  repository: 643vlk6z.gra7.container-registry.ovh.net/space_applications/gitlab2stac
+  repository: 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "latest"
@@ -14,11 +14,11 @@ ingress:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
   hosts:
-    - host: gistac.p2.csgroup.space
+    - host: sharinghub.p2.csgroup.space
       paths:
         - path: /
           pathType: ImplementationSpecific
   tls:
-    - secretName: gistac-tls
+    - secretName: sharinghub-tls
       hosts:
-        - gistac.p2.csgroup.space
+        - sharinghub.p2.csgroup.space

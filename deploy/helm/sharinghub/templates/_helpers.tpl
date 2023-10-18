@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "gitlab2stac.name" -}}
+{{- define "sharinghub.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "gitlab2stac.fullname" -}}
+{{- define "sharinghub.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "gitlab2stac.chart" -}}
+{{- define "sharinghub.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "gitlab2stac.labels" -}}
-helm.sh/chart: {{ include "gitlab2stac.chart" . }}
-{{ include "gitlab2stac.selectorLabels" . }}
+{{- define "sharinghub.labels" -}}
+helm.sh/chart: {{ include "sharinghub.chart" . }}
+{{ include "sharinghub.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,17 +45,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "gitlab2stac.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "gitlab2stac.name" . }}
+{{- define "sharinghub.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "sharinghub.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "gitlab2stac.serviceAccountName" -}}
+{{- define "sharinghub.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "gitlab2stac.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "sharinghub.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
