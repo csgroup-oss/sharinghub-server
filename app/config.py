@@ -3,7 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from app.utils.config import cbool, clist, conf, cpath, read_config
+from app.utils.config import Config, cbool, clist, cpath
 
 __all__ = [
     "DEBUG",
@@ -26,14 +26,14 @@ load_dotenv()
 
 ROOT_PATH = Path(__file__).parent
 CONFIG_PATH = os.environ.get("CONFIG_PATH", ROOT_PATH / "config.yaml")
-c = read_config(CONFIG_PATH)
+conf = Config.from_file(CONFIG_PATH)
 
 ########## CONFIGURATION ##########
 
-DEBUG: bool = conf(c, "debug", "DEBUG", default=False, cast=cbool())
+DEBUG: bool = conf("debug", "DEBUG", default=False, cast=cbool())
 
 DEFAULT_LOG_LEVEL: str = conf(
-    c, "log-level", "LOG_LEVEL", default="INFO", cast=str
+    "log-level", "LOG_LEVEL", default="INFO", cast=str
 ).upper()
 LOG_LEVEL = "DEBUG" if DEBUG else DEFAULT_LOG_LEVEL
 LOGGING = {
@@ -61,13 +61,12 @@ LOGGING = {
 }
 
 
-API_PREFIX: str = conf(c, "api-prefix", "API_PREFIX", default="", cast=str)
+API_PREFIX: str = conf("api-prefix", "API_PREFIX", default="", cast=str)
 DEFAULT_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "https://radiantearth.github.io",
 ]
 ALLOWED_ORIGINS: list[str] = conf(
-    c,
     "allowed-origins",
     "ALLOWED_ORIGINS",
     default=DEFAULT_ALLOWED_ORIGINS,
@@ -75,39 +74,37 @@ ALLOWED_ORIGINS: list[str] = conf(
 )
 
 REQUEST_TIMEOUT: float = conf(
-    c, "request-timeout", "REQUEST_TIMEOUT", default=300.0, cast=float
+    "request-timeout", "REQUEST_TIMEOUT", default=300.0, cast=float
 )
 
 #### Browser ####
 
 DEFAULT_BROWSER_PATH = Path(os.getcwd(), "browser", "dist")
 BROWSER_PATH: Path = conf(
-    c, "browser-path", "BROWSER_PATH", default=DEFAULT_BROWSER_PATH, cast=cpath()
+    "browser-path", "BROWSER_PATH", default=DEFAULT_BROWSER_PATH, cast=cpath()
 )
 
 ####  STAC  ####
 
-ENABLE_CACHE: bool = conf(c, "cache", "ENABLE_CACHE", default=not DEBUG, cast=cbool())
+ENABLE_CACHE: bool = conf("cache", "ENABLE_CACHE", default=not DEBUG, cast=cbool())
 
 # Remotes
-REMOTES: dict = conf(c, "remotes", default={}, cast=dict)
+REMOTES: dict = conf("remotes", default={}, cast=dict)
 
 # Catalogs
 CATALOG_CACHE_TIMEOUT: float = conf(
-    c,
     "catalogs.cache-timeout",
     "CATALOG_CACHE_TIMEOUT",
     default=60.0 * 10,
     cast=float,
 )
 CATALOG_PER_PAGE: int = conf(
-    c, "catalogs.per-page", "CATALOG_PER_PAGE", default=12, cast=int
+    "catalogs.per-page", "CATALOG_PER_PAGE", default=12, cast=int
 )
-CATALOG_TOPICS: dict = conf(c, "catalogs.topics", default={}, cast=dict)
+CATALOG_TOPICS: dict = conf("catalogs.topics", default={}, cast=dict)
 
 # Projects
 PROJECT_CACHE_TIMEOUT: float = conf(
-    c,
     "projects.cache-timeout",
     "PROJECT_CACHE_TIMEOUT",
     default=60.0 * 5,
@@ -117,10 +114,10 @@ PROJECT_CACHE_TIMEOUT: float = conf(
 # Assets
 DEFAULT_ASSETS_RULES = ["*.tif", "*.tiff", "*.geojson"]
 ASSETS_RULES = conf(
-    c, "assets-rules", "ASSETS_RULES", default=DEFAULT_ASSETS_RULES, cast=clist(sep=" ")
+    "assets-rules", "ASSETS_RULES", default=DEFAULT_ASSETS_RULES, cast=clist(sep=" ")
 )
 RELEASE_SOURCE_FORMAT: str = (
-    conf(c, "release-source-format", "RELEASE_SOURCE_FORMAT", default="zip", cast=str)
+    conf("release-source-format", "RELEASE_SOURCE_FORMAT", default="zip", cast=str)
     .lower()
     .lstrip(".")
 )

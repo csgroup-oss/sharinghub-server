@@ -1,47 +1,56 @@
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
 import yaml
 
 
-def read_config(file_path: str | os.PathLike, /) -> dict:
-    if os.path.isfile(file_path):
-        with open(file_path, "r") as f:
-            return yaml.load(f, Loader=yaml.SafeLoader)
-    return {}
+@dataclass
+class Config:
+    def __init__(self, mapping: dict) -> None:
+        self.mapping = mapping
 
+    @staticmethod
+    def from_file(file_path: str, /) -> "Config":
+        mapping = {}
+        if os.path.isfile(file_path):
+            with open(file_path, "r") as f:
+                _content = yaml.load(f, Loader=yaml.SafeLoader)
+            if isinstance(_content, dict):
+                mapping = _content
+        return Config(mapping)
 
-def conf(
-    mapping: dict,
-    path: str,
-    env_var: str = "",
-    /,
-    *,
-    default: Any = None,
-    cast: Callable[[Any], Any] | None = None,
-) -> Any:
-    cursor = mapping
-    paths = path.split(".")
+    def __call__(
+        self,
+        path: str,
+        env_var: str = "",
+        /,
+        *,
+        default: Any = None,
+        cast: Callable[[Any], Any] | None = None,
+    ) -> Any:
+        cursor = self.mapping
+        paths = path.split(".")
 
-    for i, p in enumerate(paths):
-        cursor = cursor.get(p)
+        for i, p in enumerate(paths):
+            cursor = cursor.get(p)
 
-        if i == len(paths) - 1:
-            val = cursor
-            if env_var:
-                val = os.environ.get(env_var, val)
+            if i == len(paths) - 1:
+                val = cursor
+                if env_var:
+                    val = os.environ.get(env_var, val)
 
-            if val and cast:
-                val = cast(val)
+                if val and cast:
+                    val = cast(val)
 
-            if val is None:
-                val = default
+                if val is None:
+                    val = default
 
-            return val
+                return val
 
-        elif not cursor or not isinstance(cursor, dict):
-            return default
+            elif not cursor or not isinstance(cursor, dict):
+                return default
 
 
 def cbool() -> Callable[[Any], bool]:
