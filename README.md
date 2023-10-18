@@ -1,4 +1,4 @@
-# GitLab2STAC
+# SharingHub Server
 
 ## Table of contents
 
@@ -38,7 +38,7 @@ git submodule update
 
 ## Configuration
 
-You can can configure Gitlab2STAC service through multiple sources:
+You can can configure the SharingHUB server through multiple sources:
 
 - YAML file
 - Environment variables
@@ -284,7 +284,7 @@ pip install --no-cache-dir -r requirements.txt
 # Build browser static files
 cd browser
 npm install
-RUN npm run build:minimal -- --catalogTitle="GitLab2STAC Browser" --gitlabUrl="https://gitlab.si.c-s.fr" --historyMode="hash" --pathPrefix="/browse"
+npm run build:minimal -- --catalogTitle="SharingHUB" --gitlabUrl="https://gitlab.si.c-s.fr" --historyMode="hash" --pathPrefix="/browse"
 ```
 
 We use `python-dotenv`, if a `.env` file is present it will be loaded. We can use it to enable debug mode, with:
@@ -306,15 +306,15 @@ uvicorn app.main:app --reload
 Build image
 
 ```bash
-docker build -t gitlab2stac:latest .
+docker build -t sharinghub:latest .
 ```
 
 Use it
 
 ```bash
-docker run --name gitlab2stac --rm \
+docker run --name sharinghub --rm \
     -p 8000:8000 \
-    gitlab2stac:latest
+    sharinghub:latest
 ```
 
 You can check the API docs at [localhost:8000](http://localhost:8000/docs).
@@ -332,11 +332,11 @@ docker login <your-registry>
 
 # Tag the image for your registry
 docker build --build-arg gitlabUrl="<target-gitlab>" -t <registry-tag> .
-# Example: docker build --build-arg gitlabUrl="https://gitlab.si.c-s.fr" -t 643vlk6z.gra7.container-registry.ovh.net/space_applications/gitlab2stac:latest .
+# Example: docker build --build-arg gitlabUrl="https://gitlab.si.c-s.fr" -t 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub:latest .
 
 # Push
 docker push <registry-tag>
-# Example: docker push 643vlk6z.gra7.container-registry.ovh.net/space_applications/gitlab2stac:latest
+# Example: docker push 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub:latest
 ```
 
 ### HELM
@@ -344,13 +344,13 @@ docker push <registry-tag>
 Create a robot account in the harbor interface to access GeoJson Proxy Image
 
 ```bash
-kubectl create namespace gitlab2stac
+kubectl create namespace sharinghub
 
-kubectl create secret docker-registry regcred --docker-username='robot$space_applications+p2.gitlab2stac' --docker-password='CphryzOE7A4XFnC1943APz0m1N8z9U6n' --docker-server='643vlk6z.gra7.container-registry.ovh.net' --namespace gitlab2stac
+kubectl create secret docker-registry regcred --docker-username='robot$space_applications+p2.sharinghub' --docker-password='CphryzOE7A4XFnC1943APz0m1N8z9U6n' --docker-server='643vlk6z.gra7.container-registry.ovh.net' --namespace sharinghub
 ```
 
-Deploy Gitlab2stac proxy
+Deploy SharingHUB proxy
 
 ```bash
-helm upgrade --install gitlab2stac ./deploy/helm/gitlab2stac --namespace gitlab2stac --values deploy/helm/values.yaml
+helm upgrade --install sharinghub ./deploy/helm/sharinghub --namespace sharinghub --values deploy/helm/values.yaml
 ```

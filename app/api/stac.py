@@ -76,7 +76,7 @@ def build_stac_root(
     title = gitlab_config.get("title", "GitLab STAC Catalog")
     description = gitlab_config.get(
         "description",
-        f"Catalog generated from your [Gitlab]({_gitlab_url}) repositories with GitLab2STAC.",
+        f"Catalog generated from your [Gitlab]({_gitlab_url}) repositories with SharingHUB.",
     )
     logo = gitlab_config.get("logo")
 
@@ -140,7 +140,7 @@ def build_stac_topic(
     title = topic["title"]
     description = topic.get(
         "description",
-        f"{title} catalog generated from your [Gitlab]({_gitlab_url}) repositories with GitLab2STAC.",
+        f"{title} catalog generated from your [Gitlab]({_gitlab_url}) repositories with SharingHUB.",
     )
     logo = topic.get("logo")
 

@@ -1,3 +1,3 @@
 [submodule "browser"]
 	path = browser
-	url = git@gitlab.si.c-s.fr:space_applications/mlops-services/gitlab2stac-browser.git
+	url = git@gitlab.si.c-s.fr:space_applications/mlops-services/sharinghub-ui.git
