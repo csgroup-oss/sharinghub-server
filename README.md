@@ -346,7 +346,7 @@ Create a robot account in the harbor interface to access GeoJson Proxy Image
 ```bash
 kubectl create namespace sharinghub
 
-kubectl create secret docker-registry regcred --docker-username='robot$space_applications+p2.sharinghub' --docker-password='CphryzOE7A4XFnC1943APz0m1N8z9U6n' --docker-server='643vlk6z.gra7.container-registry.ovh.net' --namespace sharinghub
+kubectl create secret docker-registry regcred --docker-username='robot$space_applications+p2.gitlab2stac' --docker-password='CphryzOE7A4XFnC1943APz0m1N8z9U6n' --docker-server='643vlk6z.gra7.container-registry.ovh.net' --namespace sharinghub
 ```
 
 Deploy SharingHUB proxy
