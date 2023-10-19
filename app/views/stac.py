@@ -40,20 +40,6 @@ router = APIRouter()
 
 
 @router.get("/")
-async def stac_index(request: Request, gitlab_base_uri: str, token: str):
-    return RedirectResponse(
-        url_for(
-            request,
-            "stac_root",
-            path=dict(
-                gitlab_base_uri=gitlab_base_uri,
-                token=token,
-            ),
-        )
-    )
-
-
-@router.get("/catalog.json")
 async def stac_root(request: Request, gitlab_base_uri: str, token: str):
     gitlab_config = REMOTES.get(gitlab_base_uri, {})
     return build_stac_root(
@@ -65,7 +51,7 @@ async def stac_root(request: Request, gitlab_base_uri: str, token: str):
     )
 
 
-@router.get("/{topic_name}/catalog.json")
+@router.get("/{topic_name}")
 async def stac_topic(
     request: Request,
     gitlab_base_uri: str,
