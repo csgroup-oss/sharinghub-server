@@ -163,7 +163,7 @@ class GitlabClient:
         except HTTPException as http_exc:
             if http_exc.status_code == 404:
                 raise HTTPException(
-                    status_code=418, detail="Missing READMD.md, unprocessable project"
+                    status_code=418, detail="Missing README.md, unprocessable project"
                 ) from http_exc
             raise http_exc
 
