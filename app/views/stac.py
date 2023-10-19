@@ -88,15 +88,15 @@ async def stac_topic(
     return catalog
 
 
-@router.get("/{topic_name}/{project_path:path}")
+@router.get("/{topic_name}/{project_id}")
 async def stac_project(
     request: Request,
     gitlab_base_uri: str,
     token: str,
     topic_name: TopicName,
-    project_path: str,
+    project_id: int,
 ):
-    cache_key = (gitlab_base_uri, project_path)
+    cache_key = (gitlab_base_uri, project_id)
     if (
         cache_key in PROJECT_CACHE
         and time.time() - PROJECT_CACHE[cache_key].time < PROJECT_CACHE_TIMEOUT
@@ -104,7 +104,7 @@ async def stac_project(
         return PROJECT_CACHE[cache_key].stac
 
     gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
-    project = await gitlab_client.get_project(project_path)
+    project = await gitlab_client.get_project(project_id)
 
     topic = {"name": topic_name, **CATALOG_TOPICS[topic_name]}
     gitlab_topic = get_gitlab_topic(topic)
@@ -112,7 +112,7 @@ async def stac_project(
     if gitlab_topic not in project["topics"]:
         raise HTTPException(
             status_code=400,
-            detail=f"Project '{project_path}' do not belong to topic '{gitlab_topic}'",
+            detail=f"Project '{project_id}' do not belong to topic '{gitlab_topic}'",
         )
 
     if (
@@ -158,3 +158,27 @@ async def stac_project(
         )
 
     return stac
+
+
+@router.get("/{topic_name}/{project_path:path}")
+async def stac_project_link(
+    request: Request,
+    gitlab_base_uri: str,
+    token: str,
+    topic_name: TopicName,
+    project_path: str,
+):
+    gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token)
+    project = await gitlab_client.get_project(project_path)
+    return RedirectResponse(
+        url_for(
+            request,
+            "stac_project",
+            path=dict(
+                gitlab_base_uri=gitlab_base_uri,
+                token=token,
+                topic_name=topic_name,
+                project_id=project["id"],
+            ),
+        )
+    )

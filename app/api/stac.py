@@ -154,7 +154,7 @@ def build_stac_topic(
                     gitlab_base_uri=_gitlab_base_uri,
                     token=_token,
                     topic_name=topic["name"],
-                    project_path=project["path_with_namespace"],
+                    project_id=project["id"],
                 ),
             ),
         }
@@ -693,7 +693,7 @@ def _parse_resource_link(
         path = parse.urlparse(link).path.removeprefix("/")
         link = url_for(
             _request,
-            "stac_project",
+            "stac_project_link",
             path=dict(
                 gitlab_base_uri=_gitlab_base_uri,
                 token=_token,

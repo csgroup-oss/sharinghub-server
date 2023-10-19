@@ -148,9 +148,9 @@ class GitlabClient:
             f"/projects?topic={topic}&simple=true", page=page, per_page=per_page
         )
 
-    async def get_project(self, project_path: str) -> GitlabProject:
+    async def get_project(self, project_id: str | int) -> GitlabProject:
         return await self._request(
-            f"{self._get_project_api_url(project_path)}?license=true"
+            f"{self._get_project_api_url(project_id)}?license=true"
         )
 
     async def get_readme(self, project: GitlabProject) -> str:
