@@ -12,6 +12,7 @@ from app.api.gitlab import (
     GitlabProject,
     GitlabProjectFile,
     GitlabProjectRelease,
+    GitlabToken,
     gitlab_url,
     project_issues_url,
     project_url,
@@ -43,7 +44,7 @@ FILE_ASSET_PREFIX = "file://"
 class STACContext(TypedDict):
     request: Request
     gitlab_base_uri: str
-    token: str
+    token: GitlabToken
 
 
 class TopicFields(TypedDict):
@@ -88,9 +89,9 @@ def build_stac_root(
                 "stac_topic",
                 path=dict(
                     gitlab_base_uri=_gitlab_base_uri,
-                    token=_token,
                     topic_name=topic_name,
                 ),
+                query={**_token.query},
             ),
         }
         for topic_name in topics
@@ -115,11 +116,11 @@ def build_stac_root(
         "links": [
             {
                 "rel": "root",
-                "href": url_for(_request),
+                "href": url_for(_request, query={**_token.query}),
             },
             {
                 "rel": "self",
-                "href": url_for(_request),
+                "href": url_for(_request, query={**_token.query}),
             },
             *links,
         ],
@@ -152,10 +153,10 @@ def build_stac_topic(
                 "stac_project",
                 path=dict(
                     gitlab_base_uri=_gitlab_base_uri,
-                    token=_token,
                     topic_name=topic["name"],
                     project_id=project["id"],
                 ),
+                query={**_token.query},
             ),
         }
         for project in projects
@@ -166,9 +167,9 @@ def build_stac_topic(
         "stac_topic",
         path=dict(
             gitlab_base_uri=_gitlab_base_uri,
-            token=_token,
             topic_name=topic["name"],
         ),
+        query={**_token.query},
     )
     if pagination["prev_page"]:
         links.append(
@@ -211,10 +212,8 @@ def build_stac_topic(
                 "href": url_for(
                     _request,
                     "stac_root",
-                    path=dict(
-                        gitlab_base_uri=_gitlab_base_uri,
-                        token=_token,
-                    ),
+                    path=dict(gitlab_base_uri=_gitlab_base_uri),
+                    query={**_token.query},
                 ),
             },
             {
@@ -226,10 +225,8 @@ def build_stac_topic(
                 "href": url_for(
                     _request,
                     "stac_root",
-                    path=dict(
-                        gitlab_base_uri=_gitlab_base_uri,
-                        token=_token,
-                    ),
+                    path=dict(gitlab_base_uri=_gitlab_base_uri),
+                    query={**_token.query},
                 ),
             },
             *links,
@@ -296,10 +293,8 @@ def build_stac_for_project(
             "href": url_for(
                 _request,
                 "stac_root",
-                path=dict(
-                    gitlab_base_uri=_gitlab_base_uri,
-                    token=_token,
-                ),
+                path=dict(gitlab_base_uri=_gitlab_base_uri),
+                query={**_token.query},
             ),
         },
         {
@@ -313,9 +308,9 @@ def build_stac_for_project(
                 "stac_topic",
                 path=dict(
                     gitlab_base_uri=_gitlab_base_uri,
-                    token=_token,
                     topic_name=topic["name"],
                 ),
+                query={**_token.query},
             ),
         },
         {
@@ -351,11 +346,11 @@ def build_stac_for_project(
             "download_gitlab_file",
             path=dict(
                 gitlab_base_uri=_gitlab_base_uri,
-                token=_token,
                 project_id=project["id"],
                 ref=project["default_branch"],
                 file_path=preview,
             ),
+            query={**_token.query},
         )
     if preview:
         assets["preview"] = {
@@ -388,11 +383,11 @@ def build_stac_for_project(
                 "download_gitlab_file",
                 path=dict(
                     gitlab_base_uri=_gitlab_base_uri,
-                    token=_token,
                     project_id=project["id"],
                     ref=project["default_branch"],
                     file_path=file_path,
                 ),
+                query={**_token.query},
             ),
             "title": file_path,
             "roles": ["data"],
@@ -406,11 +401,11 @@ def build_stac_for_project(
             "download_gitlab_archive",
             path=dict(
                 gitlab_base_uri=_gitlab_base_uri,
-                token=_token,
                 project_id=project["id"],
                 ref=release["tag_name"],
                 format=release_source_format,
             ),
+            query={**_token.query},
         )
         media_type, _ = mimetypes.guess_type(f"archive.{release_source_format}")
         assets["release"] = {
@@ -696,10 +691,10 @@ def _parse_resource_link(
             "stac_project_link",
             path=dict(
                 gitlab_base_uri=_gitlab_base_uri,
-                token=_token,
                 topic_name=key,
                 project_path=path,
             ),
+            query={**_token.query},
         )
         _labels.append(key)
         title = f"{key}: {path}"

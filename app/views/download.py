@@ -1,9 +1,10 @@
 import logging
+from typing import Annotated
 
-from fastapi import Request
+from fastapi import Depends, Request
 from fastapi.routing import APIRouter
 
-from app.api.gitlab import GitlabArchiveFormat, GitlabClient
+from app.api.gitlab import GitlabArchiveFormat, GitlabClient, GitlabToken, gitlab_token
 
 logger = logging.getLogger("app")
 
@@ -14,13 +15,15 @@ router = APIRouter()
 async def download_gitlab_file(
     request: Request,
     gitlab_base_uri: str,
-    token: str,
+    token: Annotated[GitlabToken, Depends(gitlab_token)],
     project_id: int,
     ref: str,
     file_path: str,
 ):
     """Download proxy for a GitLab project repository file."""
-    gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token, request=request)
+    gitlab_client = GitlabClient(
+        base_uri=gitlab_base_uri, token=token.value, request=request
+    )
     return await gitlab_client.download_file(
         project_id=project_id,
         ref=ref,
@@ -32,13 +35,15 @@ async def download_gitlab_file(
 async def download_gitlab_archive(
     request: Request,
     gitlab_base_uri: str,
-    token: str,
+    token: Annotated[GitlabToken, Depends(gitlab_token)],
     project_id: int,
     ref: str,
     format: GitlabArchiveFormat,
 ):
     """Download proxy for a GitLab project archive."""
-    gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token, request=request)
+    gitlab_client = GitlabClient(
+        base_uri=gitlab_base_uri, token=token.value, request=request
+    )
     return await gitlab_client.download_archive(
         project_id=project_id, ref=ref, format=format
     )
