@@ -1,6 +1,6 @@
 aiohttp
 python-dotenv
-fastapi
+fastapi[all]
 markdown
 markdown-full-yaml-metadata
 pyyaml

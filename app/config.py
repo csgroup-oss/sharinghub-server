@@ -1,4 +1,5 @@
 import os
+import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -60,7 +61,6 @@ LOGGING = {
     },
 }
 
-
 API_PREFIX: str = conf("api-prefix", "API_PREFIX", default="", cast=str)
 DEFAULT_ALLOWED_ORIGINS = [
     "http://localhost:8000",
@@ -71,6 +71,12 @@ ALLOWED_ORIGINS: list[str] = conf(
     "ALLOWED_ORIGINS",
     default=DEFAULT_ALLOWED_ORIGINS,
     cast=clist(sep=" "),
+)
+SESSION_SECRET_KEY: str = conf(
+    "session.secret-key", "SESSION_SECRET_KEY", default=str(uuid.uuid4()), cast=str
+)
+SESSION_MAX_AGE: str = conf(
+    "session.max-age", "SESSION_MAX_AGE", default=3600.0, cast=float
 )
 
 REQUEST_TIMEOUT: float = conf(

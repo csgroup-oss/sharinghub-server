@@ -7,8 +7,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
-from app.config import ALLOWED_ORIGINS, API_PREFIX, BROWSER_PATH, DEBUG, LOGGING
+from app.config import (
+    ALLOWED_ORIGINS,
+    API_PREFIX,
+    BROWSER_PATH,
+    DEBUG,
+    LOGGING,
+    SESSION_MAX_AGE,
+    SESSION_SECRET_KEY,
+)
 from app.utils.http import AiohttpClient, url_for
 from app.views import router as views_router
 
@@ -37,6 +46,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET_KEY,
+    max_age=SESSION_MAX_AGE,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,

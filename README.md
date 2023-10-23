@@ -120,6 +120,36 @@ The YAML file path can be changed to point to another one with the environment v
       - http://localhost:9000
     ```
 
+#### Session secret key
+
+- Type: string
+- Default: random uuid
+- Environment variable:
+  - Name: `SESSION_SECRET_KEY`
+  - Example value: `f785090f-0716-4ccb-89f0-afbd3c4a56d3`
+- YAML:
+  - Path: `session.secret-key`
+  - Example value:
+    ```yaml
+    session:
+      secret-key: f785090f-0716-4ccb-89f0-afbd3c4a56d3
+    ```
+
+#### Session max age
+
+- Type: floating number
+- Default: `3600.0`
+- Environment variable:
+  - Name: `SESSION_MAX_AGE`
+  - Example value: `7200.0`
+- YAML:
+  - Path: `session.max-age`
+  - Example value:
+    ```yaml
+    session:
+      max-age: 7200.0
+    ```
+
 #### Request timeout
 
 - Type: floating number
