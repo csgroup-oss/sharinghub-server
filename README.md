@@ -6,20 +6,22 @@
 - [Configuration](#configuration)
   - [Variables](#variables)
     - [Config file path](#config-file-path)
-    - [Debug](#debug)
-    - [Log level](#log-level)
-    - [API prefix](#api-prefix)
-    - [Allowed origins](#allowed-origins)
-    - [Request timeout](#request-timeout)
-    - [Browser path](#browser-path)
-    - [Enable cache](#enable-cache)
+    - [Server: debug](#server-debug)
+    - [Server: log level](#server-log-level)
+    - [Server: API prefix](#server-api-prefix)
+    - [Server: allowed origins](#server-allowed-origins)
+    - [Server: session secret key](#server-session-secret-key)
+    - [Server: session max age](#server-session-max-age)
+    - [Server: request timeout](#server-request-timeout)
+    - [Server: browser path](#server-browser-path)
+    - [Server: enable cache](#server-enable-cache)
     - [Remotes](#remotes)
     - [Catalog: cache timeout](#catalog-cache-timeout)
     - [Catalog: per page items](#catalog-per-page-items)
     - [Catalog: topics](#catalog-topics)
     - [Project: cache timeout](#project-cache-timeout)
-    - [Assets rules](#assets-rules)
-    - [Release source format](#release-source-format)
+    - [Project: assets rules](#project-assets-rules)
+    - [Project: assets release source format](#project-assets-release-source-format)
 - [Development](#development)
   - [Run with uvicorn](#run-with-uvicorn)
   - [Run with docker container](#run-with-docker-container)
@@ -59,7 +61,7 @@ The YAML file path can be changed to point to another one with the environment v
   - Name: `CONFIG_PATH`
   - Example value: `/path/to/file.yaml`
 
-#### Debug
+#### Server: debug
 
 - Type: boolean
 - Default: `False`
@@ -67,15 +69,14 @@ The YAML file path can be changed to point to another one with the environment v
   - Name: `DEBUG`
   - Values: `true`, `false`
 - YAML:
-  - Path: `debug`
-  - Example values:
+  - Path: `server.debug`
+  - Example value:
     ```yaml
-    debug: true
-    # OR
-    debug: false
+    server:
+      debug: true
     ```
 
-#### Log level
+#### Server: log level
 
 - Type: string
 - Default: `"INFO"`, `"DEBUG"` if debug is true.
@@ -83,13 +84,14 @@ The YAML file path can be changed to point to another one with the environment v
   - Name: `LOG_LEVEL`
   - Values: `CRITICAL`, `WARNING`, `INFO`, `DEBUG`
 - YAML:
-  - Path: `log-level`
+  - Path: `server.log-level`
   - Example value:
     ```yaml
-    log-level: WARNING
+    server:
+      log-level: WARNING
     ```
 
-#### API prefix
+#### Server: API prefix
 
 - Type: string
 - Default: `""`
@@ -97,13 +99,14 @@ The YAML file path can be changed to point to another one with the environment v
   - Name: `API_PREFIX`
   - Example value: `/my/prefix`
 - YAML:
-  - Path: `api-prefix`
+  - Path: `server.prefix`
   - Example value:
     ```yaml
-    api-prefix: /my/prefix
+    server:
+      prefix: /my/prefix
     ```
 
-#### Allowed origins
+#### Server: allowed origins
 
 - Type: list of string
 - Default: `["http://localhost:8000", "https://radiantearth.github.io"]`
@@ -111,16 +114,17 @@ The YAML file path can be changed to point to another one with the environment v
   - Name: `ALLOWED_ORIGINS`
   - Example value: `http://localhost:7000 http://localhost:8000 http://localhost:9000`
 - YAML:
-  - Path: `allowed-origins`
+  - Path: `server.allowed-origins`
   - Example value:
     ```yaml
-    allowed-origins:
-      - http://localhost:7000
-      - http://localhost:8000
-      - http://localhost:9000
+    server:
+      allowed-origins:
+        - http://localhost:7000
+        - http://localhost:8000
+        - http://localhost:9000
     ```
 
-#### Session secret key
+#### Server: session secret key
 
 - Type: string
 - Default: random uuid
@@ -128,14 +132,15 @@ The YAML file path can be changed to point to another one with the environment v
   - Name: `SESSION_SECRET_KEY`
   - Example value: `f785090f-0716-4ccb-89f0-afbd3c4a56d3`
 - YAML:
-  - Path: `session.secret-key`
+  - Path: `server.session.secret-key`
   - Example value:
     ```yaml
-    session:
-      secret-key: f785090f-0716-4ccb-89f0-afbd3c4a56d3
+    server:
+      session:
+        secret-key: f785090f-0716-4ccb-89f0-afbd3c4a56d3
     ```
 
-#### Session max age
+#### Server: session max age
 
 - Type: floating number
 - Default: `3600.0`
@@ -143,14 +148,15 @@ The YAML file path can be changed to point to another one with the environment v
   - Name: `SESSION_MAX_AGE`
   - Example value: `7200.0`
 - YAML:
-  - Path: `session.max-age`
+  - Path: `server.session.max-age`
   - Example value:
     ```yaml
-    session:
-      max-age: 7200.0
+    server:
+      session:
+        max-age: 7200.0
     ```
 
-#### Request timeout
+#### Server: request timeout
 
 - Type: floating number
 - Default: `300.0`
@@ -158,13 +164,15 @@ The YAML file path can be changed to point to another one with the environment v
   - Name: `REQUEST_TIMEOUT`
   - Example value: `600.0`
 - YAML:
-  - Path: `request-timeout`
+  - Path: `server.request.timeout`
   - Example value:
     ```yaml
-    request-timeout: 600.0
+    server:
+      request:
+        timeout: 600.0
     ```
 
-#### Browser path
+#### Server: browser path
 
 - Type: path
 - Default: `"<PWD>/browser/dist"`
@@ -172,13 +180,14 @@ The YAML file path can be changed to point to another one with the environment v
   - Name: `BROWSER_PATH`
   - Example value: `browser/dist`
 - YAML:
-  - Path: `browser-path`
+  - Path: `server.browser-path`
   - Example value:
     ```yaml
-    browser-path: browser/dist
+    server:
+      browser-path: browser/dist
     ```
 
-#### Enable cache
+#### Server: enable cache
 
 - Type: boolean
 - Default: `not DEBUG`
@@ -186,12 +195,11 @@ The YAML file path can be changed to point to another one with the environment v
   - Name: `ENABLE_CACHE`
   - Values: `true`, `false`
 - YAML:
-  - Path: `cache`
-  - Example values:
+  - Path: `server.cache`
+  - Example value:
     ```yaml
-    cache: true
-    # OR
-    cache: false
+    server:
+      cache: true
     ```
 
 #### Remotes
@@ -269,7 +277,7 @@ The YAML file path can be changed to point to another one with the environment v
         cache-timeout: 15.0
     ```
 
-#### Assets rules
+#### Project: assets rules
 
 - Type: list of string
 - Default: `["*.tif", "*.tiff", "*.geojson"]`
@@ -277,15 +285,17 @@ The YAML file path can be changed to point to another one with the environment v
   - Name: `ASSETS_RULES`
   - Example value: `*.tif *.tiff`
 - YAML:
-  - Path: `assets-rules`
+  - Path: `projects.assets.rules`
   - Example value:
     ```yaml
-    assets-rules:
-      - "*.tif"
-      - "*.tiff"
+    projects:
+      assets:
+        rules:
+          - "*.tif"
+          - "*.tiff"
     ```
 
-#### Release source format
+#### Project: assets release source format
 
 - Type: string
 - Default: `"zip"`
@@ -293,10 +303,12 @@ The YAML file path can be changed to point to another one with the environment v
   - Name: `RELEASE_SOURCE_FORMAT`
   - Example value: `tar.gz`
 - YAML:
-  - Path: `release-source-format`
+  - Path: `projects.assets.release-source-format`
   - Example value:
     ```yaml
-    release-source-format: tar.gz
+    projects:
+      assets:
+        release-source-format: tar.gz
     ```
 
 ## Development
