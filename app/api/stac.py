@@ -85,7 +85,7 @@ def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
                 "stac_topic",
                 path=dict(
                     gitlab=_gitlab_config["path"],
-                    topic_name=topic_name,
+                    topic=topic_name,
                 ),
                 query={**_token.query},
             ),
@@ -147,7 +147,7 @@ def build_stac_topic(
                 "stac_project",
                 path=dict(
                     gitlab=_gitlab_config["path"],
-                    topic_name=topic["name"],
+                    topic=topic["name"],
                     project_id=project["id"],
                 ),
                 query={**_token.query},
@@ -161,7 +161,7 @@ def build_stac_topic(
         "stac_topic",
         path=dict(
             gitlab=_gitlab_config["path"],
-            topic_name=topic["name"],
+            topic=topic["name"],
         ),
         query={**_token.query},
     )
@@ -300,7 +300,7 @@ def build_stac_for_project(
                 "stac_topic",
                 path=dict(
                     gitlab=_gitlab_config["path"],
-                    topic_name=topic["name"],
+                    topic=topic["name"],
                 ),
                 query={**_token.query},
             ),
@@ -682,7 +682,7 @@ def _parse_resource_link(
             "stac_project_link",
             path=dict(
                 gitlab=_gitlab_config["path"],
-                topic_name=key,
+                topic=key,
                 project_path=path,
             ),
             query={**_token.query},

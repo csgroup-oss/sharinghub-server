@@ -53,30 +53,30 @@ async def stac_root(
     )
 
 
-@router.get("/{topic_name}")
+@router.get("/{topic}")
 async def stac_topic(
     request: Request,
     gitlab_config: GitlabConfigDep,
     token: GitlabTokenDep,
-    topic_name: TopicName,
+    topic: TopicName,
     page: int = 1,
 ):
-    cache_key = (gitlab_config["path"], topic_name, token.value)
+    cache_key = (gitlab_config["path"], topic, token.value)
     if (
         cache_key in CATALOG_CACHE
         and time.time() - CATALOG_CACHE[cache_key].time < CATALOG_CACHE_TIMEOUT
     ):
         return CATALOG_CACHE[cache_key].catalog
 
-    topic = {"name": topic_name, **CATALOG_TOPICS[topic_name]}
+    _topic = {"name": topic, **CATALOG_TOPICS[topic]}
 
     gitlab_client = GitlabClient(url=gitlab_config["url"], token=token.value)
     pagination, projects = await gitlab_client.get_projects(
-        topic=get_gitlab_topic(topic), page=page, per_page=CATALOG_PER_PAGE
+        topic=get_gitlab_topic(_topic), page=page, per_page=CATALOG_PER_PAGE
     )
 
     catalog = build_stac_topic(
-        topic=topic,
+        topic=_topic,
         projects=projects,
         pagination=pagination,
         request=request,
@@ -90,12 +90,12 @@ async def stac_topic(
     return catalog
 
 
-@router.get("/{topic_name}/{project_id}")
+@router.get("/{topic}/{project_id}")
 async def stac_project(
     request: Request,
     gitlab_config: GitlabConfigDep,
     token: GitlabTokenDep,
-    topic_name: TopicName,
+    topic: TopicName,
     project_id: int,
 ):
     cache_key = (gitlab_config["path"], project_id)
@@ -108,8 +108,8 @@ async def stac_project(
     gitlab_client = GitlabClient(url=gitlab_config["url"], token=token.value)
     project = await gitlab_client.get_project(project_id)
 
-    topic = {"name": topic_name, **CATALOG_TOPICS[topic_name]}
-    gitlab_topic = get_gitlab_topic(topic)
+    _topic = {"name": topic, **CATALOG_TOPICS[topic]}
+    gitlab_topic = get_gitlab_topic(_topic)
 
     if gitlab_topic not in project["topics"]:
         raise HTTPException(
@@ -137,7 +137,7 @@ async def stac_project(
 
     try:
         stac = build_stac_for_project(
-            topic=topic,
+            topic=_topic,
             project=project,
             readme=readme,
             files=files,
@@ -162,12 +162,12 @@ async def stac_project(
     return stac
 
 
-@router.get("/{topic_name}/{project_path:path}")
+@router.get("/{topic}/{project_path:path}")
 async def stac_project_link(
     request: Request,
     gitlab_config: GitlabConfigDep,
     token: GitlabTokenDep,
-    topic_name: TopicName,
+    topic: TopicName,
     project_path: str,
 ):
     gitlab_client = GitlabClient(url=gitlab_config["url"], token=token.value)
@@ -178,7 +178,7 @@ async def stac_project_link(
             "stac_project",
             path=dict(
                 gitlab=gitlab_config["path"],
-                topic_name=topic_name,
+                topic=topic,
                 project_id=project["id"],
             ),
             query={**token.query},
