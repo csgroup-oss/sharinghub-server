@@ -1,10 +1,8 @@
-from typing import Annotated
-
-from fastapi import Depends, Request
+from fastapi import Request
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
-from app.api.gitlab import GitlabToken, gitlab_token
+from app.dependencies import GitlabTokenDep
 from app.utils.http import url_for
 
 from .download import router as download_router
@@ -17,7 +15,7 @@ router = APIRouter(prefix="/{gitlab_base_uri}")
 async def views_index(
     request: Request,
     gitlab_base_uri: str,
-    token: Annotated[GitlabToken, Depends(gitlab_token)],
+    token: GitlabTokenDep,
 ):
     return RedirectResponse(
         url_for(

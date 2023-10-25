@@ -1,10 +1,10 @@
 import logging
-from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Request
 from fastapi.routing import APIRouter
 
-from app.api.gitlab import GitlabArchiveFormat, GitlabClient, GitlabToken, gitlab_token
+from app.api.gitlab import GitlabArchiveFormat, GitlabClient
+from app.dependencies import GitlabTokenDep
 
 logger = logging.getLogger("app")
 
@@ -15,7 +15,7 @@ router = APIRouter()
 async def download_gitlab_file(
     request: Request,
     gitlab_base_uri: str,
-    token: Annotated[GitlabToken, Depends(gitlab_token)],
+    token: GitlabTokenDep,
     project_id: int,
     ref: str,
     file_path: str,
@@ -35,7 +35,7 @@ async def download_gitlab_file(
 async def download_gitlab_archive(
     request: Request,
     gitlab_base_uri: str,
-    token: Annotated[GitlabToken, Depends(gitlab_token)],
+    token: GitlabTokenDep,
     project_id: int,
     ref: str,
     format: GitlabArchiveFormat,

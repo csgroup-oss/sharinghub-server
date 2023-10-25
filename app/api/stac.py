@@ -12,11 +12,11 @@ from app.api.gitlab import (
     GitlabProject,
     GitlabProjectFile,
     GitlabProjectRelease,
-    GitlabToken,
     gitlab_url,
     project_issues_url,
     project_url,
 )
+from app.dependencies import GitlabToken
 from app.utils import markdown as md
 from app.utils.http import is_local, slugify, url_add_query_params, url_for
 

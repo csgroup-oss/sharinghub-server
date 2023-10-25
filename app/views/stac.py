@@ -3,13 +3,12 @@ import enum
 import logging
 import time
 from collections import namedtuple
-from typing import Annotated
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
-from app.api.gitlab import GitlabClient, GitlabToken, gitlab_token
+from app.api.gitlab import GitlabClient
 from app.api.stac import (
     build_stac_for_project,
     build_stac_root,
@@ -26,6 +25,7 @@ from app.config import (
     RELEASE_SOURCE_FORMAT,
     REMOTES,
 )
+from app.dependencies import GitlabTokenDep
 from app.utils.http import url_for
 
 logger = logging.getLogger("app")
@@ -44,7 +44,7 @@ router = APIRouter()
 async def stac_root(
     request: Request,
     gitlab_base_uri: str,
-    token: Annotated[GitlabToken, Depends(gitlab_token)],
+    token: GitlabTokenDep,
 ):
     gitlab_config = REMOTES.get(gitlab_base_uri, {})
     return build_stac_root(
@@ -60,7 +60,7 @@ async def stac_root(
 async def stac_topic(
     request: Request,
     gitlab_base_uri: str,
-    token: Annotated[GitlabToken, Depends(gitlab_token)],
+    token: GitlabTokenDep,
     topic_name: TopicName,
     page: int = 1,
 ):
@@ -97,7 +97,7 @@ async def stac_topic(
 async def stac_project(
     request: Request,
     gitlab_base_uri: str,
-    token: Annotated[GitlabToken, Depends(gitlab_token)],
+    token: GitlabTokenDep,
     topic_name: TopicName,
     project_id: int,
 ):
@@ -169,7 +169,7 @@ async def stac_project(
 async def stac_project_link(
     request: Request,
     gitlab_base_uri: str,
-    token: Annotated[GitlabToken, Depends(gitlab_token)],
+    token: GitlabTokenDep,
     topic_name: TopicName,
     project_path: str,
 ):
