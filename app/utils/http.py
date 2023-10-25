@@ -41,6 +41,14 @@ def is_local(uri: str) -> bool:
     return urlparse(uri).scheme in ("file", "")
 
 
+def url_domain(url: str | None) -> str | None:
+    if domain := urlparse(url).netloc:
+        if isinstance(domain, bytes):
+            domain = domain.decode()
+        return domain
+    return None
+
+
 def urlsafe_path(path: str) -> str:
     return quote(path, safe="")
 

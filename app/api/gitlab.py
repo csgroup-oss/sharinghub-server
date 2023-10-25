@@ -112,25 +112,18 @@ class _GitlabProjectReleaseSources(TypedDict):
     url: str
 
 
-def gitlab_url(gitlab_base_uri: str) -> str:
-    return f"https://{gitlab_base_uri.removesuffix('/')}"
+def project_url(gitlab_url: str, project: GitlabProject) -> str:
+    return f"{gitlab_url.removesuffix('/')}/{project['path_with_namespace']}"
 
 
-def project_url(gitlab_base_uri: str, project: GitlabProject) -> str:
-    return f"{gitlab_url(gitlab_base_uri)}/{project['path_with_namespace']}"
-
-
-def project_issues_url(gitlab_base_uri: str, project: GitlabProject) -> str:
-    return f"{project_url(gitlab_base_uri, project)}/issues"
+def project_issues_url(gitlab_url: str, project: GitlabProject) -> str:
+    return f"{project_url(gitlab_url, project)}/issues"
 
 
 class GitlabClient:
-    def __init__(
-        self, base_uri: str, token: str, request: Request | None = None
-    ) -> None:
-        self.base_uri = base_uri
-        self.url = gitlab_url(base_uri)
-        self.api_url = f"{gitlab_url(self.base_uri)}/api/v4"
+    def __init__(self, url: str, token: str, request: Request | None = None) -> None:
+        self.url = url.removesuffix("/")
+        self.api_url = f"{self.url}/api/v4"
         self.token = token
         self.request = request
 

@@ -12,7 +12,6 @@ from app.api.gitlab import (
     GitlabProject,
     GitlabProjectFile,
     GitlabProjectRelease,
-    gitlab_url,
     project_issues_url,
     project_url,
 )
@@ -43,7 +42,7 @@ FILE_ASSET_PREFIX = "file://"
 
 class STACContext(TypedDict):
     request: Request
-    gitlab_base_uri: str
+    gitlab_config: dict
     token: GitlabToken
 
 
@@ -66,20 +65,17 @@ def get_gitlab_topic(topic: Topic) -> str:
     return topic.get("gitlab_name", topic["name"])
 
 
-def build_stac_root(
-    gitlab_config: dict, topics: TopicSpec, **context: Unpack[STACContext]
-) -> dict:
+def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
     _request = context["request"]
-    _gitlab_base_uri = context["gitlab_base_uri"]
+    _gitlab_config = context["gitlab_config"]
     _token = context["token"]
-    _gitlab_url = gitlab_url(_gitlab_base_uri)
 
-    title = gitlab_config.get("title", "GitLab STAC Catalog")
-    description = gitlab_config.get(
+    title = _gitlab_config.get("title", "GitLab STAC Catalog")
+    description = _gitlab_config.get(
         "description",
-        f"Catalog generated from your [Gitlab]({_gitlab_url}) repositories with SharingHUB.",
+        f"Catalog generated from your [Gitlab]({_gitlab_config['url']}) repositories with SharingHUB.",
     )
-    logo = gitlab_config.get("logo")
+    logo = _gitlab_config.get("logo")
 
     links = [
         {
@@ -88,7 +84,7 @@ def build_stac_root(
                 _request,
                 "stac_topic",
                 path=dict(
-                    gitlab_base_uri=_gitlab_base_uri,
+                    gitlab=_gitlab_config["path"],
                     topic_name=topic_name,
                 ),
                 query={**_token.query},
@@ -105,8 +101,7 @@ def build_stac_root(
             }
         )
 
-    _gitlab_base_uri_slug = slugify(_gitlab_base_uri).replace("-", "")
-    stac_id = f"{_gitlab_base_uri_slug}-catalog"
+    stac_id = f"{_gitlab_config['name']}-catalog"
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
@@ -134,14 +129,13 @@ def build_stac_topic(
     **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
-    _gitlab_base_uri = context["gitlab_base_uri"]
+    _gitlab_config = context["gitlab_config"]
     _token = context["token"]
-    _gitlab_url = gitlab_url(_gitlab_base_uri)
 
     title = topic["title"]
     description = topic.get(
         "description",
-        f"{title} catalog generated from your [Gitlab]({_gitlab_url}) repositories with SharingHUB.",
+        f"{title} catalog generated from your [Gitlab]({_gitlab_config['url']}) repositories with SharingHUB.",
     )
     logo = topic.get("logo")
 
@@ -152,7 +146,7 @@ def build_stac_topic(
                 _request,
                 "stac_project",
                 path=dict(
-                    gitlab_base_uri=_gitlab_base_uri,
+                    gitlab=_gitlab_config["path"],
                     topic_name=topic["name"],
                     project_id=project["id"],
                 ),
@@ -166,7 +160,7 @@ def build_stac_topic(
         _request,
         "stac_topic",
         path=dict(
-            gitlab_base_uri=_gitlab_base_uri,
+            gitlab=_gitlab_config["path"],
             topic_name=topic["name"],
         ),
         query={**_token.query},
@@ -198,8 +192,7 @@ def build_stac_topic(
             }
         )
 
-    _gitlab_base_uri_slug = slugify(_gitlab_base_uri).replace("-", "")
-    stac_id = f"{_gitlab_base_uri_slug}-{slugify(topic['name'])}-catalog"
+    stac_id = f"{_gitlab_config['name']}-{slugify(topic['name'])}-catalog"
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
@@ -212,7 +205,7 @@ def build_stac_topic(
                 "href": url_for(
                     _request,
                     "stac_root",
-                    path=dict(gitlab_base_uri=_gitlab_base_uri),
+                    path=dict(gitlab=_gitlab_config["path"]),
                     query={**_token.query},
                 ),
             },
@@ -225,7 +218,7 @@ def build_stac_topic(
                 "href": url_for(
                     _request,
                     "stac_root",
-                    path=dict(gitlab_base_uri=_gitlab_base_uri),
+                    path=dict(gitlab=_gitlab_config["path"]),
                     query={**_token.query},
                 ),
             },
@@ -245,16 +238,15 @@ def build_stac_for_project(
     **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
-    _gitlab_base_uri = context["gitlab_base_uri"]
+    _gitlab_config = context["gitlab_config"]
     _token = context["token"]
-    _gitlab_base_uri_slug = slugify(_gitlab_base_uri).replace("-", "")
 
     readme_doc, readme_metadata = md.parse(readme)
     assets_mapping = _get_assets_mapping(assets_rules, readme_metadata)
 
     # STAC data
 
-    stac_id = f"{_gitlab_base_uri_slug}-{slugify(topic['name'])}-{project['id']}"
+    stac_id = f"{_gitlab_config['name']}-{slugify(topic['name'])}-{project['id']}"
     title = project["name_with_namespace"]
     description = md.remove_images(md.increase_headings(readme_doc, 2))
     keywords = _get_keywords(topic, project, readme_metadata)
@@ -293,7 +285,7 @@ def build_stac_for_project(
             "href": url_for(
                 _request,
                 "stac_root",
-                path=dict(gitlab_base_uri=_gitlab_base_uri),
+                path=dict(gitlab=_gitlab_config["path"]),
                 query={**_token.query},
             ),
         },
@@ -307,7 +299,7 @@ def build_stac_for_project(
                 _request,
                 "stac_topic",
                 path=dict(
-                    gitlab_base_uri=_gitlab_base_uri,
+                    gitlab=_gitlab_config["path"],
                     topic_name=topic["name"],
                 ),
                 query={**_token.query},
@@ -316,7 +308,7 @@ def build_stac_for_project(
         {
             "rel": "bug_tracker",
             "title": "Issues",
-            "href": project_issues_url(_gitlab_base_uri, project),
+            "href": project_issues_url(_gitlab_config["url"], project),
         },
         *(
             {
@@ -329,9 +321,9 @@ def build_stac_for_project(
     ]
     providers = [
         {
-            "name": f"GitLab ({_gitlab_base_uri})",
+            "name": f"GitLab ({_gitlab_config['url']})",
             "roles": ["host"],
-            "url": project_url(_gitlab_base_uri, project),
+            "url": project_url(_gitlab_config["url"], project),
         },
         {
             "name": producer,
@@ -345,7 +337,7 @@ def build_stac_for_project(
             _request,
             "download_gitlab_file",
             path=dict(
-                gitlab_base_uri=_gitlab_base_uri,
+                gitlab=_gitlab_config["path"],
                 project_id=project["id"],
                 ref=project["default_branch"],
                 file_path=preview,
@@ -382,7 +374,7 @@ def build_stac_for_project(
                 _request,
                 "download_gitlab_file",
                 path=dict(
-                    gitlab_base_uri=_gitlab_base_uri,
+                    gitlab=_gitlab_config["path"],
                     project_id=project["id"],
                     ref=project["default_branch"],
                     file_path=file_path,
@@ -400,7 +392,7 @@ def build_stac_for_project(
             _request,
             "download_gitlab_archive",
             path=dict(
-                gitlab_base_uri=_gitlab_base_uri,
+                gitlab=_gitlab_config["path"],
                 project_id=project["id"],
                 ref=release["tag_name"],
                 format=release_source_format,
@@ -601,15 +593,14 @@ def _get_license(
 
 
 def _get_producer(
-    project: GitlabProject, metadata: dict, **context: STACContext
+    project: GitlabProject, metadata: dict, **context: Unpack[STACContext]
 ) -> tuple[str, str]:
-    _gitlab_base_uri = context["gitlab_base_uri"]
-    _gitlab_url = gitlab_url(_gitlab_base_uri)
+    _gitlab_config = context["gitlab_config"]
 
     producer = project["name_with_namespace"].split("/")[0].rstrip()
     producer = metadata.get("producer", producer)
     _producer_path = project["path_with_namespace"].split("/")[0]
-    producer_url = f"{_gitlab_url}/{_producer_path}"
+    producer_url = f"{_gitlab_config['url']}/{_producer_path}"
     producer_url = metadata.get("producer_url", producer_url)
     return producer, producer_url
 
@@ -644,14 +635,14 @@ def _get_files_assets(
 
 
 def _get_resources_links(
-    metadata: dict, **context: STACContext
+    metadata: dict, **context: Unpack[STACContext]
 ) -> list[tuple[str, str]]:
     _metadata_resources = metadata.get("resources", {})
     return _retrieve_resources_links(_metadata_resources, **context)
 
 
 def _retrieve_resources_links(
-    mapping: dict, labels: list | None = None, **context: STACContext
+    mapping: dict, labels: list | None = None, **context: Unpack[STACContext]
 ) -> list[tuple[str, str]]:
     links = []
     labels = labels if labels is not None else []
@@ -668,10 +659,10 @@ def _retrieve_resources_links(
 
 
 def _parse_resource_link(
-    raw_link: str, key: str, labels: list, **context: STACContext
+    raw_link: str, key: str, labels: list, **context: Unpack[STACContext]
 ) -> tuple[str, str, list[str]]:
     _request = context["request"]
-    _gitlab_base_uri = context["gitlab_base_uri"]
+    _gitlab_config = context["gitlab_config"]
     _token = context["token"]
 
     split_link = raw_link.split("::")
@@ -690,7 +681,7 @@ def _parse_resource_link(
             _request,
             "stac_project_link",
             path=dict(
-                gitlab_base_uri=_gitlab_base_uri,
+                gitlab=_gitlab_config["path"],
                 topic_name=key,
                 project_path=path,
             ),

@@ -23,9 +23,8 @@ from app.config import (
     ENABLE_CACHE,
     PROJECT_CACHE_TIMEOUT,
     RELEASE_SOURCE_FORMAT,
-    REMOTES,
 )
-from app.dependencies import GitlabTokenDep
+from app.dependencies import GitlabConfigDep, GitlabTokenDep
 from app.utils.http import url_for
 
 logger = logging.getLogger("app")
@@ -43,15 +42,13 @@ router = APIRouter()
 @router.get("/")
 async def stac_root(
     request: Request,
-    gitlab_base_uri: str,
+    gitlab_config: GitlabConfigDep,
     token: GitlabTokenDep,
 ):
-    gitlab_config = REMOTES.get(gitlab_base_uri, {})
     return build_stac_root(
         gitlab_config=gitlab_config,
         topics=CATALOG_TOPICS,
         request=request,
-        gitlab_base_uri=gitlab_base_uri,
         token=token,
     )
 
@@ -59,12 +56,12 @@ async def stac_root(
 @router.get("/{topic_name}")
 async def stac_topic(
     request: Request,
-    gitlab_base_uri: str,
+    gitlab_config: GitlabConfigDep,
     token: GitlabTokenDep,
     topic_name: TopicName,
     page: int = 1,
 ):
-    cache_key = (gitlab_base_uri, topic_name, token.value)
+    cache_key = (gitlab_config["path"], topic_name, token.value)
     if (
         cache_key in CATALOG_CACHE
         and time.time() - CATALOG_CACHE[cache_key].time < CATALOG_CACHE_TIMEOUT
@@ -73,7 +70,7 @@ async def stac_topic(
 
     topic = {"name": topic_name, **CATALOG_TOPICS[topic_name]}
 
-    gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token.value)
+    gitlab_client = GitlabClient(url=gitlab_config["url"], token=token.value)
     pagination, projects = await gitlab_client.get_projects(
         topic=get_gitlab_topic(topic), page=page, per_page=CATALOG_PER_PAGE
     )
@@ -83,7 +80,7 @@ async def stac_topic(
         projects=projects,
         pagination=pagination,
         request=request,
-        gitlab_base_uri=gitlab_base_uri,
+        gitlab_config=gitlab_config,
         token=token,
     )
 
@@ -96,19 +93,19 @@ async def stac_topic(
 @router.get("/{topic_name}/{project_id}")
 async def stac_project(
     request: Request,
-    gitlab_base_uri: str,
+    gitlab_config: GitlabConfigDep,
     token: GitlabTokenDep,
     topic_name: TopicName,
     project_id: int,
 ):
-    cache_key = (gitlab_base_uri, project_id)
+    cache_key = (gitlab_config["path"], project_id)
     if (
         cache_key in PROJECT_CACHE
         and time.time() - PROJECT_CACHE[cache_key].time < PROJECT_CACHE_TIMEOUT
     ):
         return PROJECT_CACHE[cache_key].stac
 
-    gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token.value)
+    gitlab_client = GitlabClient(url=gitlab_config["url"], token=token.value)
     project = await gitlab_client.get_project(project_id)
 
     topic = {"name": topic_name, **CATALOG_TOPICS[topic_name]}
@@ -148,7 +145,7 @@ async def stac_project(
             release=release,
             release_source_format=RELEASE_SOURCE_FORMAT,
             request=request,
-            gitlab_base_uri=gitlab_base_uri,
+            gitlab_config=gitlab_config,
             token=token,
         )
     except Exception as exc:
@@ -168,19 +165,19 @@ async def stac_project(
 @router.get("/{topic_name}/{project_path:path}")
 async def stac_project_link(
     request: Request,
-    gitlab_base_uri: str,
+    gitlab_config: GitlabConfigDep,
     token: GitlabTokenDep,
     topic_name: TopicName,
     project_path: str,
 ):
-    gitlab_client = GitlabClient(base_uri=gitlab_base_uri, token=token.value)
+    gitlab_client = GitlabClient(url=gitlab_config["url"], token=token.value)
     project = await gitlab_client.get_project(project_path)
     return RedirectResponse(
         url_for(
             request,
             "stac_project",
             path=dict(
-                gitlab_base_uri=gitlab_base_uri,
+                gitlab=gitlab_config["path"],
                 topic_name=topic_name,
                 project_id=project["id"],
             ),

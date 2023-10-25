@@ -8,20 +8,20 @@ from app.utils.http import url_for
 from .download import router as download_router
 from .stac import router as stac_router
 
-router = APIRouter(prefix="/{gitlab_base_uri}")
+router = APIRouter(prefix="/{gitlab}")
 
 
 @router.get("/")
 async def views_index(
     request: Request,
-    gitlab_base_uri: str,
+    gitlab: str,
     token: GitlabTokenDep,
 ):
     return RedirectResponse(
         url_for(
             request,
             "stac_root",
-            path=dict(gitlab_base_uri=gitlab_base_uri),
+            path=dict(gitlab=gitlab),
             query={**token.query},
         )
     )

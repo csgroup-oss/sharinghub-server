@@ -5,6 +5,9 @@ from fastapi import Depends, HTTPException, Security
 from fastapi.security import APIKeyHeader, APIKeyQuery
 from starlette.status import HTTP_403_FORBIDDEN
 
+from app.config import REMOTES
+from app.utils.http import slugify, url_domain
+
 gitlab_token_query = APIKeyQuery(
     name="gitlab_token", scheme_name="GitLab Private Token query", auto_error=False
 )
@@ -29,4 +32,22 @@ async def get_gitlab_token(
         )
 
 
+async def get_gitlab_config(gitlab: str) -> dict:
+    for remote_name, remote_config in REMOTES.items():
+        url: str = remote_config.get("url", "")
+        if url_domain(url) == gitlab:
+            return {
+                **remote_config,
+                "name": remote_name,
+                "url": url.removesuffix("/"),
+                "path": gitlab,
+            }
+    return {
+        "name": slugify(gitlab).replace("-", ""),
+        "url": f"https://{gitlab}",
+        "path": gitlab,
+    }
+
+
 GitlabTokenDep = Annotated[GitlabToken, Depends(get_gitlab_token)]
+GitlabConfigDep = Annotated[dict, Depends(get_gitlab_config)]
