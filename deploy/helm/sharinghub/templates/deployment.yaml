@@ -37,6 +37,19 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+          env:
+            - name: ALLOWED_ORIGINS
+              value: {{ join " " .Values.server.allowedOrigins }}
+            - name: OAUTH_CLIENTS_IDS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "sharinghub.fullname" . }}-oidc
+                  key: clients-ids
+            - name: OAUTH_CLIENTS_SECRETS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "sharinghub.fullname" . }}-oidc
+                  key: clients-secrets
           livenessProbe:
             httpGet:
               path: /
