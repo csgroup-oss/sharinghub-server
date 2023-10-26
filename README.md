@@ -3,6 +3,12 @@
 ## Table of contents
 
 - [Setup](#setup)
+- [Development](#development)
+  - [Run with uvicorn](#run-with-uvicorn)
+  - [Run with docker container](#run-with-docker-container)
+- [Production](#production)
+  - [Create the Docker image](#create-the-docker-image)
+  - [HELM](#helm)
 - [Configuration](#configuration)
   - [Variables](#variables)
     - [Config file path](#config-file-path)
@@ -24,12 +30,6 @@
     - [Project: cache timeout](#project-cache-timeout)
     - [Project: assets rules](#project-assets-rules)
     - [Project: assets release source format](#project-assets-release-source-format)
-- [Development](#development)
-  - [Run with uvicorn](#run-with-uvicorn)
-  - [Run with docker container](#run-with-docker-container)
-- [Production](#production)
-  - [Create the Docker image](#create-the-docker-image)
-  - [HELM](#helm)
 
 ## Setup
 
@@ -38,6 +38,89 @@ You will need first to update the submodules.
 ```bash
 git submodule init
 git submodule update
+```
+
+## Development
+
+### Run with uvicorn
+
+Setup the environment:
+
+```bash
+virtualenv -p python3.11 venv
+# or python3 -m venv venv
+source venv/bin/activate
+pip install --no-cache-dir -r requirements.txt
+
+# Build browser static files
+cd browser
+npm install
+npm run build:minimal -- --catalogTitle="SharingHUB" --gitlabUrl="https://gitlab.si.c-s.fr" --historyMode="hash" --pathPrefix="/browse"
+```
+
+We use `python-dotenv`, if a `.env` file is present it will be loaded.
+You can copy the `.env.template` as `.env`, and complete it to have a quick env setup done.
+
+Other configuration values may be overridden, the `.env` file is not git-tracked in this repo so don't hesitate to twist the configuration when you want to test things.
+
+Then run the development server:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+### Run with docker container
+
+Build image
+
+```bash
+docker build -t sharinghub:latest .
+```
+
+Use it
+
+```bash
+docker run --name sharinghub --rm \
+    -p 8000:8000 \
+    sharinghub:latest
+```
+
+You can check the API docs at [localhost:8000](http://localhost:8000/docs).
+
+## Production
+
+### Create the Docker image
+
+We'll need to push the image to a docker registry.
+
+```bash
+# Login
+docker login <your-registry>
+# Example: docker login 643vlk6z.gra7.container-registry.ovh.net
+
+# Tag the image for your registry
+docker build --build-arg gitlabUrl="<target-gitlab>" -t <registry-tag> .
+# Example: docker build --build-arg gitlabUrl="https://gitlab.si.c-s.fr" -t 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub:latest .
+
+# Push
+docker push <registry-tag>
+# Example: docker push 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub:latest
+```
+
+### HELM
+
+Create a robot account in the harbor interface to access GeoJson Proxy Image
+
+```bash
+kubectl create namespace sharinghub
+
+kubectl create secret docker-registry regcred --docker-username='robot$space_applications+p2.gitlab2stac' --docker-password='CphryzOE7A4XFnC1943APz0m1N8z9U6n' --docker-server='643vlk6z.gra7.container-registry.ovh.net' --namespace sharinghub
+```
+
+Deploy SharingHUB proxy
+
+```bash
+helm upgrade --install sharinghub ./deploy/helm/sharinghub --namespace sharinghub --values deploy/helm/values.yaml
 ```
 
 ## Configuration
@@ -348,89 +431,3 @@ The YAML file path can be changed to point to another one with the environment v
       assets:
         release-source-format: tar.gz
     ```
-
-## Development
-
-### Run with uvicorn
-
-Setup the environment:
-
-```bash
-virtualenv -p python3.11 venv
-# or python3 -m venv venv
-source venv/bin/activate
-pip install --no-cache-dir -r requirements.txt
-
-# Build browser static files
-cd browser
-npm install
-npm run build:minimal -- --catalogTitle="SharingHUB" --gitlabUrl="https://gitlab.si.c-s.fr" --historyMode="hash" --pathPrefix="/browse"
-```
-
-We use `python-dotenv`, if a `.env` file is present it will be loaded. We can use it to enable debug mode, with:
-
-```bash
-DEBUG=true
-```
-
-Other configuration values may be overridden, the `.env` file is not git-tracked in this repo so don't hesitate to twist the configuration when you want to test things.
-
-Then run the development server:
-
-```bash
-uvicorn app.main:app --reload
-```
-
-### Run with docker container
-
-Build image
-
-```bash
-docker build -t sharinghub:latest .
-```
-
-Use it
-
-```bash
-docker run --name sharinghub --rm \
-    -p 8000:8000 \
-    sharinghub:latest
-```
-
-You can check the API docs at [localhost:8000](http://localhost:8000/docs).
-
-## Production
-
-### Create the Docker image
-
-We'll need to push the image to a docker registry.
-
-```bash
-# Login
-docker login <your-registry>
-# Example: docker login 643vlk6z.gra7.container-registry.ovh.net
-
-# Tag the image for your registry
-docker build --build-arg gitlabUrl="<target-gitlab>" -t <registry-tag> .
-# Example: docker build --build-arg gitlabUrl="https://gitlab.si.c-s.fr" -t 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub:latest .
-
-# Push
-docker push <registry-tag>
-# Example: docker push 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub:latest
-```
-
-### HELM
-
-Create a robot account in the harbor interface to access GeoJson Proxy Image
-
-```bash
-kubectl create namespace sharinghub
-
-kubectl create secret docker-registry regcred --docker-username='robot$space_applications+p2.gitlab2stac' --docker-password='CphryzOE7A4XFnC1943APz0m1N8z9U6n' --docker-server='643vlk6z.gra7.container-registry.ovh.net' --namespace sharinghub
-```
-
-Deploy SharingHUB proxy
-
-```bash
-helm upgrade --install sharinghub ./deploy/helm/sharinghub --namespace sharinghub --values deploy/helm/values.yaml
-```
