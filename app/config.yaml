@@ -3,6 +3,8 @@ remotes:
     url: https://gitlab.si.c-s.fr
     title: GitLab CS STAC Catalog
     description: Custom description for this [GitLab](https://gitlab.si.c-s.fr) instance STAC catalog.
+    oauth:
+      server_metadata_url: https://gitlab.si.c-s.fr/.well-known/openid-configuration
 
 catalogs:
   topics:

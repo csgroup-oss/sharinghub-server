@@ -1,4 +1,5 @@
 aiohttp
+authlib
 python-dotenv
 fastapi[all]
 markdown

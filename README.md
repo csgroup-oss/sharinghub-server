@@ -16,6 +16,8 @@
     - [Server: browser path](#server-browser-path)
     - [Server: enable cache](#server-enable-cache)
     - [Remotes](#remotes)
+    - [OAuth: clients ids](#oauth-clients-ids)
+    - [OAuth: clients secrets](#oauth-clients-secrets)
     - [Catalog: cache timeout](#catalog-cache-timeout)
     - [Catalog: per page items](#catalog-per-page-items)
     - [Catalog: topics](#catalog-topics)
@@ -211,9 +213,45 @@ The YAML file path can be changed to point to another one with the environment v
   - Example value:
   ```yaml
   remotes:
-    gitlab.com:
+    gitlab-example:
+      url: https://gitlab.example.com
       title: GitLab
       description: Original GitLab site.
+      oauth:
+        server_metadata_url: https://gitlab.example.com/.well-known/openid-configuration
+  ```
+
+#### OAuth: clients ids
+
+- Type: mapping of strings
+- Help: keys must be remote key in [Remotes](#remotes) config.
+- Environment variable:
+  - Name: `OAUTH_CLIENTS_IDS`
+  - Example value: `gitlab-cs:<client-id-1>;gitlab-cloud-cs:<client-id-2>`
+- YAML:
+  - Path: `remotes.<remote>.oauth.client_id`
+  - Example value:
+  ```yaml
+  remotes:
+    gitlab-example:
+      oauth:
+        client_id: <client-id>
+  ```
+
+#### OAuth: clients secrets
+
+- Type: mapping of strings
+- Environment variable:
+  - Name: `OAUTH_CLIENTS_SECRETS`
+  - Example value: `gitlab-example:<client-secret-1>;gitlab-example-2:<client-secret-2>`
+- YAML:
+  - Path: `remotes.<remote>.oauth.client_secret`
+  - Example value:
+  ```yaml
+  remotes:
+    gitlab-example:
+      oauth:
+        client_secret: <client-secret>
   ```
 
 #### Catalog: cache timeout

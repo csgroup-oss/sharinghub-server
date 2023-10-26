@@ -210,7 +210,7 @@ class GitlabClient:
             response = await client.request(
                 request_method,
                 url,
-                headers={**request_headers, "PRIVATE-TOKEN": self.token},
+                headers={**request_headers, "Authorization": f"Bearer {self.token}"},
                 data=request_body,
             )
 

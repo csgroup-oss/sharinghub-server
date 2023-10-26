@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from app.utils.config import Config, cbool, cjson, clist, cpath
+from app.utils.config import Config, cbool, cdict, cjson, clist, cpath
 
 load_dotenv()
 
@@ -73,6 +73,7 @@ SESSION_SECRET_KEY: str = conf(
 SESSION_MAX_AGE: str = conf(
     "server.session.max-age", "SESSION_MAX_AGE", default=3600.0, cast=float
 )
+SESSION_AUTH_KEY = "auth"
 
 REQUEST_TIMEOUT: float = conf(
     "server.request.timeout", "REQUEST_TIMEOUT", default=300.0, cast=float
@@ -93,6 +94,19 @@ ENABLE_CACHE: bool = conf(
 
 # Remotes
 REMOTES: dict = conf("remotes", "REMOTES", default={}, cast=cjson())
+_OAUTH_CLIENTS_IDS: dict = conf(
+    env_var="OAUTH_CLIENTS_IDS", default={}, cast=cdict(sep=";")
+)
+_OAUTH_CLIENTS_SECRETS: dict = conf(
+    env_var="OAUTH_CLIENTS_SECRETS", default={}, cast=cdict(sep=";")
+)
+for remote in REMOTES:
+    if "oauth" not in REMOTES[remote]:
+        REMOTES[remote]["oauth"] = {}
+    if remote in _OAUTH_CLIENTS_IDS:
+        REMOTES[remote]["oauth"]["client_id"] = _OAUTH_CLIENTS_IDS[remote]
+    if remote in _OAUTH_CLIENTS_SECRETS:
+        REMOTES[remote]["oauth"]["client_secret"] = _OAUTH_CLIENTS_SECRETS[remote]
 
 # Catalogs
 CATALOG_CACHE_TIMEOUT: float = conf(
