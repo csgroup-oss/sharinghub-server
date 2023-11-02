@@ -200,11 +200,21 @@ class GitlabClient:
             f"{self._get_project_api_url(project_id)}{project_endpoint}"
         )
 
-    async def _send_request(self, url: str):
+    async def proxify(self, endpoint: str, request: Request) -> StreamingResponse:
+        _request, self.request = self.request, request
+        streaming_resp = await self._request_streaming(endpoint)
+        self.request = _request
+        return streaming_resp
+
+    async def _send_request(self, url: str) -> aiohttp.ClientResponse:
         request_headers = dict(self.request.headers) if self.request else {}
         request_headers.pop("host", None)
         request_method = self.request.method if self.request else "GET"
+        request_params = dict(self.request.query_params) if self.request else {}
+        request_params.pop("gitlab_token", None)
         request_body = await self.request.body() if self.request else None
+
+        url = url_add_query_params(url, request_params)
         async with AiohttpClient() as client:
             logger.debug(f"Request {request_method}: {url}")
             response = await client.request(
@@ -239,6 +249,7 @@ class GitlabClient:
         url = self._resolve(endpoint)
         response = await self._send_request(url)
         response_headers = dict(response.headers)
+        response_headers.pop("Content-Encoding", None)
 
         if filename:
             default_content_disposition = [
