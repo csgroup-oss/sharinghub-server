@@ -38,5 +38,5 @@ async def auth_login_callback(
 
 @router.get("/logout")
 async def auth_logout(request: Request, gitlab: str, session: SessionDep):
-    session[SESSION_AUTH_KEY].pop(gitlab)
+    session[SESSION_AUTH_KEY].pop(gitlab, None)
     return RedirectResponse(url_for(request, "index"))
