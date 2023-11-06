@@ -206,7 +206,7 @@ class GitlabClient:
         self.request = _request
         return streaming_resp
 
-    async def _send_request(self, url: str) -> aiohttp.ClientResponse:
+    async def _send_request(self, url: str, **params: Any) -> aiohttp.ClientResponse:
         request_headers = dict(self.request.headers) if self.request else {}
         request_headers.pop("host", None)
         request_method = self.request.method if self.request else "GET"
@@ -214,7 +214,8 @@ class GitlabClient:
         request_params.pop("gitlab_token", None)
         request_body = await self.request.body() if self.request else None
 
-        url = url_add_query_params(url, request_params)
+        query_params = request_params | params
+        url = url_add_query_params(url, query_params)
         async with AiohttpClient() as client:
             logger.debug(f"Request {request_method}: {url}")
             response = await client.request(
@@ -233,10 +234,10 @@ class GitlabClient:
         return response
 
     async def _request(
-        self, endpoint: str, media_type: str = "json"
+        self, endpoint: str, media_type: str = "json", **params: Any
     ) -> dict[str, Any] | list[Any] | str:
         url = self._resolve(endpoint)
-        response = await self._send_request(url)
+        response = await self._send_request(url, **params)
         match media_type:
             case "json":
                 return await response.json()
