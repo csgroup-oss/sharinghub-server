@@ -45,7 +45,7 @@ async def get_session_auth(
 async def get_session_auth_token(
     session_auth: Annotated[dict, Depends(get_session_auth)]
 ) -> str | None:
-    return session_auth.get("token")
+    return session_auth.get("token", {}).get("access_token")
 
 
 async def get_gitlab_token(

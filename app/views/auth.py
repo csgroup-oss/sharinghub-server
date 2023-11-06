@@ -12,8 +12,8 @@ router = APIRouter()
 
 @router.get("/info")
 async def auth_info(session_auth: SessionAuthDep):
-    if "user" in session_auth:
-        return session_auth["user"]
+    if session_auth:
+        return session_auth
     raise HTTPException(
         status_code=HTTP_401_UNAUTHORIZED,
         detail="Not authenticated",
@@ -31,8 +31,8 @@ async def auth_login_callback(
     request: Request, session_auth: SessionAuthDep, oauth: OAuthDep
 ):
     token = await oauth.authorize_access_token(request)
-    session_auth["token"] = token["access_token"]
     session_auth["user"] = token.pop("userinfo")
+    session_auth["token"] = token
     return RedirectResponse(url_for(request, "index"))
 
 
