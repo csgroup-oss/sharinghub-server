@@ -1,14 +1,14 @@
-FROM node:lts-alpine3.18 AS browser
+FROM node:lts-alpine3.18 AS web-ui
 
 ARG gitlabUrl
 
 WORKDIR /app
 
-COPY browser/package*.json ./
+COPY web-ui/package*.json ./
 RUN npm install
 
-COPY browser/ ./
-RUN npm run build:minimal -- --catalogTitle="SharingHUB" --gitlabUrl=${gitlabUrl} --historyMode="hash" --pathPrefix="/browse"
+COPY web-ui/ ./
+RUN npm run build:minimal -- --catalogTitle="SharingHUB" --gitlabUrl=${gitlabUrl} --historyMode="hash" --pathPrefix="/ui"
 
 FROM amd64/python:3.11-alpine as build
 
@@ -38,8 +38,8 @@ RUN [ "$TEST_ENABLED" = "false" ] && echo "skipping tests" || eval "$TEST_COMMAN
 
 FROM build as ship
 WORKDIR /home/app/
-ENV BROWSER_PATH=/home/app/browser
-COPY --chown=app:app --from=browser /app/dist browser/
+ENV WEB_UI_PATH=/home/app/web-ui
+COPY --chown=app:app --from=web-ui /app/dist web-ui/
 COPY --chown=app:app app/ app/
 
 USER app

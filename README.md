@@ -19,7 +19,7 @@
     - [Server: session secret key](#server-session-secret-key)
     - [Server: session max age](#server-session-max-age)
     - [Server: request timeout](#server-request-timeout)
-    - [Server: browser path](#server-browser-path)
+    - [Server: web ui path](#server-web-ui-path)
     - [Server: enable cache](#server-enable-cache)
     - [Remotes](#remotes)
     - [OAuth: clients ids](#oauth-clients-ids)
@@ -52,10 +52,10 @@ virtualenv -p python3.11 venv
 source venv/bin/activate
 pip install --no-cache-dir -r requirements.txt
 
-# Build browser static files
-cd browser
+# Build Web UI static files
+cd web-ui
 npm install
-npm run build:minimal -- --catalogTitle="SharingHUB" --gitlabUrl="https://gitlab.si.c-s.fr" --historyMode="hash" --pathPrefix="/browse"
+npm run build:minimal -- --catalogTitle="SharingHUB" --gitlabUrl="https://gitlab.si.c-s.fr" --historyMode="hash" --pathPrefix="/ui"
 ```
 
 We use `python-dotenv`, if a `.env` file is present it will be loaded.
@@ -263,19 +263,19 @@ The YAML file path can be changed to point to another one with the environment v
         timeout: 600.0
     ```
 
-#### Server: browser path
+#### Server: web ui path
 
 - Type: path
-- Default: `"<PWD>/browser/dist"`
+- Default: `"<PWD>/web-ui/dist"`
 - Environment variable:
-  - Name: `BROWSER_PATH`
-  - Example value: `browser/dist`
+  - Name: `WEB_UI_PATH`
+  - Example value: `web-ui/dist`
 - YAML:
-  - Path: `server.browser-path`
+  - Path: `server.web-ui-path`
   - Example value:
     ```yaml
     server:
-      browser-path: browser/dist
+      web-ui-path: web-ui/dist
     ```
 
 #### Server: enable cache

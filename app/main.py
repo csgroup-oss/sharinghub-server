@@ -12,11 +12,11 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import (
     ALLOWED_ORIGINS,
     API_PREFIX,
-    BROWSER_PATH,
     DEBUG,
     LOGGING,
     SESSION_MAX_AGE,
     SESSION_SECRET_KEY,
+    WEB_UI_PATH,
 )
 from app.utils.http import AiohttpClient, url_for
 from app.views import router as views_router
@@ -63,7 +63,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.get("/")
 async def index(request: Request):
-    return RedirectResponse(url_for(request, "browser", path=dict(path="")))
+    return RedirectResponse(url_for(request, "web-ui", path=dict(path="")))
 
 
 @app.get("/status")
@@ -71,5 +71,5 @@ async def status():
     return [{"status": "ok"}]
 
 
-app.mount("/browse", StaticFiles(directory=BROWSER_PATH, html=True), name="browser")
+app.mount("/ui", StaticFiles(directory=WEB_UI_PATH, html=True), name="web-ui")
 app.include_router(views_router)

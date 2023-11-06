@@ -79,11 +79,11 @@ REQUEST_TIMEOUT: float = conf(
     "server.request.timeout", "REQUEST_TIMEOUT", default=300.0, cast=float
 )
 
-#### Browser ####
+#### Web UI ####
 
-DEFAULT_BROWSER_PATH = Path(os.getcwd(), "browser", "dist")
-BROWSER_PATH: Path = conf(
-    "server.browser-path", "BROWSER_PATH", default=DEFAULT_BROWSER_PATH, cast=cpath()
+DEFAULT_WEB_UI_PATH = Path(os.getcwd(), "web-ui", "dist")
+WEB_UI_PATH: Path = conf(
+    "server.web-ui-path", "WEB_UI_PATH", default=DEFAULT_WEB_UI_PATH, cast=cpath()
 )
 
 ####  STAC  ####
