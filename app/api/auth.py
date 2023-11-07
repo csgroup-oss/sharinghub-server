@@ -15,7 +15,10 @@ def get_oauth_config(remote_name: str) -> StarletteOAuth2App | None:
         if all(k in oauth_conf for k in _MANDATORY_KEYS):
             return _oauth.register(
                 name=remote_name,
-                client_kwargs={"scope": "openid email read_user profile api"},
+                client_kwargs={
+                    "scope": "openid email read_user profile api",
+                    "timeout": 10.0,
+                },
                 **oauth_conf,
             )
 
