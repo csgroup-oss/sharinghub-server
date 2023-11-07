@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import Annotated
+from typing import Annotated, AsyncGenerator
 
 from authlib.integrations.starlette_client import StarletteOAuth2App
 from fastapi import Depends, HTTPException, Request, Security
@@ -38,14 +38,32 @@ async def get_session(request: Request) -> dict:
 async def get_session_auth(
     session: Annotated[dict, Depends(get_session)], gitlab: str
 ) -> dict:
-    session[SESSION_AUTH_KEY].setdefault(gitlab, {})
-    return session[SESSION_AUTH_KEY][gitlab]
+    return session[SESSION_AUTH_KEY].setdefault(gitlab, {})
 
 
 async def get_session_auth_token(
     session_auth: Annotated[dict, Depends(get_session_auth)]
 ) -> str | None:
     return session_auth.get("token", {}).get("access_token")
+
+
+def _clean_session(session: dict):
+    # Clean authlib states if still exists
+    for key in list(session.keys()):
+        if key.startswith("_state"):
+            del session[key]
+
+
+async def post_clean_session(request: Request) -> AsyncGenerator[None, None]:
+    try:
+        yield
+    finally:
+        _clean_session(request.session)
+
+
+async def pre_clean_session(request: Request) -> AsyncGenerator[None, None]:
+    _clean_session(request.session)
+    yield
 
 
 async def get_gitlab_token(
@@ -88,3 +106,5 @@ SessionDep = Annotated[dict, Depends(get_session)]
 SessionAuthDep = Annotated[dict, Depends(get_session_auth)]
 GitlabTokenDep = Annotated[GitlabToken, Depends(get_gitlab_token)]
 GitlabConfigDep = Annotated[dict, Depends(get_gitlab_config)]
+PreCleanSessionDep = Depends(pre_clean_session)
+PostCleanSessionDep = Depends(post_clean_session)
