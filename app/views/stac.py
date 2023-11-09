@@ -8,10 +8,11 @@ from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
-from app.api.gitlab import GitlabClient
+from app.api.gitlab import GitlabClient, GitlabProject
 from app.api.stac import (
     build_stac_for_project,
     build_stac_root,
+    build_stac_search_result,
     build_stac_topic,
     get_gitlab_topic,
 )
@@ -37,6 +38,85 @@ CachedCatalog = namedtuple("CachedCatalog", ["time", "catalog"])
 CachedProject = namedtuple("CachedProject", ["time", "last_activity", "stac"])
 
 router = APIRouter()
+
+
+@router.api_route("/search", methods=["GET"])
+async def stac_search(
+    request: Request,
+    gitlab_config: GitlabConfigDep,
+    token: GitlabTokenDep,
+    q: str,
+    limit: int = 10,
+    bbox: str = "",
+    datetime: str = "",
+    intersects: str = "",
+    ids: str = "",
+    collections: str = "",
+):
+    gitlab_client = GitlabClient(url=gitlab_config["url"], token=token.value)
+
+    topics = collections.split()
+    if any(t not in CATALOG_TOPICS for t in topics):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Collections should be one of: {', '.join(CATALOG_TOPICS)}",
+        )
+    if not topics:
+        topics = list(CATALOG_TOPICS)
+
+    _gitlab_search_result: dict[str, GitlabProject] = {}
+    for query in q.split(","):
+        gitlab_search = await gitlab_client.search(scope="projects", query=query)
+        gitlab_search = [
+            project
+            for project in gitlab_search
+            if any(
+                CATALOG_TOPICS[t]["gitlab_name"] in project["topics"] for t in topics
+            )
+        ]
+        for p in gitlab_search:
+            if p["id"] not in _gitlab_search_result:
+                _gitlab_search_result[p["id"]] = p
+    projects = list(_gitlab_search_result.values())
+
+    features = []
+    for project in projects:
+        _topic = None
+        for t in CATALOG_TOPICS:
+            if CATALOG_TOPICS[t]["gitlab_name"] in project["topics"]:
+                _topic = {"name": t, **CATALOG_TOPICS[t]}
+
+        readme, files, release = await asyncio.gather(
+            gitlab_client.get_readme(project),
+            gitlab_client.get_files(project),
+            gitlab_client.get_latest_release(project),
+        )
+
+        try:
+            _feature = build_stac_for_project(
+                topic=_topic,
+                project=project,
+                readme=readme,
+                files=files,
+                assets_rules=ASSETS_RULES,
+                release=release,
+                release_source_format=RELEASE_SOURCE_FORMAT,
+                request=request,
+                gitlab_config=gitlab_config,
+                token=token,
+            )
+        except Exception as exc:
+            logger.exception(exc)
+            raise HTTPException(status_code=500, detail=str(exc))
+
+        features.append(_feature)
+
+    return build_stac_search_result(
+        features=features,
+        request=request,
+        gitlab_config=gitlab_config,
+        token=token,
+    )
 
 
 @router.get("/")

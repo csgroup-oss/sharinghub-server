@@ -206,6 +206,9 @@ class GitlabClient:
         self.request = _request
         return streaming_resp
 
+    async def search(self, scope: str, query: Any) -> list[GitlabProject]:
+        return await self._request("/search", scope=scope, search=query)
+
     async def _send_request(self, url: str, **params: Any) -> aiohttp.ClientResponse:
         request_headers = dict(self.request.headers) if self.request else {}
         request_headers.pop("host", None)

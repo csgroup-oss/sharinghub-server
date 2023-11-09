@@ -65,6 +65,35 @@ def get_gitlab_topic(topic: Topic) -> str:
     return topic.get("gitlab_name", topic["name"])
 
 
+def build_stac_search_result(
+    features: list[dict], **context: Unpack[STACContext]
+) -> dict:
+    _request = context["request"]
+    _token = context["token"]
+    count = len(features)
+    return {
+        "type": "FeatureCollection",
+        "stac_version": "1.0.0",
+        "stac_extensions": [
+            "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
+            "https://stac-extensions.github.io/ml-model/v1.0.0/schema.json",
+        ],
+        "context": {
+            "matched": count,
+            "returned": count,
+        },
+        "numberMatched": count,
+        "numberReturned": count,
+        "features": features,
+        "links": [
+            {
+                "rel": "root",
+                "href": url_for(_request, query={**_token.query}),
+            },
+        ],
+    }
+
+
 def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
     _request = context["request"]
     _gitlab_config = context["gitlab_config"]
@@ -117,7 +146,22 @@ def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
                 "rel": "self",
                 "href": url_for(_request, query={**_token.query}),
             },
+            {
+                "rel": "search",
+                "href": url_for(
+                    _request,
+                    "stac_search",
+                    path=dict(gitlab=_gitlab_config["path"]),
+                    query={**_token.query},
+                ),
+                "method": "GET",
+                "type": "application/geo+json",
+            },
             *links,
+        ],
+        "conformsTo": [
+            "https://api.stacspec.org/v1.0.0/item-search",
+            "https://api.stacspec.org/v1.0.0-rc.1/item-search#free-text",
         ],
     }
 
