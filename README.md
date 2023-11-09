@@ -87,6 +87,22 @@ docker run --name sharinghub --rm \
 
 You can check the API docs at [localhost:8000](http://localhost:8000/docs).
 
+### Run full stack with docker compose
+
+If you want to run the server and the web UI, you can use docker compose.
+
+First, build your images:
+
+```bash
+make build
+```
+
+Then you can run them:
+
+```bash
+make run
+```
+
 ## Production
 
 ### Create the Docker image
