@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  server:
+    container_name: sharinghub-server
+    image: sharinghub-server:latest
+    build:
+      dockerfile: deploy/compose/services/server/Dockerfile
+      context: ../../
+    volumes:
+      - ../../app:/home/app/app
+    env_file:
+      - ../../.env
+    expose:
+      - 8000
+    networks:
+      - sharinghub
+  web-ui:
+    container_name: sharinghub-ui
+    image: sharinghub-ui:latest
+    build:
+      dockerfile: deploy/compose/services/web-ui/Dockerfile
+      context: ../../
+    volumes:
+      - ../../web-ui:/app
+    expose:
+      - 8080
+    networks:
+      - sharinghub
+    depends_on:
+      - server
+  ingress:
+    container_name: sharinghub-ingress
+    image: sharinghub-ingress:latest
+    build:
+      dockerfile: Dockerfile
+      context: ./services/nginx
+    ports:
+      - 80:80
+    networks:
+      - sharinghub
+    depends_on:
+      - server
+      - web-ui
+
+networks:
+  sharinghub:
