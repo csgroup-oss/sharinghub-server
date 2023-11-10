@@ -82,6 +82,12 @@ async def stac_search(
         projects = list(_gitlab_search_result.values())
     else:
         projects = []
+        for t in topics:
+            _topic = {"name": t, **CATALOG_TOPICS[t]}
+            _, _topic_projects = await gitlab_client.get_projects(
+                get_gitlab_topic(_topic)
+            )
+            projects.extend(_topic_projects)
 
     features = []
     for project in projects:

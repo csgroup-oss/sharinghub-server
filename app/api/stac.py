@@ -75,7 +75,12 @@ def build_stac_search_result(
     return {
         "stac_version": "1.0.0",
         "type": "FeatureCollection",
-        "id": str(_request.url),
+        "id": url_for(
+            _request,
+            "stac_search",
+            path=dict(gitlab=_gitlab_config["path"]),
+            query={**_token.query},
+        ),
         "context": {
             "matched": count,
             "returned": count,
@@ -93,6 +98,11 @@ def build_stac_search_result(
                     path=dict(gitlab=_gitlab_config["path"]),
                     query={**_token.query},
                 ),
+            },
+            {
+                "rel": "self",
+                "type": "application/json",
+                "href": str(_request.url),
             },
         ],
     }
