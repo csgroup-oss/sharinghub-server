@@ -121,6 +121,10 @@ async def stac_search(
 
         features.append(_feature)
 
+    if ids:
+        _ids = ids.split(",")
+        features = [f for f in features if f["id"] in _ids]
+
     return build_stac_search_result(
         features=features,
         request=request,
