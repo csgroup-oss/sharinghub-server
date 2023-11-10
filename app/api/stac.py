@@ -387,7 +387,16 @@ def build_stac_for_project(
         {
             "rel": "self",
             "type": "application/json",
-            "href": str(_request.url),
+            "href": url_for(
+                _request,
+                "stac_project",
+                path=dict(
+                    gitlab=_gitlab_config["path"],
+                    topic=topic["name"],
+                    project_id=project["id"],
+                ),
+                query={**_token.query},
+            ),
         },
         {
             "rel": "parent",
