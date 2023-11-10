@@ -69,15 +69,13 @@ def build_stac_search_result(
     features: list[dict], **context: Unpack[STACContext]
 ) -> dict:
     _request = context["request"]
+    _gitlab_config = context["gitlab_config"]
     _token = context["token"]
     count = len(features)
     return {
-        "type": "FeatureCollection",
         "stac_version": "1.0.0",
-        "stac_extensions": [
-            "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
-            "https://stac-extensions.github.io/ml-model/v1.0.0/schema.json",
-        ],
+        "type": "FeatureCollection",
+        "id": str(_request.url),
         "context": {
             "matched": count,
             "returned": count,
@@ -88,7 +86,13 @@ def build_stac_search_result(
         "links": [
             {
                 "rel": "root",
-                "href": url_for(_request, query={**_token.query}),
+                "type": "application/json",
+                "href": url_for(
+                    _request,
+                    "stac_root",
+                    path=dict(gitlab=_gitlab_config["path"]),
+                    query={**_token.query},
+                ),
             },
         ],
     }
@@ -109,6 +113,7 @@ def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
     links = [
         {
             "rel": "child",
+            "type": "application/json",
             "href": url_for(
                 _request,
                 "stac_topic",
@@ -123,9 +128,11 @@ def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
     ]
 
     if logo:
+        logo_media_type, _ = mimetypes.guess_type(logo)
         links.append(
             {
                 "rel": "preview",
+                "type": logo_media_type,
                 "href": logo,
             }
         )
@@ -140,14 +147,34 @@ def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
         "links": [
             {
                 "rel": "root",
-                "href": url_for(_request, query={**_token.query}),
+                "type": "application/json",
+                "href": url_for(
+                    _request,
+                    "stac_root",
+                    path=dict(gitlab=_gitlab_config["path"]),
+                    query={**_token.query},
+                ),
             },
             {
                 "rel": "self",
-                "href": url_for(_request, query={**_token.query}),
+                "type": "application/json",
+                "href": str(_request.url),
+            },
+            {
+                "rel": "service-desc",
+                "type": "application/vnd.oai.openapi+json;version=3.1",
+                "href": url_for(_request, "index") + "openapi.json",
+                "title": "OpenAPI definition",
+            },
+            {
+                "rel": "service-doc",
+                "type": "text/html",
+                "href": url_for(_request, "index") + "docs",
+                "title": "OpenAPI interactive docs: Swagger UI",
             },
             {
                 "rel": "search",
+                "type": "application/geo+json",
                 "href": url_for(
                     _request,
                     "stac_search",
@@ -155,13 +182,18 @@ def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
                     query={**_token.query},
                 ),
                 "method": "GET",
-                "type": "application/geo+json",
+                "title": "STAC Search",
             },
             *links,
         ],
         "conformsTo": [
+            "https://api.stacspec.org/v1.0.0/core",
             "https://api.stacspec.org/v1.0.0/item-search",
             "https://api.stacspec.org/v1.0.0-rc.1/item-search#free-text",
+            "https://api.stacspec.org/v1.0.0-rc.1/item-search#advanced-free-text",
+            "https://api.stacspec.org/v1.0.0-rc.1/ogcapi-features",
+            "https://api.stacspec.org/v1.0.0-rc.1/ogcapi-features#free-text",
+            "https://api.stacspec.org/v1.0.0-rc.1/ogcapi-features#advanced-free-text",
         ],
     }
 
@@ -186,6 +218,7 @@ def build_stac_topic(
     links = [
         {
             "rel": "child",
+            "type": "application/json",
             "href": url_for(
                 _request,
                 "stac_project",
@@ -213,6 +246,7 @@ def build_stac_topic(
         links.append(
             {
                 "rel": "prev",
+                "type": "application/json",
                 "href": url_add_query_params(
                     _current_topic_url, {"page": pagination["prev_page"]}
                 ),
@@ -222,6 +256,7 @@ def build_stac_topic(
         links.append(
             {
                 "rel": "next",
+                "type": "application/json",
                 "href": url_add_query_params(
                     _current_topic_url, {"page": pagination["next_page"]}
                 ),
@@ -229,9 +264,11 @@ def build_stac_topic(
         )
 
     if logo:
+        logo_media_type, _ = mimetypes.guess_type(logo)
         links.append(
             {
                 "rel": "preview",
+                "type": logo_media_type,
                 "href": logo,
             }
         )
@@ -246,6 +283,7 @@ def build_stac_topic(
         "links": [
             {
                 "rel": "root",
+                "type": "application/json",
                 "href": url_for(
                     _request,
                     "stac_root",
@@ -255,10 +293,12 @@ def build_stac_topic(
             },
             {
                 "rel": "self",
+                "type": "application/json",
                 "href": str(_request.url),
             },
             {
                 "rel": "parent",
+                "type": "application/json",
                 "href": url_for(
                     _request,
                     "stac_root",
@@ -326,6 +366,7 @@ def build_stac_for_project(
     links = [
         {
             "rel": "root",
+            "type": "application/json",
             "href": url_for(
                 _request,
                 "stac_root",
@@ -335,10 +376,12 @@ def build_stac_for_project(
         },
         {
             "rel": "self",
+            "type": "application/json",
             "href": str(_request.url),
         },
         {
             "rel": "parent",
+            "type": "application/json",
             "href": url_for(
                 _request,
                 "stac_topic",
@@ -351,12 +394,14 @@ def build_stac_for_project(
         },
         {
             "rel": "bug_tracker",
-            "title": "Issues",
+            "type": "text/html",
             "href": project_issues_url(_gitlab_config["url"], project),
+            "title": "Issues",
         },
         *(
             {
                 "rel": "derived_from" if "stac" in _labels else "extras",
+                "type": "application/json",
                 "href": _href,
                 "title": _title,
             }

@@ -45,7 +45,7 @@ async def stac_search(
     request: Request,
     gitlab_config: GitlabConfigDep,
     token: GitlabTokenDep,
-    q: str,
+    q: str = "",
     limit: int = 10,
     bbox: str = "",
     datetime: str = "",
@@ -64,20 +64,24 @@ async def stac_search(
     if not topics:
         topics = list(CATALOG_TOPICS)
 
-    _gitlab_search_result: dict[str, GitlabProject] = {}
-    for query in q.split(","):
-        gitlab_search = await gitlab_client.search(scope="projects", query=query)
-        gitlab_search = [
-            project
-            for project in gitlab_search
-            if any(
-                CATALOG_TOPICS[t]["gitlab_name"] in project["topics"] for t in topics
-            )
-        ]
-        for p in gitlab_search:
-            if p["id"] not in _gitlab_search_result:
-                _gitlab_search_result[p["id"]] = p
-    projects = list(_gitlab_search_result.values())
+    if q:
+        _gitlab_search_result: dict[str, GitlabProject] = {}
+        for query in q.split(","):
+            gitlab_search = await gitlab_client.search(scope="projects", query=query)
+            gitlab_search = [
+                project
+                for project in gitlab_search
+                if any(
+                    CATALOG_TOPICS[t]["gitlab_name"] in project["topics"]
+                    for t in topics
+                )
+            ]
+            for p in gitlab_search:
+                if p["id"] not in _gitlab_search_result:
+                    _gitlab_search_result[p["id"]] = p
+        projects = list(_gitlab_search_result.values())
+    else:
+        projects = []
 
     features = []
     for project in projects:
