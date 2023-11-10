@@ -1,4 +1,5 @@
 import asyncio
+import datetime as dt
 import enum
 import logging
 import time
@@ -124,6 +125,20 @@ async def stac_search(
     if ids:
         _ids = ids.split(",")
         features = [f for f in features if f["id"] in _ids]
+
+    if datetime:
+        start_dt, *_dt = datetime.split("/")
+        start_dt = dt.datetime.fromisoformat(start_dt)
+        end_dt = dt.datetime.fromisoformat(_dt[0]) if _dt else None
+        _features = []
+        for f in features:
+            f_start_dt = dt.datetime.fromisoformat(f["properties"]["start_datetime"])
+            f_end_dt = dt.datetime.fromisoformat(f["properties"]["end_datetime"])
+            if start_dt <= f_start_dt <= f_end_dt and (
+                not end_dt or f_end_dt <= end_dt
+            ):
+                _features.append(f)
+        features = _features
 
     return build_stac_search_result(
         features=features,
