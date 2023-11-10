@@ -29,15 +29,6 @@ GITLAB_LICENSES_SPDX_MAPPING = {
     "unlicense": "Unlicense",
 }
 
-GITLAB_PAGINATION_HEADERS = [
-    "X-Next-Page",
-    "X-Page",
-    "X-Per-Page",
-    "X-Prev-Page",
-    "X-Total",
-    "X-Total-Pages",
-]
-
 
 class GitlabArchiveFormat(StrEnum):
     """GitLab archive formats.
@@ -53,15 +44,6 @@ class GitlabArchiveFormat(StrEnum):
     TB2 = "tb2"
     TBZ = "tbz"
     TBZ2 = "tbz2"
-
-
-class GitlabPagination(TypedDict):
-    page: int
-    next_page: int | None
-    prev_page: int | None
-    per_page: int
-    total: int
-    total_pages: int
 
 
 class GitlabProject(TypedDict):
@@ -135,12 +117,8 @@ class GitlabClient:
     def _resolve(self, endpoint: str) -> str:
         return f"{self.api_url}{endpoint}"
 
-    async def get_projects(
-        self, topic: str, page: int = 1, per_page: int = 12
-    ) -> tuple[GitlabPagination, list[GitlabProject]]:
-        return await self._request_paginate(
-            f"/projects?topic={topic}&simple=true", page=page, per_page=per_page
-        )
+    async def get_projects(self, topic: str) -> list[GitlabProject]:
+        return await self._request_iterate(f"/projects?topic={topic}&simple=true")
 
     async def get_project(self, project_id: str | int) -> GitlabProject:
         return await self._request(
@@ -287,43 +265,6 @@ class GitlabClient:
             background=BackgroundTask(response.close),
         )
 
-    async def _request_paginate(
-        self, endpoint: str, page=1, per_page=20
-    ) -> tuple[GitlabPagination, list[Any]]:
-        params = {
-            "page": page,
-            "per_page": per_page,
-            "order_by": "id",
-            "sort": "asc",
-        }
-        url = self._resolve(endpoint)
-        url = url_add_query_params(url, params)
-        response = await self._send_request(url)
-
-        items = await response.json()
-        if not isinstance(items, list):
-            raise HTTPException(
-                status_code=422,
-                detail="Unexpected: requested API do not return a list",
-            )
-
-        try:
-            pagination = {
-                k.lower()
-                .removeprefix("x-")
-                .replace("-", "_"): (
-                    int(response.headers[k]) if response.headers[k] != "" else None
-                )
-                for k in GITLAB_PAGINATION_HEADERS
-            }
-        except (KeyError, TypeError) as err:
-            logger.error(f"Headers: {dict(response.headers)}")
-            raise HTTPException(
-                status_code=500,
-                detail="Missing or malformed pagination headers",
-            ) from err
-        return pagination, items
-
     async def _request_iterate(self, endpoint: str, per_page=100) -> list[Any]:
         logger.debug(f"Request iterate {endpoint}")
 
@@ -333,7 +274,7 @@ class GitlabClient:
             "order_by": "id",
             "sort": "asc",
         }
-        url = f"{self.api_url}{endpoint}"
+        url = self._resolve(endpoint)
         url = url_add_query_params(url, params)
 
         items = []

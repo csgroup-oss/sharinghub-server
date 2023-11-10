@@ -8,7 +8,6 @@ from fastapi import Request
 
 from app.api.gitlab import (
     GITLAB_LICENSES_SPDX_MAPPING,
-    GitlabPagination,
     GitlabProject,
     GitlabProjectFile,
     GitlabProjectRelease,
@@ -211,7 +210,6 @@ def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
 def build_stac_topic(
     topic: Topic,
     projects: list[GitlabProject],
-    pagination: GitlabPagination,
     **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
@@ -242,36 +240,6 @@ def build_stac_topic(
         }
         for project in projects
     ]
-
-    _current_topic_url = url_for(
-        _request,
-        "stac_topic",
-        path=dict(
-            gitlab=_gitlab_config["path"],
-            topic=topic["name"],
-        ),
-        query={**_token.query},
-    )
-    if pagination["prev_page"]:
-        links.append(
-            {
-                "rel": "prev",
-                "type": "application/json",
-                "href": url_add_query_params(
-                    _current_topic_url, {"page": pagination["prev_page"]}
-                ),
-            }
-        )
-    if pagination["next_page"]:
-        links.append(
-            {
-                "rel": "next",
-                "type": "application/json",
-                "href": url_add_query_params(
-                    _current_topic_url, {"page": pagination["next_page"]}
-                ),
-            }
-        )
 
     if logo:
         logo_media_type, _ = mimetypes.guess_type(logo)

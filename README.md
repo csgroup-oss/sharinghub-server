@@ -25,7 +25,6 @@
     - [OAuth: clients ids](#oauth-clients-ids)
     - [OAuth: clients secrets](#oauth-clients-secrets)
     - [Catalog: cache timeout](#catalog-cache-timeout)
-    - [Catalog: per page items](#catalog-per-page-items)
     - [Catalog: topics](#catalog-topics)
     - [Project: cache timeout](#project-cache-timeout)
     - [Project: assets rules](#project-assets-rules)
@@ -372,21 +371,6 @@ The YAML file path can be changed to point to another one with the environment v
     ```yaml
     catalogs:
         cache-timeout: 30.0
-    ```
-
-#### Catalog: per page items
-
-- Type: integer number
-- Default: `12`
-- Environment variable:
-  - Name: `CATALOG_PER_PAGE`
-  - Example value: `10`
-- YAML:
-  - Path: `catalogs.per-page`
-  - Example value:
-    ```yaml
-    catalogs:
-        per-page: 10
     ```
 
 #### Catalog: topics

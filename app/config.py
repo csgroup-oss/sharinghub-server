@@ -115,9 +115,6 @@ CATALOG_CACHE_TIMEOUT: float = conf(
     default=60.0 * 10,
     cast=float,
 )
-CATALOG_PER_PAGE: int = conf(
-    "catalogs.per-page", "CATALOG_PER_PAGE", default=12, cast=int
-)
 CATALOG_TOPICS: dict = conf("catalogs.topics", default={}, cast=dict)
 
 # Projects

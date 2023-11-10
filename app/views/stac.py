@@ -20,7 +20,6 @@ from app.api.stac import (
 from app.config import (
     ASSETS_RULES,
     CATALOG_CACHE_TIMEOUT,
-    CATALOG_PER_PAGE,
     CATALOG_TOPICS,
     ENABLE_CACHE,
     PROJECT_CACHE_TIMEOUT,
@@ -85,9 +84,7 @@ async def stac_search(
         projects = []
         for t in topics:
             _topic = {"name": t, **CATALOG_TOPICS[t]}
-            _, _topic_projects = await gitlab_client.get_projects(
-                get_gitlab_topic(_topic)
-            )
+            _topic_projects = await gitlab_client.get_projects(get_gitlab_topic(_topic))
             projects.extend(_topic_projects)
 
     features = []
@@ -168,7 +165,6 @@ async def stac_topic(
     gitlab_config: GitlabConfigDep,
     token: GitlabTokenDep,
     topic: TopicName,
-    page: int = 1,
 ):
     cache_key = (gitlab_config["path"], topic, token.value)
     if (
@@ -180,14 +176,11 @@ async def stac_topic(
     _topic = {"name": topic, **CATALOG_TOPICS[topic]}
 
     gitlab_client = GitlabClient(url=gitlab_config["url"], token=token.value)
-    pagination, projects = await gitlab_client.get_projects(
-        topic=get_gitlab_topic(_topic), page=page, per_page=CATALOG_PER_PAGE
-    )
+    projects = await gitlab_client.get_projects(get_gitlab_topic(_topic))
 
     catalog = build_stac_topic(
         topic=_topic,
         projects=projects,
-        pagination=pagination,
         request=request,
         gitlab_config=gitlab_config,
         token=token,
