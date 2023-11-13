@@ -1,9 +1,9 @@
 import asyncio
-import datetime as dt
 import enum
 import logging
 import time
 from collections import namedtuple
+from datetime import datetime as dt
 
 from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -120,20 +120,18 @@ async def stac_search(
         features.append(_feature)
 
     if ids:
-        _ids = ids.split(",")
-        features = [f for f in features if f["id"] in _ids]
+        search_ids = ids.split(",")
+        features = [f for f in features if f["id"] in search_ids]
 
     if datetime:
-        start_dt, *_dt = datetime.split("/")
-        start_dt = dt.datetime.fromisoformat(start_dt)
-        end_dt = dt.datetime.fromisoformat(_dt[0]) if _dt else None
+        search_start_dt, *_dt = datetime.split("/")
+        search_start_dt = dt.fromisoformat(search_start_dt)
+        search_end_dt = dt.fromisoformat(_dt[0]) if _dt else search_start_dt
         _features = []
         for f in features:
-            f_start_dt = dt.datetime.fromisoformat(f["properties"]["start_datetime"])
-            f_end_dt = dt.datetime.fromisoformat(f["properties"]["end_datetime"])
-            if start_dt <= f_start_dt <= f_end_dt and (
-                not end_dt or f_end_dt <= end_dt
-            ):
+            f_start_dt = dt.fromisoformat(f["properties"]["start_datetime"])
+            f_end_dt = dt.fromisoformat(f["properties"]["end_datetime"])
+            if search_start_dt <= f_start_dt <= f_end_dt <= search_end_dt:
                 _features.append(f)
         features = _features
 
