@@ -38,13 +38,15 @@ async def get_session(request: Request) -> dict:
 async def get_session_auth(
     session: Annotated[dict, Depends(get_session)], gitlab: str
 ) -> dict:
-    return session[SESSION_AUTH_KEY].setdefault(gitlab, {})
+    if gitlab in [url_domain(r["url"]) for r in REMOTES.values()]:
+        return session[SESSION_AUTH_KEY].setdefault(gitlab, {})
+    return {}
 
 
 async def get_session_auth_token(
     session_auth: Annotated[dict, Depends(get_session_auth)]
 ) -> str | None:
-    return session_auth.get("token", {}).get("access_token")
+    return session_auth.get("access_token")
 
 
 def _clean_session(session: dict):

@@ -35,12 +35,17 @@ async def auth_login(
     redirect_uri: str = "",
 ):
     if not redirect_uri:
+        index = True
         redirect_uri = url_for(request, "index")
+    else:
+        index = False
 
     if session_auth:  # Already logged in, redirect
         return RedirectResponse(redirect_uri)
 
-    request.session[REDIRECT_URI_KEY] = redirect_uri
+    if not index:
+        request.session[REDIRECT_URI_KEY] = redirect_uri
+
     callback_uri = url_for(request, "auth_login_callback", path=dict(gitlab=gitlab))
     return await oauth.authorize_redirect(request, redirect_uri=callback_uri)
 
@@ -50,8 +55,8 @@ async def auth_login_callback(
     request: Request, session_auth: SessionAuthDep, oauth: OAuthDep
 ):
     token = await oauth.authorize_access_token(request)
-    session_auth["user"] = token.pop("userinfo")
-    session_auth["token"] = token
+    session_auth["access_token"] = token.get("access_token")
+    session_auth["refresh_token"] = token.get("refresh_token")
 
     redirect_uri = request.session.pop(REDIRECT_URI_KEY, url_for(request, "index"))
     return RedirectResponse(redirect_uri)
