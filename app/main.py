@@ -63,7 +63,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.get("/")
 async def index(request: Request):
-    return RedirectResponse(str(request.base_url) + "ui")
+    return RedirectResponse(url_for(request, "web-ui", path=dict(path="")))
 
 
 @app.get("/status")
@@ -71,5 +71,7 @@ async def status():
     return [{"status": "ok"}]
 
 
-app.mount("/ui", StaticFiles(directory=WEB_UI_PATH, html=True, check_dir=False))
+app.mount(
+    "/ui", StaticFiles(directory=WEB_UI_PATH, html=True, check_dir=False), name="web-ui"
+)
 app.include_router(views_router)

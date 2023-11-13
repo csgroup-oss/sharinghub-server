@@ -174,7 +174,12 @@ def build_stac_search_result(
             {
                 "rel": "self",
                 "type": "application/json",
-                "href": str(_request.url),
+                "href": url_for(
+                    _request,
+                    "stac_search",
+                    path=dict(gitlab=_gitlab_config["path"]),
+                    query=query_params,
+                ),
             },
             *nav_links,
         ],
@@ -241,7 +246,12 @@ def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
             {
                 "rel": "self",
                 "type": "application/json",
-                "href": str(_request.url),
+                "href": url_for(
+                    _request,
+                    "stac_root",
+                    path=dict(gitlab=_gitlab_config["path"]),
+                    query={**_token.query},
+                ),
             },
             {
                 "rel": "service-desc",
@@ -346,7 +356,15 @@ def build_stac_topic(
             {
                 "rel": "self",
                 "type": "application/json",
-                "href": str(_request.url),
+                "href": url_for(
+                    _request,
+                    "stac_topic",
+                    path=dict(
+                        gitlab=_gitlab_config["path"],
+                        topic=topic["name"],
+                    ),
+                    query={**_token.query},
+                ),
             },
             {
                 "rel": "parent",
