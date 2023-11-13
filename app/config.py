@@ -70,7 +70,7 @@ SESSION_SECRET_KEY: str = conf(
     default=str(uuid.uuid4()),
     cast=str,
 )
-SESSION_MAX_AGE: str = conf(
+SESSION_MAX_AGE: float = conf(
     "server.session.max-age", "SESSION_MAX_AGE", default=3600.0, cast=float
 )
 SESSION_AUTH_KEY = "auth"
