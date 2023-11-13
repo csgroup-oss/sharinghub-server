@@ -65,12 +65,84 @@ def get_gitlab_topic(topic: Topic) -> str:
 
 
 def build_stac_search_result(
-    features: list[dict], **context: Unpack[STACContext]
+    features: list[dict], page: int, limit: int, **context: Unpack[STACContext]
 ) -> dict:
     _request = context["request"]
     _gitlab_config = context["gitlab_config"]
     _token = context["token"]
-    count = len(features)
+
+    page_features = features[(page - 1) * limit : page * limit]
+    count_matched = len(features)
+    count_returned = len(page_features)
+
+    query_params = dict(_request.query_params)
+    nav_links = []
+    if page > 1:
+        prev_params = query_params.copy()
+        prev_params["page"] = page - 1
+        prev_url = url_for(
+            _request,
+            "stac_search",
+            path=dict(gitlab=_gitlab_config["path"]),
+            query=prev_params,
+        )
+        nav_links.append(
+            {
+                "rel": "prev",
+                "href": prev_url,
+                "type": "application/geo+json",
+            }
+        )
+
+        first_params = query_params.copy()
+        first_params["page"] = 1
+        first_url = url_for(
+            _request,
+            "stac_search",
+            path=dict(gitlab=_gitlab_config["path"]),
+            query=first_params,
+        )
+        nav_links.append(
+            {
+                "rel": "first",
+                "href": first_url,
+                "type": "application/geo+json",
+            }
+        )
+
+    if features[page * limit :]:
+        next_params = query_params.copy()
+        next_params["page"] = page + 1
+        next_url = url_for(
+            _request,
+            "stac_search",
+            path=dict(gitlab=_gitlab_config["path"]),
+            query=next_params,
+        )
+        nav_links.append(
+            {
+                "rel": "next",
+                "href": next_url,
+                "type": "application/geo+json",
+            }
+        )
+
+        last_params = query_params.copy()
+        last_params["page"] = len(features) // limit + len(features) % limit
+        last_url = url_for(
+            _request,
+            "stac_search",
+            path=dict(gitlab=_gitlab_config["path"]),
+            query=last_params,
+        )
+        nav_links.append(
+            {
+                "rel": "last",
+                "href": last_url,
+                "type": "application/geo+json",
+            }
+        )
+
     return {
         "stac_version": "1.0.0",
         "type": "FeatureCollection",
@@ -81,12 +153,13 @@ def build_stac_search_result(
             query={**_token.query},
         ),
         "context": {
-            "matched": count,
-            "returned": count,
+            "limit": limit,
+            "matched": count_matched,
+            "returned": count_returned,
         },
-        "numberMatched": count,
-        "numberReturned": count,
-        "features": features,
+        "numberMatched": count_matched,
+        "numberReturned": count_returned,
+        "features": page_features,
         "links": [
             {
                 "rel": "root",
@@ -103,6 +176,7 @@ def build_stac_search_result(
                 "type": "application/json",
                 "href": str(_request.url),
             },
+            *nav_links,
         ],
     }
 

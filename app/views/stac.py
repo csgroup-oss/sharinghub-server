@@ -45,13 +45,14 @@ async def stac_search(
     request: Request,
     gitlab_config: GitlabConfigDep,
     token: GitlabTokenDep,
-    q: str = "",
+    page: int = 1,
     limit: int = 10,
     bbox: str = "",
     datetime: str = "",
     intersects: str = "",
     ids: str = "",
     collections: str = "",
+    q: str = "",
 ):
     gitlab_client = GitlabClient(url=gitlab_config["url"], token=token.value)
 
@@ -137,6 +138,8 @@ async def stac_search(
 
     return build_stac_search_result(
         features=features,
+        page=page,
+        limit=limit,
         request=request,
         gitlab_config=gitlab_config,
         token=token,
