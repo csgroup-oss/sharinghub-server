@@ -83,9 +83,11 @@ async def stac_search(
         projects = list(_gitlab_search_result.values())
     else:
         projects = []
-        for t in topics:
-            _topic = {"name": t, **CATALOG_TOPICS[t]}
-            _topic_projects = await gitlab_client.get_projects(get_gitlab_topic(_topic))
+        _topics = [{"name": t, **CATALOG_TOPICS[t]} for t in topics]
+        _result = await asyncio.gather(
+            *(gitlab_client.get_projects(get_gitlab_topic(t)) for t in _topics)
+        )
+        for _topic_projects in _result:
             projects.extend(_topic_projects)
 
     features = []
