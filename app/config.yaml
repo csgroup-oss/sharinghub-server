@@ -20,3 +20,7 @@ catalogs:
     processor:
       title: Processor
       gitlab_name: sharinghub:processor
+
+    challenge:
+      title: Challenge
+      gitlab_name: sharinghub:challenge
