@@ -28,6 +28,7 @@ MEDIA_TYPES = {
     "cog": "image/tiff; application=geotiff; profile=cloud-optimized",
     "geojson": "application/geo+json",
     "compose": "text/x-yaml; application=compose",
+    "notebook": "application/x-ipynb+json",
 }
 
 ML_ASSETS_DEFAULT_GLOBS = {
@@ -795,7 +796,6 @@ def _get_files_assets(
                 if assets_mapping[glob]:
                     media_type = assets_mapping[glob]
                 else:
-                    media_type = None
                     media_type, _ = mimetypes.guess_type(fpath)
                 if media_type or not assets.get(file["path"]):
                     assets[file["path"]] = media_type
