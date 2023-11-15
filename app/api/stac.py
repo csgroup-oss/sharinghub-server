@@ -1,7 +1,7 @@
 import mimetypes
 from pathlib import Path
 from types import EllipsisType
-from typing import NotRequired, TypeAlias, TypedDict, Unpack
+from typing import Any, NotRequired, TypeAlias, TypedDict, Unpack
 from urllib import parse
 
 from fastapi import Request
@@ -16,7 +16,7 @@ from app.api.gitlab import (
 )
 from app.dependencies import GitlabToken
 from app.utils import markdown as md
-from app.utils.http import is_local, slugify, url_add_query_params, url_for
+from app.utils.http import is_local, slugify, url_for
 
 MEDIA_TYPES = {
     "text": "text/plain",
@@ -66,7 +66,11 @@ def get_gitlab_topic(topic: Topic) -> str:
 
 
 def build_stac_search_result(
-    features: list[dict], page: int, limit: int, **context: Unpack[STACContext]
+    features: list[dict],
+    page: int,
+    limit: int,
+    search_query: dict[str, Any],
+    **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
     _gitlab_config = context["gitlab_config"]
@@ -76,7 +80,7 @@ def build_stac_search_result(
     count_matched = len(features)
     count_returned = len(page_features)
 
-    query_params = dict(_request.query_params)
+    query_params = search_query | dict(_request.query_params)
     nav_links = []
     if page > 1:
         prev_params = query_params.copy()
@@ -276,7 +280,19 @@ def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
                     query={**_token.query},
                 ),
                 "method": "GET",
-                "title": "STAC Search",
+                "title": "STAC Search (GET)",
+            },
+            {
+                "rel": "search",
+                "type": "application/geo+json",
+                "href": url_for(
+                    _request,
+                    "stac_search_post",
+                    path=dict(gitlab=_gitlab_config["path"]),
+                    query={**_token.query},
+                ),
+                "method": "POST",
+                "title": "STAC Search (POST)",
             },
             *links,
         ],

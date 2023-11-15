@@ -4,10 +4,20 @@ import logging
 import time
 from collections import namedtuple
 from datetime import datetime as dt
+from typing import Annotated
 
 from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
+from pydantic import (
+    BaseModel,
+    Field,
+    Json,
+    SerializationInfo,
+    computed_field,
+    field_serializer,
+    field_validator,
+)
 
 from app.api.gitlab import GitlabClient, GitlabProject
 from app.api.stac import (
@@ -40,7 +50,62 @@ CachedProject = namedtuple("CachedProject", ["time", "last_activity", "stac"])
 router = APIRouter()
 
 
-@router.api_route("/search", methods=["GET"])
+class STACSearchForm(BaseModel):
+    limit: Annotated[int, Field(strict=True, gt=0)] = 10
+    bbox: list[float] = Field(default_factory=list)
+    datetime: str = ""
+    intersects: Json = Field(default=None)
+    ids: list[str] = Field(default_factory=list)
+    collections: list[str] = Field(default_factory=list)
+    q: list[str] = Field(default_factory=list)
+
+    @field_validator("datetime")
+    @classmethod
+    def validate_datetime(cls, d: str) -> str:
+        if d:
+            d1, *do = d.split("/")
+            dt.fromisoformat(d1)
+            if do:
+                d2 = do[0]
+                dt.fromisoformat(d2)
+        return d
+
+    @computed_field
+    def datetime_range(self) -> tuple[dt, dt] | None:
+        if self.datetime:
+            start_dt_str, *other_dts_str = self.datetime.split("/")
+            start_dt = dt.fromisoformat(start_dt_str)
+            if other_dts_str:
+                end_dt_str = other_dts_str[0]
+                end_dt = dt.fromisoformat(end_dt_str)
+            else:
+                end_dt = start_dt
+            return start_dt, end_dt
+        return None
+
+    @field_serializer("bbox", "ids", "collections", "q", when_used="unless-none")
+    def serialize_lists(self, v: list[str | float], _info: SerializationInfo) -> str:
+        return ",".join(str(e) for e in v)
+
+
+@router.post("/search")
+async def stac_search_post(
+    request: Request,
+    gitlab_config: GitlabConfigDep,
+    token: GitlabTokenDep,
+    search_form: STACSearchForm,
+    page: int = 1,
+):
+    return await _stac_search(
+        request=request,
+        gitlab_config=gitlab_config,
+        token=token,
+        search_form=search_form,
+        page=page,
+    )
+
+
+@router.get("/search")
 async def stac_search(
     request: Request,
     gitlab_config: GitlabConfigDep,
@@ -49,14 +114,43 @@ async def stac_search(
     limit: int = 10,
     bbox: str = "",
     datetime: str = "",
-    intersects: str = "",
+    intersects: str = "null",
     ids: str = "",
     collections: str = "",
     q: str = "",
 ):
-    gitlab_client = GitlabClient(url=gitlab_config["url"], token=token.value)
+    try:
+        search_form = STACSearchForm(
+            limit=limit,
+            bbox=[float(p) for p in bbox.split(",")] if bbox else [],
+            datetime=datetime,
+            intersects=intersects,
+            ids=ids.split(",") if ids else [],
+            collections=collections.split(",") if collections else [],
+            q=q.split(",") if q else [],
+        )
+        return await _stac_search(
+            request=request,
+            gitlab_config=gitlab_config,
+            token=token,
+            search_form=search_form,
+            page=page,
+        )
+    except ValueError as err:
+        raise HTTPException(status_code=422, detail=str(err))
 
-    topics = collections.split()
+
+async def _stac_search(
+    request: Request,
+    gitlab_config: GitlabConfigDep,
+    token: GitlabTokenDep,
+    search_form: STACSearchForm,
+    page: int = 1,
+):
+    gitlab_client = GitlabClient(url=gitlab_config["url"], token=token.value)
+    print(search_form)
+
+    topics = search_form.collections
     if any(t not in CATALOG_TOPICS for t in topics):
         raise HTTPException(
             status_code=422,
@@ -65,9 +159,9 @@ async def stac_search(
     if not topics:
         topics = list(CATALOG_TOPICS)
 
-    if q:
+    if search_form.q:
         _gitlab_search_result: dict[str, GitlabProject] = {}
-        for query in q.split(","):
+        for query in search_form.q:
             gitlab_search = await gitlab_client.search(scope="projects", query=query)
             gitlab_search = [
                 project
@@ -122,14 +216,11 @@ async def stac_search(
 
         features.append(_feature)
 
-    if ids:
-        search_ids = ids.split(",")
-        features = [f for f in features if f["id"] in search_ids]
+    if search_form.ids:
+        features = [f for f in features if f["id"] in search_form.ids]
 
-    if datetime:
-        search_start_dt, *_dt = datetime.split("/")
-        search_start_dt = dt.fromisoformat(search_start_dt)
-        search_end_dt = dt.fromisoformat(_dt[0]) if _dt else search_start_dt
+    if dt_range := search_form.datetime_range:
+        search_start_dt, search_end_dt = dt_range
         _features = []
         for f in features:
             f_start_dt = dt.fromisoformat(f["properties"]["start_datetime"])
@@ -138,10 +229,18 @@ async def stac_search(
                 _features.append(f)
         features = _features
 
+    search_query = search_form.model_dump(
+        mode="json",
+        exclude={"datetime_range"},
+        exclude_defaults=True,
+        exclude_none=True,
+        exclude_unset=True,
+    )
     return build_stac_search_result(
         features=features,
         page=page,
-        limit=limit,
+        limit=search_form.limit,
+        search_query=search_query,
         request=request,
         gitlab_config=gitlab_config,
         token=token,
