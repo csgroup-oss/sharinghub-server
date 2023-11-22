@@ -334,7 +334,7 @@ def build_stac_topic(
                 path=dict(
                     gitlab=_gitlab_config["path"],
                     topic=topic["name"],
-                    project_id=project["id"],
+                    project_path=project["path_with_namespace"],
                 ),
                 query={**_token.query},
             ),
@@ -470,7 +470,7 @@ def build_stac_for_project(
                 path=dict(
                     gitlab=_gitlab_config["path"],
                     topic=topic["name"],
-                    project_id=project["id"],
+                    project_path=project["path_with_namespace"],
                 ),
                 query={**_token.query},
             ),
@@ -863,7 +863,7 @@ def _parse_resource_link(
         path = parse.urlparse(link).path.removeprefix("/")
         link = url_for(
             _request,
-            "stac_project_link",
+            "stac_project",
             path=dict(
                 gitlab=_gitlab_config["path"],
                 topic=key,
