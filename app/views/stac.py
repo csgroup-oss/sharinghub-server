@@ -7,7 +7,6 @@ from datetime import datetime as dt
 from typing import Annotated
 
 from fastapi import HTTPException, Request
-from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 from pydantic import (
     BaseModel,
@@ -36,7 +35,7 @@ from app.config import (
     RELEASE_SOURCE_FORMAT,
 )
 from app.dependencies import GitlabConfigDep, GitlabTokenDep
-from app.utils.http import url_for
+from app.utils.geo import find_parent_of_hashes, hash_polygon
 
 logger = logging.getLogger("app")
 
@@ -148,7 +147,6 @@ async def _stac_search(
     page: int = 1,
 ):
     gitlab_client = GitlabClient(url=gitlab_config["url"], token=token.value)
-    print(search_form)
 
     topics = search_form.collections
     if any(t not in CATALOG_TOPICS for t in topics):
@@ -158,6 +156,28 @@ async def _stac_search(
         )
     if not topics:
         topics = list(CATALOG_TOPICS)
+
+    if search_form.bbox:
+        bbox_geojson = {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [search_form.bbox[0], search_form.bbox[1]],
+                    [search_form.bbox[2], search_form.bbox[1]],
+                    [search_form.bbox[2], search_form.bbox[3]],
+                    [search_form.bbox[0], search_form.bbox[3]],
+                    [search_form.bbox[0], search_form.bbox[1]],
+                ]
+            ],
+        }
+        cells = hash_polygon(bbox_geojson)
+        search_form.q.append(" ".join(cells))
+        try:
+            while True:
+                cells = find_parent_of_hashes(cells)
+                search_form.q.append(" ".join(cells))
+        except:
+            pass
 
     if search_form.q:
         _gitlab_search_result: dict[str, GitlabProject] = {}
