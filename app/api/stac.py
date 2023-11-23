@@ -418,7 +418,7 @@ def build_stac_for_project(
     # STAC data
 
     stac_id = f"{_gitlab_config['name']}-{slugify(topic['name'])}-{project['id']}"
-    title = project["name_with_namespace"]
+    title = project["name"]
     description = md.remove_images(md.increase_headings(readme_doc, 2))
     keywords = _get_keywords(topic, project, readme_metadata)
     preview, preview_media_type = _get_preview(readme_metadata, readme_doc)
