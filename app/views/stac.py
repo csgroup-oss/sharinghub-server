@@ -157,6 +157,7 @@ async def _stac_search(
     if not topics:
         topics = list(CATALOG_TOPICS)
 
+    search_extent: dict[str, GitlabProject] = {}
     if search_form.bbox:
         bbox_geojson = {
             "type": "Polygon",
@@ -171,16 +172,28 @@ async def _stac_search(
             ],
         }
         cells = hash_polygon(bbox_geojson)
-        search_form.q.append(" ".join(cells))
+        search_extent_queries = [" ".join(cells)]
         try:
             while True:
                 cells = find_parent_of_hashes(cells)
-                search_form.q.append(" ".join(cells))
+                search_extent_queries.append(" ".join(cells))
         except:
             pass
+        for query in search_extent_queries:
+            gitlab_search = await gitlab_client.search(scope="projects", query=query)
+            gitlab_search = [
+                project
+                for project in gitlab_search
+                if any(
+                    CATALOG_TOPICS[t]["gitlab_name"] in project["topics"]
+                    for t in topics
+                )
+            ]
+            for p in gitlab_search:
+                search_extent[p["id"]] = p
 
+    search_query: dict[str, GitlabProject] = {}
     if search_form.q:
-        _gitlab_search_result: dict[str, GitlabProject] = {}
         for query in search_form.q:
             gitlab_search = await gitlab_client.search(scope="projects", query=query)
             gitlab_search = [
@@ -192,17 +205,17 @@ async def _stac_search(
                 )
             ]
             for p in gitlab_search:
-                if p["id"] not in _gitlab_search_result:
-                    _gitlab_search_result[p["id"]] = p
-        projects = list(_gitlab_search_result.values())
+                search_query[p["id"]] = p
+
+    if search_form.bbox and search_form.q:
+        _intersect_ids = search_extent.keys() & search_query.keys()
+        projects = [
+            p
+            for p in (search_extent | search_query).values()
+            if p["id"] in _intersect_ids
+        ]
     else:
-        projects = []
-        _topics = [{"name": t, **CATALOG_TOPICS[t]} for t in topics]
-        _result = await asyncio.gather(
-            *(gitlab_client.get_projects(get_gitlab_topic(t)) for t in _topics)
-        )
-        for _topic_projects in _result:
-            projects.extend(_topic_projects)
+        projects = list((search_extent | search_query).values())
 
     features = []
     for project in projects:
