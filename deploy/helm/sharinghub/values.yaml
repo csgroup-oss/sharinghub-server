@@ -57,6 +57,7 @@ ingress:
   #      - chart-example.local
 
 server:
+  gitlabUrl: https://gitlab.si.c-s.fr
   allowedOrigins:
     - "http://localhost:8000"
     - "https://sharinghub.web.p2.csgroup.space"

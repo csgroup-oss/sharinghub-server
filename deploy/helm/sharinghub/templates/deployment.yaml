@@ -40,16 +40,18 @@ spec:
           env:
             - name: ALLOWED_ORIGINS
               value: {{ join " " .Values.server.allowedOrigins }}
-            - name: OAUTH_CLIENTS_IDS
+            - name: GITLAB_URL
+              value: {{ join " " .Values.server.gitlabUrl }}
+            - name: GITLAB_OAUTH_CLIENT_ID
               valueFrom:
                 secretKeyRef:
                   name: {{ template "sharinghub.fullname" . }}-oidc
-                  key: clients-ids
-            - name: OAUTH_CLIENTS_SECRETS
+                  key: client-id
+            - name: GITLAB_OAUTH_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ template "sharinghub.fullname" . }}-oidc
-                  key: clients-secrets
+                  key: client-secret
           livenessProbe:
             httpGet:
               path: /
