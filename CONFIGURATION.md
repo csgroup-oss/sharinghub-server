@@ -19,17 +19,18 @@ Content:
   - [Server: allowed origins](#server-allowed-origins)
   - [Server: session secret key](#server-session-secret-key)
   - [Server: session max age](#server-session-max-age)
-  - [Server: request timeout](#server-request-timeout)
   - [Server: web ui path](#server-web-ui-path)
+  - [Server: HTTP client timeout](#server-http-client-timeout)
   - [Server: enable cache](#server-enable-cache)
-  - [Remotes](#remotes)
-  - [OAuth: clients ids](#oauth-clients-ids)
-  - [OAuth: clients secrets](#oauth-clients-secrets)
-  - [Catalog: cache timeout](#catalog-cache-timeout)
-  - [Catalog: topics](#catalog-topics)
-  - [Project: cache timeout](#project-cache-timeout)
-  - [Project: assets rules](#project-assets-rules)
-  - [Project: assets release source format](#project-assets-release-source-format)
+  - [Gitlab: URL](#gitlab-url)
+  - [Gitlab: OAuth client id](#gitlab-oauth-client-id)
+  - [Gitlab: OAuth client secret](#gitlab-oauth-client-secret)
+  - [STAC: root conf](#stac-root-conf)
+  - [STAC: catalogs cache timeout](#stac-catalogs-cache-timeout)
+  - [STAC: catalogs topics](#stac-catalogs-topics)
+  - [STAC: projects cache timeout](#stac-projects-cache-timeout)
+  - [STAC: projects assets rules](#stac-projects-assets-rules)
+  - [STAC: projects assets release source format](#stac-projects-assets-release-source-format)
 
 ## Variables
 
@@ -138,22 +139,6 @@ Content:
         max-age: 7200.0
     ```
 
-### Server: request timeout
-
-- Type: floating number
-- Default: `300.0`
-- Environment variable:
-  - Name: `REQUEST_TIMEOUT`
-  - Example value: `600.0`
-- YAML:
-  - Path: `server.request.timeout`
-  - Example value:
-    ```yaml
-    server:
-      request:
-        timeout: 600.0
-    ```
-
 ### Server: web ui path
 
 - Type: path
@@ -167,6 +152,22 @@ Content:
     ```yaml
     server:
       web-ui-path: web-ui/dist
+    ```
+
+### Server: HTTP client timeout
+
+- Type: floating number
+- Default: `300.0`
+- Environment variable:
+  - Name: `HTTP_CLIENT_TIMEOUT`
+  - Example value: `600.0`
+- YAML:
+  - Path: `server.http_client.timeout`
+  - Example value:
+    ```yaml
+    server:
+      http_client:
+        timeout: 600.0
     ```
 
 ### Server: enable cache
@@ -184,132 +185,150 @@ Content:
       cache: true
     ```
 
-### Remotes
+### Gitlab: URL
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `GITLAB_URL`
+  - Example value: `https://gitlab.example.com`
+- YAML:
+  - Path: `gitlab.url`
+  - Example value:
+  ```yaml
+  gitlab:
+    url: https://gitlab.example.com
+  ```
+
+### Gitlab: OAuth client id
+
+- Type: string
+- Default: read from env var
+- Environment variable:
+  - Name: `GITLAB_OAUTH_CLIENT_ID`
+  - Example value: `<client-id>`
+- YAML:
+  - Path: `gitlab.oauth.client-id`
+  - Example value:
+  ```yaml
+  gitlab:
+    oauth:
+      client-id: <client-id>
+  ```
+
+### Gitlab: OAuth client secret
+
+- Type: string
+- Default: read from env var
+- Environment variable:
+  - Name: `GITLAB_OAUTH_CLIENT_SECRET`
+  - Example value: `<client-secret>`
+- YAML:
+  - Path: `gitlab.oauth.client-secret`
+  - Example value:
+  ```yaml
+  gitlab:
+    oauth:
+      client-secret: <client-secret>
+  ```
+
+### STAC: root conf
 
 - Type: mapping
 - Default: read from [config file](./app/config.yaml)
 - YAML:
-  - Path: `remotes`
+  - Path: `stac.root`
   - Example value:
-  ```yaml
-  remotes:
-    gitlab-example:
-      url: https://gitlab.example.com
-      title: GitLab
-      description: Original GitLab site.
-      oauth:
-        server_metadata_url: https://gitlab.example.com/.well-known/openid-configuration
-  ```
+    ```yaml
+    stac:
+      root:
+        id: my-gitlab-catalog
+        title: My GitLab Catalog
+        description: My description
+        logo: URL
+    ```
 
-### OAuth: clients ids
-
-- Type: mapping of strings
-- Help: keys must be remote key in [Remotes](#remotes) config.
-- Environment variable:
-  - Name: `OAUTH_CLIENTS_IDS`
-  - Example value: `gitlab-cs:<client-id-1>;gitlab-cloud-cs:<client-id-2>`
-- YAML:
-  - Path: `remotes.<remote>.oauth.client_id`
-  - Example value:
-  ```yaml
-  remotes:
-    gitlab-example:
-      oauth:
-        client_id: <client-id>
-  ```
-
-### OAuth: clients secrets
-
-- Type: mapping of strings
-- Environment variable:
-  - Name: `OAUTH_CLIENTS_SECRETS`
-  - Example value: `gitlab-example:<client-secret-1>;gitlab-example-2:<client-secret-2>`
-- YAML:
-  - Path: `remotes.<remote>.oauth.client_secret`
-  - Example value:
-  ```yaml
-  remotes:
-    gitlab-example:
-      oauth:
-        client_secret: <client-secret>
-  ```
-
-### Catalog: cache timeout
+### STAC: catalogs cache timeout
 
 - Type: floating number
 - Default: `600.0`
 - Environment variable:
-  - Name: `CATALOG_CACHE_TIMEOUT`
+  - Name: `STAC_CATALOGS_CACHE_TIMEOUT`
   - Example value: `30.0`
 - YAML:
-  - Path: `catalogs.cache-timeout`
+  - Path: `stac.catalogs.cache-timeout`
   - Example value:
     ```yaml
-    catalogs:
+    stac:
+      catalogs:
         cache-timeout: 30.0
     ```
 
-### Catalog: topics
+### STAC: catalogs topics
 
 - Type: mapping
 - Default: read from [config file](./app/config.yaml)
 - YAML:
-  - Path: `catalogs.topics`
+  - Path: `stac.catalogs.topics`
   - Example value:
     ```yaml
-    catalogs:
-      topics:
-        my-topic:
-          title: My Topic
-          description: Custom topic
-          default_type: item
+    stac:
+      catalogs:
+        topics:
+          my-topic:
+            title: My Topic
+            description: Custom topic
+            default_type: item
     ```
 
-### Project: cache timeout
+### STAC: projects cache timeout
 
 - Type: floating number
 - Default: `300.0`
 - Environment variable:
-  - Name: `PROJECT_CACHE_TIMEOUT`
+  - Name: `STAC_PROJECTS_CACHE_TIMEOUT`
   - Example value: `15.0`
 - YAML:
-  - Path: `projects.cache-timeout`
+  - Path: `stac.projects.cache-timeout`
   - Example value:
     ```yaml
-    projects:
+    stac:
+      projects:
         cache-timeout: 15.0
     ```
 
-### Project: assets rules
+### STAC: projects assets rules
 
 - Type: list of string
 - Default: `["*.tif", "*.tiff", "*.geojson"]`
 - Environment variable:
-  - Name: `ASSETS_RULES`
+  - Name: `STAC_PROJECTS_ASSETS_RULES`
   - Example value: `*.tif *.tiff`
 - YAML:
-  - Path: `projects.assets.rules`
+  - Path: `stac.projects.assets.rules`
   - Example value:
     ```yaml
-    projects:
-      assets:
-        rules:
-          - "*.tif"
-          - "*.tiff"
+    stac:
+      projects:
+        assets:
+          rules:
+            - "*.tif"
+            - "*.tiff"
     ```
 
-### Project: assets release source format
+### STAC: projects assets release source format
 
 - Type: string
 - Default: `"zip"`
 - Environment variable:
-  - Name: `RELEASE_SOURCE_FORMAT`
+  - Name: `STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT`
   - Example value: `tar.gz`
 - YAML:
-  - Path: `projects.assets.release-source-format`
+  - Path: `stac.projects.assets.release-source-format`
   - Example value:
     ```yaml
-    projects:
-      assets:
-        release-source-format: tar.gz
+    stac:
+      projects:
+        assets:
+          release-source-format: tar.gz
     ```
