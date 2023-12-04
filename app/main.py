@@ -13,6 +13,7 @@ from app.config import (
     ALLOWED_ORIGINS,
     API_PREFIX,
     DEBUG,
+    HTTP_CLIENT_TIMEOUT,
     LOGGING,
     SESSION_MAX_AGE,
     SESSION_SECRET_KEY,
@@ -29,7 +30,7 @@ logger = logging.getLogger("app")
 async def lifespan(app: FastAPI):
     aiohttp_client = AiohttpClient()
     logger.debug("Connect http client")
-    aiohttp_client.connect()
+    aiohttp_client.connect(timeout=HTTP_CLIENT_TIMEOUT)
     yield
     await aiohttp_client.close()
     logger.debug("Close http client connection")

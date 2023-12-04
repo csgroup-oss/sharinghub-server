@@ -29,7 +29,6 @@ async def auth_info(session_auth: SessionAuthDep):
 @router.get("/login", dependencies=[PreCleanSessionDep])
 async def auth_login(
     request: Request,
-    gitlab: str,
     oauth: OAuthDep,
     session_auth: SessionAuthDep,
     redirect_uri: str = "",
@@ -43,10 +42,12 @@ async def auth_login(
     if session_auth:  # Already logged in, redirect
         return RedirectResponse(redirect_uri)
 
-    if not index:
+    if index:
+        request.session.pop(REDIRECT_URI_KEY, None)
+    else:
         request.session[REDIRECT_URI_KEY] = redirect_uri
 
-    callback_uri = url_for(request, "auth_login_callback", path=dict(gitlab=gitlab))
+    callback_uri = url_for(request, "auth_login_callback")
     return await oauth.authorize_redirect(request, redirect_uri=callback_uri)
 
 

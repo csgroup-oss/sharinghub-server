@@ -75,68 +75,60 @@ SESSION_MAX_AGE: float = conf(
 )
 SESSION_AUTH_KEY = "auth"
 
-REQUEST_TIMEOUT: float = conf(
-    "server.request.timeout", "REQUEST_TIMEOUT", default=300.0, cast=float
-)
-
-#### Web UI ####
-
 DEFAULT_WEB_UI_PATH = Path(os.getcwd(), "web-ui", "dist")
 WEB_UI_PATH: Path = conf(
     "server.web-ui-path", "WEB_UI_PATH", default=DEFAULT_WEB_UI_PATH, cast=cpath()
 )
 
-####  STAC  ####
+HTTP_CLIENT_TIMEOUT: float = conf(
+    "server.http_client.timeout", "HTTP_CLIENT_TIMEOUT", default=300.0, cast=float
+)
 
 ENABLE_CACHE: bool = conf(
     "server.cache", "ENABLE_CACHE", default=not DEBUG, cast=cbool()
 )
 
-# Remotes
-REMOTES: dict = conf("remotes", "REMOTES", default={}, cast=cjson())
-_OAUTH_CLIENTS_IDS: dict = conf(
-    env_var="OAUTH_CLIENTS_IDS", default={}, cast=cdict(sep=";")
+#### GitLab ####
+
+GITLAB_URL: str = conf("gitlab.url", "GITLAB_URL", cast=str)
+_CLIENT_ID: str = conf("gitlab.oauth.client-id", "GITLAB_OAUTH_CLIENT_ID", cast=str)
+_CLIENT_SECRET: str = conf(
+    "gitlab.oauth.client-secret", "GITLAB_OAUTH_CLIENT_SECRET", cast=str
 )
-_OAUTH_CLIENTS_SECRETS: dict = conf(
-    env_var="OAUTH_CLIENTS_SECRETS", default={}, cast=cdict(sep=";")
-)
-for remote in REMOTES:
-    if "oauth" not in REMOTES[remote]:
-        REMOTES[remote]["oauth"] = {}
-    if remote in _OAUTH_CLIENTS_IDS:
-        REMOTES[remote]["oauth"]["client_id"] = _OAUTH_CLIENTS_IDS[remote]
-    if remote in _OAUTH_CLIENTS_SECRETS:
-        REMOTES[remote]["oauth"]["client_secret"] = _OAUTH_CLIENTS_SECRETS[remote]
+GITLAB_OAUTH = {"client_id": _CLIENT_ID, "client_secret": _CLIENT_SECRET}
+
+####  STAC  ####
+
+# Root
+STAC_ROOT_CONF: dict = conf("stac.root", default={}, cast=dict)
 
 # Catalogs
-CATALOG_CACHE_TIMEOUT: float = conf(
-    "catalogs.cache-timeout",
-    "CATALOG_CACHE_TIMEOUT",
+STAC_CATALOGS_CACHE_TIMEOUT: float = conf(
+    "stac.catalogs.cache-timeout",
+    "STAC_CATALOGS_CACHE_TIMEOUT",
     default=60.0 * 10,
     cast=float,
 )
-CATALOG_TOPICS: dict = conf("catalogs.topics", default={}, cast=dict)
+STAC_CATALOGS_TOPICS: dict = conf("stac.catalogs.topics", default={}, cast=dict)
 
 # Projects
-PROJECT_CACHE_TIMEOUT: float = conf(
-    "projects.cache-timeout",
-    "PROJECT_CACHE_TIMEOUT",
+STAC_PROJECTS_CACHE_TIMEOUT: float = conf(
+    "stac.projects.cache-timeout",
+    "STAC_PROJECTS_CACHE_TIMEOUT",
     default=60.0 * 5,
     cast=float,
 )
-
-# Project Assets
-DEFAULT_ASSETS_RULES = ["*.tif", "*.tiff", "*.geojson"]
-ASSETS_RULES = conf(
-    "projects.assets.rules",
-    "ASSETS_RULES",
-    default=DEFAULT_ASSETS_RULES,
+_DEFAULT_ASSETS_RULES = ["*.tif", "*.tiff", "*.geojson"]
+STAC_PROJECTS_ASSETS_RULES = conf(
+    "stac.projects.assets.rules",
+    "STAC_PROJECTS_ASSETS_RULES",
+    default=_DEFAULT_ASSETS_RULES,
     cast=clist(sep=" "),
 )
-RELEASE_SOURCE_FORMAT: str = (
+STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT: str = (
     conf(
-        "projects.assets.release-source-format",
-        "RELEASE_SOURCE_FORMAT",
+        "stac.projects.assets.release-source-format",
+        "STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT",
         default="zip",
         cast=str,
     )

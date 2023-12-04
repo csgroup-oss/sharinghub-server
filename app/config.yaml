@@ -1,26 +1,23 @@
-remotes:
-  gitlab-cs:
-    url: https://gitlab.si.c-s.fr
+gitlab:
+  url: https://gitlab.si.c-s.fr
+
+stac:
+  root:
+    id: gitlab-cs
     title: GitLab CS STAC Catalog
     description: Custom description for this [GitLab](https://gitlab.si.c-s.fr) instance STAC catalog.
-    oauth:
-      server_metadata_url: https://gitlab.si.c-s.fr/.well-known/openid-configuration
-
-catalogs:
-  topics:
-    ai-model:
-      title: AI Model
-      description: Custom AI models hosted on [GitLab](https://gitlab.si.c-s.fr)
-      gitlab_name: sharinghub:aimodel
-
-    dataset:
-      title: Dataset
-      gitlab_name: sharinghub:dataset
-
-    processor:
-      title: Processor
-      gitlab_name: sharinghub:processor
-
-    challenge:
-      title: Challenge
-      gitlab_name: sharinghub:challenge
+  catalogs:
+    topics:
+      ai-model:
+        title: AI Model
+        description: Custom AI models hosted on [GitLab](https://gitlab.si.c-s.fr)
+        gitlab_name: sharinghub:aimodel
+      dataset:
+        title: Dataset
+        gitlab_name: sharinghub:dataset
+      processor:
+        title: Processor
+        gitlab_name: sharinghub:processor
+      challenge:
+        title: Challenge
+        gitlab_name: sharinghub:challenge
