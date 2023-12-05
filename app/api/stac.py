@@ -397,6 +397,7 @@ def build_stac_for_project(
 
     stac_id = f"{STAC_ROOT_CONF['id']}-{slugify(topic['name'])}-{project['id']}"
     title = project["name"]
+    long_title = project["name_with_namespace"]
     description = md.remove_images(md.increase_headings(readme_doc, 2))
     keywords = _get_keywords(topic, project, readme_metadata)
     preview, preview_media_type = _get_preview(readme_metadata, readme_doc)
@@ -650,6 +651,7 @@ def build_stac_for_project(
                 "bbox": spatial_extent,
                 "properties": {
                     "title": title,
+                    "long_title": long_title,
                     "description": description,
                     "datetime": None,
                     "start_datetime": temporal_extent[0],
