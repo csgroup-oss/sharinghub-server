@@ -9,15 +9,27 @@ stac:
   catalogs:
     topics:
       ai-model:
-        title: AI Model
+        title: AI Models
         description: Custom AI models hosted on [GitLab](https://gitlab.si.c-s.fr)
         gitlab_name: sharinghub:aimodel
+        locales:
+          fr:
+            title: Modèles IA
       dataset:
-        title: Dataset
+        title: Datasets
         gitlab_name: sharinghub:dataset
+        locales:
+          fr:
+            title: Jeux de données
       processor:
-        title: Processor
+        title: Tools and libraries
         gitlab_name: sharinghub:processor
+        locales:
+          fr:
+            title: Outils et librairies
       challenge:
-        title: Challenge
+        title: Challenges
         gitlab_name: sharinghub:challenge
+        locales:
+          fr:
+            title: Défis
