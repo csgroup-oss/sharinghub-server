@@ -55,7 +55,7 @@ pip install --no-cache-dir -r requirements.txt
 # Build Web UI static files
 cd web-ui
 npm install
-npm run build:minimal -- --catalogTitle="SharingHUB" --gitlabUrl="https://gitlab.si.c-s.fr" --historyMode="hash" --pathPrefix="/ui"
+npm run build:minimal -- --catalogTitle="SharingHUB" --historyMode="hash" --pathPrefix="/ui"
 ```
 
 We use `python-dotenv`, if a `.env` file is present it will be loaded.
@@ -115,8 +115,8 @@ docker login <your-registry>
 # Example: docker login 643vlk6z.gra7.container-registry.ovh.net
 
 # Tag the image for your registry
-docker build --build-arg gitlabUrl="<target-gitlab>" -t <registry-tag> .
-# Example: docker build --build-arg gitlabUrl="https://gitlab.si.c-s.fr" -t 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub:latest .
+docker build -t <registry-tag> .
+# Example: docker build -t 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub:latest .
 
 # Push
 docker push <registry-tag>
