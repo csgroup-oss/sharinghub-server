@@ -1,6 +1,9 @@
 gitlab:
   url: https://gitlab.si.c-s.fr
 
+jupyterlab:
+  url: https://nb.p2.csgroup.space
+
 stac:
   root:
     id: gitlab-cs

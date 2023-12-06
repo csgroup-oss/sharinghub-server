@@ -1,6 +1,6 @@
 from fastapi.routing import APIRouter
 
-from app.config import STAC_CATALOGS_TOPICS
+from app.config import STAC_CATALOGS_TOPICS, JUPYTERLAB_URL
 
 router = APIRouter()
 
@@ -9,6 +9,9 @@ router = APIRouter()
 async def configuration():
     text_keys = ["title", "description"]
     return {
+        "jupyterlab": {
+            "url": JUPYTERLAB_URL,
+        },
         "topics": {
             topic_name: {
                 "locales": {

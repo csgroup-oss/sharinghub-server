@@ -25,6 +25,7 @@ Content:
   - [Gitlab: URL](#gitlab-url)
   - [Gitlab: OAuth client id](#gitlab-oauth-client-id)
   - [Gitlab: OAuth client secret](#gitlab-oauth-client-secret)
+  - [JupyterLab: URL](#jupyterlab-url)
   - [STAC: root conf](#stac-root-conf)
   - [STAC: catalogs cache timeout](#stac-catalogs-cache-timeout)
   - [STAC: catalogs topics](#stac-catalogs-topics)
@@ -230,6 +231,21 @@ Content:
   gitlab:
     oauth:
       client-secret: <client-secret>
+  ```
+
+### JupyterLab: URL
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `JUPYTERLAB_URL`
+  - Example value: `https://nb.example.com`
+- YAML:
+  - Path: `jupyterlab.url`
+  - Example value:
+  ```yaml
+  gitlab:
+    url: https://nb.example.com
   ```
 
 ### STAC: root conf

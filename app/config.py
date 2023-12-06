@@ -100,6 +100,10 @@ _CLIENT_SECRET: str | None = conf(
 GITLAB_OAUTH = {"client_id": _CLIENT_ID, "client_secret": _CLIENT_SECRET}
 GITLAB_OAUTH = {k: v for k, v in GITLAB_OAUTH.items() if v}
 
+## JupyterLab ##
+
+JUPYTERLAB_URL: str | None = conf("jupyterlab.url", "JUPYTERLAB_URL", cast=str)
+
 ####  STAC  ####
 
 # Root
