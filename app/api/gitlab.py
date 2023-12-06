@@ -188,8 +188,13 @@ class GitlabClient:
         return await self._request("/search", scope=scope, search=query)
 
     async def _send_request(self, url: str, **params: Any) -> aiohttp.ClientResponse:
+        remove_headers = ["host", "cookie"]
         request_headers = dict(self.request.headers) if self.request else {}
-        request_headers.pop("host", None)
+        request_headers = {
+            k: v
+            for k, v in request_headers.items()
+            if k not in remove_headers and not k.startswith("x-")
+        }
         request_method = self.request.method if self.request else "GET"
         request_params = dict(self.request.query_params) if self.request else {}
         request_params.pop("gitlab_token", None)
