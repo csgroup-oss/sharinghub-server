@@ -42,6 +42,8 @@ spec:
               value: {{ join " " .Values.server.allowedOrigins }}
             - name: GITLAB_URL
               value: {{ join " " .Values.server.gitlabUrl }}
+            - name: JUPYTERLAB_URL
+              value: {{ join " " .Values.server.jupyterlabUrl }}
             - name: GITLAB_OAUTH_CLIENT_ID
               valueFrom:
                 secretKeyRef:

@@ -58,6 +58,7 @@ ingress:
 
 server:
   gitlabUrl: https://gitlab.si.c-s.fr
+  jupyterlabUrl: https://nb.p2.csgroup.space
   allowedOrigins:
     - "http://localhost:8000"
     - "https://sharinghub.web.p2.csgroup.space"
