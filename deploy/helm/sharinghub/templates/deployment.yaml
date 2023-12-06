@@ -47,11 +47,13 @@ spec:
                 secretKeyRef:
                   name: {{ template "sharinghub.fullname" . }}-oidc
                   key: client-id
+                  optional: true
             - name: GITLAB_OAUTH_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ template "sharinghub.fullname" . }}-oidc
                   key: client-secret
+                  optional: true
           livenessProbe:
             httpGet:
               path: /
