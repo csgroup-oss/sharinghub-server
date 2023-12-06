@@ -133,7 +133,7 @@ kubectl create namespace sharinghub
 kubectl create secret docker-registry regcred --docker-username='robot$space_applications+p2.gitlab2stac' --docker-password='CphryzOE7A4XFnC1943APz0m1N8z9U6n' --docker-server='643vlk6z.gra7.container-registry.ovh.net' --namespace sharinghub
 ```
 
-Deploy SharingHUB
+Deploy CS SharingHUB
 
 ```bash
 # Install
@@ -145,6 +145,20 @@ helm install -n sharinghub sharinghub ./sharinghub -f values.yaml --create-names
 
 # Update
 helm upgrade -n sharinghub sharinghub ./sharinghub -f values.yaml
+```
+
+Deploy CNES SharingHub
+
+```bash
+# Install
+cd deploy/helm
+
+kubectl create secret generic sharinghub-oidc --from-literal client-id="b2e947651752fb3dc66480f647010f643700ef52a8888dcf6906b74be9c83a22" --from-literal client-secret="c138e76646cb648bd7881d003590d5bb0296ccdebfecbf57622b5f9156ab898b" --namespace sharinghub
+
+helm install -n sharinghub sharinghub-cnes ./sharinghub -f values.cnes.yaml --create-namespace
+
+# Update
+helm upgrade -n sharinghub sharinghub-cnes ./sharinghub -f values.cnes.yaml
 ```
 
 ## Configuration

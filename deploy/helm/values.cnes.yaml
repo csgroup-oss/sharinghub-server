@@ -1,0 +1,27 @@
+image:
+  repository: 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+imagePullSecrets:
+  -  name: regcred
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: sharinghub-cnes.p2.csgroup.space
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: sharinghub-cnes-tls
+      hosts:
+        - sharinghub-cnes.p2.csgroup.space
+
+server:
+  gitlabUrl: https://gitlab.cnes.fr
