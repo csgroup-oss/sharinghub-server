@@ -26,3 +26,5 @@ ingress:
 server:
   gitlabUrl: https://gitlab.cnes.fr
   jupyterlabUrl: https://jupyterhub.cnes.fr
+  stacCatalogsCacheTimeout: 20
+  stacProjectsCacheTimeout: 30
