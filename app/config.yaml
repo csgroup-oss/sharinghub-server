@@ -18,21 +18,33 @@ stac:
         locales:
           fr:
             title: Modèles IA
+        features:
+          deployment: enable
+          map-viewer: enable
       dataset:
         title: Datasets
         gitlab_name: sharinghub:dataset
         locales:
           fr:
             title: Jeux de données
+        features:
+          deployment: enable
+          map-viewer: enable
       processor:
         title: Tools and libraries
         gitlab_name: sharinghub:processor
         locales:
           fr:
             title: Outils et librairies
+        features:
+          deployment: disable
+          map-viewer: disable
       challenge:
         title: Challenges
         gitlab_name: sharinghub:challenge
         locales:
           fr:
             title: Défis
+        features:
+          deployment: disable
+          map-viewer: disable

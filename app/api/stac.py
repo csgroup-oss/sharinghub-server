@@ -52,6 +52,7 @@ class TopicFields(TypedDict):
     preview: NotRequired[str]
     gitlab_name: NotRequired[str]
     default_type: NotRequired[str]
+    features: TypedDict
 
 
 class Topic(TopicFields):
@@ -398,7 +399,7 @@ def build_stac_for_project(
     stac_id = f"{STAC_ROOT_CONF['id']}-{slugify(topic['name'])}-{project['id']}"
     title = project["name"]
     long_title = project["name_with_namespace"]
-    description = md.remove_images(md.increase_headings(readme_doc, 2))
+    description = md.remove_images(md.increase_headings(readme_doc, 3))
     keywords = _get_keywords(topic, project, readme_metadata)
     preview, preview_media_type = _get_preview(readme_metadata, readme_doc)
     license, license_url = _get_license(project, readme_metadata)
@@ -417,6 +418,8 @@ def build_stac_for_project(
     ml_properties, ml_assets, ml_links = _get_machine_learning(
         readme_metadata, resources_links
     )
+    ## sharing hub extensions
+    sharinghub_properties = _get_sharinghub_properties(topic, readme_metadata)
 
     # STAC generation
 
@@ -627,6 +630,10 @@ def build_stac_for_project(
                     _link["type"] = media_type
                 links.append(_link)
 
+    if sharinghub_properties:
+        for prop, val in sharinghub_properties.items():
+            fields[f"sharinghub:{prop}"] = val
+
     match stac_type:
         case "item":
             if license:
@@ -810,6 +817,10 @@ def _retrieve_resources_links(
         elif isinstance(val, str):
             links.append(_parse_resource_link(val, key, labels, **context))
     return links
+
+
+def _get_sharinghub_properties(topic: Topic, metadata: dict) -> dict:
+    return topic.get("features", {}) | metadata.get("sharinghub", {})
 
 
 def _parse_resource_link(
