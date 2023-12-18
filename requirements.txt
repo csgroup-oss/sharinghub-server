@@ -7,3 +7,4 @@ markdown-full-yaml-metadata
 python-dotenv
 pyyaml
 uvicorn
+boto3
