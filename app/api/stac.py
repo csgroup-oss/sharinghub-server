@@ -1,4 +1,6 @@
 import mimetypes
+import os
+import re
 from pathlib import Path
 from types import EllipsisType
 from typing import Any, NotRequired, TypeAlias, TypedDict, Unpack
@@ -399,7 +401,9 @@ def build_stac_for_project(
     stac_id = f"{STAC_ROOT_CONF['id']}-{slugify(topic['name'])}-{project['id']}"
     title = project["name"]
     long_title = project["name_with_namespace"]
-    description = md.remove_images(md.increase_headings(readme_doc, 3))
+    description = _resolve_images(
+        md.increase_headings(readme_doc, 3), project, **context
+    )
     keywords = _get_keywords(topic, project, readme_metadata)
     preview, preview_media_type = _get_preview(readme_metadata, readme_doc)
     license, license_url = _get_license(project, readme_metadata)
@@ -709,6 +713,32 @@ def _get_assets_mapping(
         else:
             assets_mapping[asset_rule] = None
     return assets_mapping
+
+
+def _resolve_images(
+    md_content: str, project: GitlabProject, **context: Unpack[STACContext]
+) -> str:
+    _request = context["request"]
+    _token = context["token"]
+
+    def __resolve(match: re.Match):
+        image = match.groupdict()
+        url = image["src"]
+        if is_local(url) and not os.path.isabs(url):
+            path = os.path.relpath(url)
+            url = url_for(
+                _request,
+                "download_gitlab_file",
+                path=dict(
+                    project_id=project["id"],
+                    ref=project["default_branch"],
+                    file_path=path,
+                ),
+                query={**_token.query},
+            )
+        return f"![{image['alt']}]({url})"
+
+    return re.sub(md.IMAGE_PATTERN, __resolve, md_content)
 
 
 def _get_keywords(topic: Topic, project: GitlabProject, metadata: dict) -> list[str]:
