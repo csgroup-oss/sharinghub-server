@@ -55,6 +55,7 @@ LOGGING = {
 API_PREFIX: str = conf("server.prefix", "API_PREFIX", default="", cast=str)
 DEFAULT_ALLOWED_ORIGINS = [
     "http://localhost:8000",
+    "http://localhost:8080",
     "https://radiantearth.github.io",
 ]
 ALLOWED_ORIGINS: list[str] = conf(
@@ -99,6 +100,9 @@ _CLIENT_SECRET: str | None = conf(
 )
 GITLAB_OAUTH = {"client_id": _CLIENT_ID, "client_secret": _CLIENT_SECRET}
 GITLAB_OAUTH = {k: v for k, v in GITLAB_OAUTH.items() if v}
+GITLAB_OAUTH_DEFAULT_TOKEN: str | None = conf(
+    "gitlab.oauth.default-token", "GITLAB_OAUTH_DEFAULT_TOKEN", cast=str
+)
 
 ## JupyterLab ##
 
