@@ -1,6 +1,6 @@
 from fastapi.routing import APIRouter
 
-from app.config import JUPYTERLAB_URL, STAC_CATALOGS_TOPICS
+from app.config import JUPYTERLAB_URL, STAC_CATALOGS_TOPICS, STAC_ROOT_CONF
 
 router = APIRouter()
 
@@ -21,7 +21,26 @@ async def configuration():
                         for locale, translation in topic.get("locales", {}).items()
                     },
                 },
+                "logo": topic.get("logo", {}),
             }
             for topic_name, topic in STAC_CATALOGS_TOPICS.items()
+        },
+        "root": {
+            **{
+                k: v
+                for k, v in STAC_ROOT_CONF.items()
+                if k not in ["locales", "description"]
+            },
+            "locales": {
+                "en": {
+                    k: v
+                    for k, v in STAC_ROOT_CONF.items()
+                    if k not in ["locales", "title", "id"]
+                },
+                **{
+                    locale: {k: v for k, v in translation.items()}
+                    for locale, translation in STAC_ROOT_CONF.get("locales", {}).items()
+                },
+            },
         },
     }

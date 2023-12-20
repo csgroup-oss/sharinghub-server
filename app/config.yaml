@@ -8,43 +8,57 @@ stac:
   root:
     id: gitlab-cs
     title: GitLab CS STAC Catalog
-    description: Custom description for this [GitLab](https://gitlab.si.c-s.fr) instance STAC catalog.
+    description: Your platform for collaborating on ML and NLP projects store in [GitLab](https://gitlab.si.c-s.fr) instance STAC catalog.
+    locales:
+      fr:
+        description: Votre plateforme de collaboration sur les projets ML et NLP stockés dans le catalogue STAC de l'instance [GitLab](https://gitlab.si.c-s.fr).
   catalogs:
     topics:
       ai-model:
         title: AI Models
         description: Custom AI models hosted on [GitLab](https://gitlab.si.c-s.fr)
         gitlab_name: sharinghub:aimodel
+        logo: https://data.web.p2.csgroup.space/sharinghub/ai-model.jpg
         locales:
           fr:
             title: Modèles IA
+            description: Modèles IA personnalisés hébergés sur [GitLab](https://gitlab.si.c-s.fr)
         features:
           deployment: enable
           map-viewer: enable
       dataset:
         title: Datasets
+        description: Custom dataset hosted on [GitLab](https://gitlab.si.c-s.fr)
         gitlab_name: sharinghub:dataset
+        logo: https://data.web.p2.csgroup.space/sharinghub/datasets.jpg
         locales:
           fr:
             title: Jeux de données
+            description: Jeux de données personnalisés hébergés sur [GitLab](https://gitlab.si.c-s.fr)
         features:
           deployment: enable
           map-viewer: enable
       processor:
         title: Tools and libraries
+        description: Custom Processor on [GitLab](https://gitlab.si.c-s.fr)
         gitlab_name: sharinghub:processor
+        logo: https://data.web.p2.csgroup.space/sharinghub/processor.jpg
         locales:
           fr:
             title: Outils et librairies
+            description: Jeux de données personnalisés hébergés sur [GitLab](https://gitlab.si.c-s.fr)
         features:
           deployment: disable
           map-viewer: disable
       challenge:
         title: Challenges
+        description: Custom challenge on [GitLab](https://gitlab.si.c-s.fr)
         gitlab_name: sharinghub:challenge
+        logo: https://data.web.p2.csgroup.space/sharinghub/challenge.jpg
         locales:
           fr:
             title: Défis
+            description: Défis personnalisés hébergés sur [GitLab](https://gitlab.si.c-s.fr)
         features:
           deployment: disable
           map-viewer: disable
