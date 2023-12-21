@@ -139,7 +139,7 @@ Deploy CS SharingHUB
 # Install
 cd deploy/helm
 
-kubectl create secret generic sharinghub-oidc --from-literal client-id="b2e947651752fb3dc66480f647010f643700ef52a8888dcf6906b74be9c83a22" --from-literal client-secret="c138e76646cb648bd7881d003590d5bb0296ccdebfecbf57622b5f9156ab898b" --namespace sharinghub
+kubectl create secret generic sharinghub-oidc --from-literal client-id="b2e947651752fb3dc66480f647010f643700ef52a8888dcf6906b74be9c83a22" --from-literal client-secret="c138e76646cb648bd7881d003590d5bb0296ccdebfecbf57622b5f9156ab898b" --from-literal default-token="mWhrtNpoZA1B8NKUWxev" --namespace sharinghub
 
 helm install -n sharinghub sharinghub ./sharinghub -f values.yaml --create-namespace
 
@@ -153,7 +153,7 @@ Deploy CNES SharingHub
 # Install
 cd deploy/helm
 
-kubectl create secret generic sharinghub-oidc --from-literal client-id="b2e947651752fb3dc66480f647010f643700ef52a8888dcf6906b74be9c83a22" --from-literal client-secret="c138e76646cb648bd7881d003590d5bb0296ccdebfecbf57622b5f9156ab898b" --namespace sharinghub
+kubectl create secret generic sharinghub-cnes-oidc --from-literal default-token="glpat-T4qGT3n_H61xVh2wgfW7" --namespace sharinghub
 
 helm install -n sharinghub sharinghub-cnes ./sharinghub -f values.cnes.yaml --create-namespace
 

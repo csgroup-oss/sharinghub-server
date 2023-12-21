@@ -56,6 +56,11 @@ spec:
                   name: {{ template "sharinghub.fullname" . }}-oidc
                   key: client-secret
                   optional: true
+            - name: GITLAB_OAUTH_DEFAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "sharinghub.fullname" . }}-oidc
+                  key: default-token
             - name: STAC_CATALOGS_CACHE_TIMEOUT
               value: "{{ .Values.server.stacCatalogsCacheTimeout }}"
             - name: STAC_PROJECTS_CACHE_TIMEOUT
