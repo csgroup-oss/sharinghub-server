@@ -25,6 +25,7 @@ Content:
   - [Gitlab: URL](#gitlab-url)
   - [Gitlab: OAuth client id](#gitlab-oauth-client-id)
   - [Gitlab: OAuth client secret](#gitlab-oauth-client-secret)
+  - [Gitlab: OAuth default token](#gitlab-oauth-default-token)
   - [JupyterLab: URL](#jupyterlab-url)
   - [STAC: root conf](#stac-root-conf)
   - [STAC: catalogs cache timeout](#stac-catalogs-cache-timeout)
@@ -231,6 +232,22 @@ Content:
   gitlab:
     oauth:
       client-secret: <client-secret>
+  ```
+
+### Gitlab: OAuth default token
+
+- Type: string
+- Default: read from env var
+- Environment variable:
+  - Name: `GITLAB_OAUTH_DEFAULT_TOKEN`
+  - Example value: `<default-token>`
+- YAML:
+  - Path: `gitlab.oauth.default-token`
+  - Example value:
+  ```yaml
+  gitlab:
+    oauth:
+      default-token: <default-token>
   ```
 
 ### JupyterLab: URL
