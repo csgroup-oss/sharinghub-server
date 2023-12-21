@@ -1,0 +1,28 @@
+INHERIT: ./mkdocs.en.yml
+
+# Project information
+site_name: "SharingHub Docs"
+site_description: "Documentation de SharingHub."
+
+# Configuration
+site_dir: "build/html/fr"
+docs_dir: "src/fr"
+
+theme:
+  language: fr
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Passer en mode sombre
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: lime
+      toggle:
+        icon: material/weather-night
+        name: Passer en mode clair
