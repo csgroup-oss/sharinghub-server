@@ -38,7 +38,7 @@ stac:
             title: Jeux de données
             description: Jeux de données personnalisés hébergés sur [GitLab](https://gitlab.si.c-s.fr)
         features:
-          deployment: enable
+          deployment: disable
           map-viewer: enable
       processor:
         title: Tools and libraries
@@ -63,4 +63,4 @@ stac:
             description: Défis personnalisés hébergés sur [GitLab](https://gitlab.si.c-s.fr)
         features:
           deployment: disable
-          map-viewer: disable
+          map-viewer: enable
