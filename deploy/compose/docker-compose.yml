@@ -9,6 +9,7 @@ services:
       context: ../../
     volumes:
       - ../../app:/home/app/app
+      - ../../docs:/home/app/docs
     env_file:
       - ../../.env
     expose:

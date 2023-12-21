@@ -50,12 +50,18 @@ Setup the environment:
 virtualenv -p python3.11 venv
 # or python3 -m venv venv
 source venv/bin/activate
-pip install --no-cache-dir -r requirements.txt
+pip install -r requirements.txt
 
 # Build Web UI static files
 cd web-ui
 npm install
 npm run build:minimal -- --catalogTitle="SharingHUB" --historyMode="hash" --pathPrefix="/ui"
+
+# Build docs (reuse previous virtualenv)
+pip install -r requirements-docs.txt
+cd docs
+mkdocs build -f mkdocs.en.yml
+mkdocs build -f mkdocs.fr.yml
 ```
 
 We use `python-dotenv`, if a `.env` file is present it will be loaded.

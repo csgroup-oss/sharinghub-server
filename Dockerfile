@@ -1,3 +1,16 @@
+FROM amd64/python:3.11-alpine as docs
+
+COPY requirements-docs.txt .
+
+RUN pip install --no-cache-dir -r requirements-docs.txt
+
+COPY docs/ /docs
+
+WORKDIR /docs
+
+RUN mkdocs build -f mkdocs.en.yml && \
+    mkdocs build -f mkdocs.fr.yml
+
 FROM node:lts-alpine3.18 AS web-ui
 
 WORKDIR /app
@@ -36,7 +49,11 @@ RUN [ "$TEST_ENABLED" = "false" ] && echo "skipping tests" || eval "$TEST_COMMAN
 
 FROM build as ship
 WORKDIR /home/app/
+
+ENV DOCS_PATH=/home/app/docs
 ENV WEB_UI_PATH=/home/app/web-ui
+
+COPY --chown=app:app --from=docs /docs/build/html docs/
 COPY --chown=app:app --from=web-ui /app/dist web-ui/
 COPY --chown=app:app app/ app/
 

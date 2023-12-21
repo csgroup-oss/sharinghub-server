@@ -88,8 +88,8 @@ extra:
 
   alternate:
     - name: English
-      link: /en/
+      link: /docs/en/
       lang: en
     - name: Français
-      link: /fr/
+      link: /docs/fr/
       lang: fr

@@ -156,6 +156,21 @@ Content:
       web-ui-path: web-ui/dist
     ```
 
+### Server: docs path
+
+- Type: path
+- Default: `"<PWD>/docs"`
+- Environment variable:
+  - Name: `DOCS_PATH`
+  - Example value: `docs/`
+- YAML:
+  - Path: `server.docs-path`
+  - Example value:
+    ```yaml
+    server:
+      docs-path: docs/
+    ```
+
 ### Server: HTTP client timeout
 
 - Type: floating number

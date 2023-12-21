@@ -81,6 +81,11 @@ WEB_UI_PATH: Path = conf(
     "server.web-ui-path", "WEB_UI_PATH", default=DEFAULT_WEB_UI_PATH, cast=cpath()
 )
 
+DEFAULT_DOCS_PATH = Path(os.getcwd(), "docs", "build", "html")
+DOCS_PATH: Path = conf(
+    "server.docs-path", "DOCS_PATH", default=DEFAULT_DOCS_PATH, cast=cpath()
+)
+
 HTTP_CLIENT_TIMEOUT: float = conf(
     "server.http_client.timeout", "HTTP_CLIENT_TIMEOUT", default=300.0, cast=float
 )

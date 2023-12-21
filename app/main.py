@@ -13,6 +13,7 @@ from app.config import (
     ALLOWED_ORIGINS,
     API_PREFIX,
     DEBUG,
+    DOCS_PATH,
     HTTP_CLIENT_TIMEOUT,
     LOGGING,
     SESSION_MAX_AGE,
@@ -42,7 +43,7 @@ app = FastAPI(
     description="The SharingHUB server serves a STAC Catalog generated from Gitlab repositories.",
     version="0.1.0",
     root_path=API_PREFIX,
-    docs_url="/docs",
+    docs_url="/api/docs",
     redoc_url=None,
     lifespan=lifespan,
 )
@@ -74,5 +75,8 @@ async def status():
 
 app.mount(
     "/ui", StaticFiles(directory=WEB_UI_PATH, html=True, check_dir=False), name="web-ui"
+)
+app.mount(
+    "/docs", StaticFiles(directory=DOCS_PATH, html=True, check_dir=False), name="docs"
 )
 app.include_router(views_router)
