@@ -1,7 +1,5 @@
 gitlab:
   url: https://gitlab.si.c-s.fr
-  oauth:
-    default-token:
 
 jupyterlab:
   url: https://nb.p2.csgroup.space
@@ -9,10 +7,11 @@ jupyterlab:
 stac:
   root:
     id: gitlab-cs
-    title: GitLab CS STAC Catalog
+    title: GitLab - CS Group
     description: Your platform for collaborating on ML and NLP projects store in [GitLab](https://gitlab.si.c-s.fr) instance STAC catalog.
     locales:
       fr:
+        title: GitLab - CS Group
         description: Votre plateforme de collaboration sur les projets ML et NLP stockés dans le catalogue STAC de l'instance [GitLab](https://gitlab.si.c-s.fr).
   catalogs:
     topics:
