@@ -721,7 +721,23 @@ def _resolve_images(
     _request = context["request"]
     _token = context["token"]
 
-    def __resolve(match: re.Match):
+    def _resolve_src(match: re.Match):
+        url = match.groupdict()["src"]
+        if is_local(url) and not os.path.isabs(url):
+            path = os.path.relpath(url)
+            url = url_for(
+                _request,
+                "download_gitlab_file",
+                path=dict(
+                    project_id=project["id"],
+                    ref=project["default_branch"],
+                    file_path=path,
+                ),
+                query={**_token.query},
+            )
+        return f'src="{url}"'
+
+    def __resolve_md(match: re.Match):
         image = match.groupdict()
         url = image["src"]
         if is_local(url) and not os.path.isabs(url):
@@ -738,7 +754,10 @@ def _resolve_images(
             )
         return f"![{image['alt']}]({url})"
 
-    return re.sub(md.IMAGE_PATTERN, __resolve, md_content)
+    md_patched = md_content
+    md_patched = re.sub(r"src=(\"|')(?P<src>.*?)(\"|')", _resolve_src, md_patched)
+    md_patched = re.sub(md.IMAGE_PATTERN, __resolve_md, md_patched)
+    return md_patched
 
 
 def _get_keywords(topic: Topic, project: GitlabProject, metadata: dict) -> list[str]:
