@@ -26,6 +26,7 @@ stac:
             description: Les modèles d'IA sont au cœur de notre plateforme, allez les parcourir pour découvrir nos modèles.
         features:
           deployment: enable
+          jupyter: disable
           map-viewer: enable
       dataset:
         title: Datasets
@@ -38,6 +39,7 @@ stac:
             description: Les jeux de données sont très importants dans le processus de formation d'une IA, découvrez ceux que nous mettons à votre disposition.
         features:
           deployment: disable
+          jupyter: disable
           map-viewer: enable
       processor:
         title: Tools and libraries
@@ -50,6 +52,7 @@ stac:
             description: Nous répertorions des outils et librairies pouvant vous faciliter la vie dans le développement de vos modèles, ou bien leur utilisation.
         features:
           deployment: disable
+          jupyter: disable
           map-viewer: disable
       challenge:
         title: Challenges
@@ -62,4 +65,5 @@ stac:
             description: Des défis pourront vous être proposés ici. Mettez-vous à l'épreuve!
         features:
           deployment: disable
+          jupyter: enable
           map-viewer: enable
