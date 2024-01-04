@@ -22,3 +22,7 @@ ingress:
     - secretName: sharinghub-tls
       hosts:
         - sharinghub.p2.csgroup.space
+
+server:
+  stacCatalogsCacheTimeout: 20
+  stacProjectsCacheTimeout: 30
