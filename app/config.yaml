@@ -20,6 +20,7 @@ stac:
         description: AI models are the core of our platform, go and browse them to discover our models.
         gitlab_name: sharinghub:aimodel
         logo: https://data.web.p2.csgroup.space/sharinghub/ai-model.jpg
+        icon: https://img.icons8.com/material/24/artificial-intelligence.png
         locales:
           fr:
             title: Modèles IA
@@ -33,6 +34,7 @@ stac:
         description: Datasets are very important in the process of training an AI, discover those that we put at your disposal.
         gitlab_name: sharinghub:dataset
         logo: https://data.web.p2.csgroup.space/sharinghub/datasets.jpg
+        icon: https://img.icons8.com/ios/50/data-backup.png
         locales:
           fr:
             title: Jeux de données
@@ -46,6 +48,7 @@ stac:
         description: We list tools and libraries that can make your life easier in the development of your models, or their use.
         gitlab_name: sharinghub:processor
         logo: https://data.web.p2.csgroup.space/sharinghub/processor.jpg
+        icon: https://img.icons8.com/pulsar-line/48/maintenance.png
         locales:
           fr:
             title: Outils et librairies
@@ -59,6 +62,7 @@ stac:
         description: Challenges may be offered to you here. Put yourself to the test!
         gitlab_name: sharinghub:challenge
         logo: https://data.web.p2.csgroup.space/sharinghub/challenge.jpg
+        icon: https://img.icons8.com/ios/50/mission-of-a-company.png
         locales:
           fr:
             title: Défis

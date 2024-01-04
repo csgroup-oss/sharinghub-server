@@ -79,7 +79,7 @@ async def get_gitlab_token(
     if query_param:
         return GitlabToken(value=query_param, query=dict(gitlab_token=query_param))
     elif header_param:
-        return GitlabToken(value=header_param, query=dict())
+        return GitlabToken(value=header_param, query=dict(gitlab_token=header_param))
     elif session_token := session_auth.get("access_token"):
         return GitlabToken(value=session_token, query=dict())
     else:

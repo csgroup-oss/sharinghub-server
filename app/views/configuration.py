@@ -51,7 +51,6 @@ async def configuration():
                         for locale, translation in topic.get("locales", {}).items()
                     },
                 },
-                # "logo": topic.get("logo", {}),
             }
             for topic_name, topic in STAC_CATALOGS_TOPICS.items()
         },
