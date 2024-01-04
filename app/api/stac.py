@@ -53,7 +53,6 @@ class TopicFields(TypedDict):
     description: NotRequired[str]
     preview: NotRequired[str]
     gitlab_name: NotRequired[str]
-    default_type: NotRequired[str]
     features: TypedDict
 
 
@@ -400,7 +399,6 @@ def build_stac_for_project(
 
     stac_id = f"{STAC_ROOT_CONF['id']}-{slugify(topic['name'])}-{project['id']}"
     title = project["name"]
-    long_title = project["name_with_namespace"]
     description = _resolve_images(
         md.increase_headings(readme_doc, 3), project, **context
     )
@@ -427,9 +425,6 @@ def build_stac_for_project(
 
     # STAC generation
 
-    stac_type = topic.get("default_type")
-    stac_type = readme_metadata.get("type", stac_type)
-    stac_type = stac_type if stac_type in ["item", "collection"] else "item"
     stac_extensions = [
         "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
     ]
@@ -638,64 +633,44 @@ def build_stac_for_project(
         for prop, val in sharinghub_properties.items():
             fields[f"sharinghub:{prop}"] = val
 
-    match stac_type:
-        case "item":
-            if license:
-                fields["license"] = license
-            return {
-                "stac_version": "1.0.0",
-                "stac_extensions": stac_extensions,
-                "type": "Feature",
-                "id": stac_id,
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [
-                        [
-                            (spatial_extent[0], spatial_extent[1]),
-                            (spatial_extent[2], spatial_extent[1]),
-                            (spatial_extent[2], spatial_extent[3]),
-                            (spatial_extent[0], spatial_extent[3]),
-                            (spatial_extent[0], spatial_extent[1]),
-                        ]
-                    ],
-                },
-                "bbox": spatial_extent,
-                "properties": {
-                    "title": title,
-                    "long_title": long_title,
-                    "description": description,
-                    "datetime": None,
-                    "start_datetime": temporal_extent[0],
-                    "end_datetime": temporal_extent[1],
-                    "created": temporal_extent[0],
-                    "updated": temporal_extent[1],
-                    "keywords": keywords,
-                    "providers": providers,
-                    **fields,
-                },
-                "links": links,
-                "assets": assets,
-                "collection": None,
-            }
-        case "collection":
-            return {
-                "stac_version": "1.0.0",
-                "stac_extensions": stac_extensions,
-                "type": "Collection",
-                "id": stac_id,
-                "title": title,
-                "description": description,
-                "keywords": keywords,
-                "license": license,
-                "providers": providers,
-                "extent": {
-                    "spatial": {"bbox": [spatial_extent]},
-                    "temporal": {"interval": [temporal_extent]},
-                },
-                "links": links,
-                "assets": assets,
-                **fields,
-            }
+    if license:
+        fields["license"] = license
+
+    return {
+        "stac_version": "1.0.0",
+        "stac_extensions": stac_extensions,
+        "type": "Feature",
+        "id": stac_id,
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    (spatial_extent[0], spatial_extent[1]),
+                    (spatial_extent[2], spatial_extent[1]),
+                    (spatial_extent[2], spatial_extent[3]),
+                    (spatial_extent[0], spatial_extent[3]),
+                    (spatial_extent[0], spatial_extent[1]),
+                ]
+            ],
+        },
+        "bbox": spatial_extent,
+        "properties": {
+            "title": title,
+            "description": description,
+            "datetime": None,
+            "start_datetime": temporal_extent[0],
+            "end_datetime": temporal_extent[1],
+            "created": temporal_extent[0],
+            "updated": temporal_extent[1],
+            "keywords": keywords,
+            "providers": providers,
+            "sharinghub:project-path": project["name_with_namespace"],
+            **fields,
+        },
+        "links": links,
+        "assets": assets,
+        "collection": None,
+    }
 
 
 def _get_assets_mapping(
