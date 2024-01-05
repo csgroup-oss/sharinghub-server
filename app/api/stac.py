@@ -504,7 +504,7 @@ def build_stac_for_project(
                 ref=project["default_branch"],
                 file_path=preview,
             ),
-            query={**_token.query},
+            query={**_token.rc_query},
         )
     if preview:
         assets["preview"] = {
@@ -540,7 +540,7 @@ def build_stac_for_project(
                     ref=project["default_branch"],
                     file_path=file_path,
                 ),
-                query={**_token.query},
+                query={**_token.rc_query},
             ),
             "title": file_path,
             "roles": ["data"],
@@ -557,7 +557,7 @@ def build_stac_for_project(
                 ref=release["tag_name"],
                 format=release_source_format,
             ),
-            query={**_token.query},
+            query={**_token.rc_query},
         )
         media_type, _ = mimetypes.guess_type(f"archive.{release_source_format}")
         assets["release"] = {
@@ -708,7 +708,7 @@ def _resolve_images(
                     ref=project["default_branch"],
                     file_path=path,
                 ),
-                query={**_token.query},
+                query={**_token.rc_query},
             )
         return f'src="{url}"'
 
@@ -725,7 +725,7 @@ def _resolve_images(
                     ref=project["default_branch"],
                     file_path=path,
                 ),
-                query={**_token.query},
+                query={**_token.rc_query},
             )
         return f"![{image['alt']}]({url})"
 

@@ -1,11 +1,6 @@
 from fastapi.routing import APIRouter
 
-from app.config import (
-    GITLAB_OAUTH_DEFAULT_TOKEN,
-    JUPYTERLAB_URL,
-    STAC_CATALOGS_TOPICS,
-    STAC_ROOT_CONF,
-)
+from app.config import JUPYTERLAB_URL, STAC_CATALOGS_TOPICS, STAC_ROOT_CONF
 
 router = APIRouter()
 
@@ -17,11 +12,6 @@ async def configuration():
     return {
         "jupyterlab": {
             "url": JUPYTERLAB_URL,
-        },
-        "gitlab": {
-            "oauth": {
-                "default-token": GITLAB_OAUTH_DEFAULT_TOKEN,
-            }
         },
         "root": {
             **{

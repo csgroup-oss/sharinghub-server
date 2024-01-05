@@ -6,7 +6,12 @@ from fastapi import Depends, HTTPException, Request, Security
 from fastapi.security import APIKeyHeader, APIKeyQuery
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_500_INTERNAL_SERVER_ERROR
 
-from app.config import GITLAB_OAUTH, GITLAB_URL, SESSION_AUTH_KEY
+from app.config import (
+    GITLAB_OAUTH,
+    GITLAB_OAUTH_DEFAULT_TOKEN,
+    GITLAB_URL,
+    SESSION_AUTH_KEY,
+)
 
 gitlab_token_query = APIKeyQuery(
     name="gitlab_token", scheme_name="GitLab Private Token query", auto_error=False
@@ -14,7 +19,7 @@ gitlab_token_query = APIKeyQuery(
 gitlab_token_header = APIKeyHeader(
     name="X-Gitlab-Token", scheme_name="GitLab Private Token header", auto_error=False
 )
-GitlabToken = namedtuple("GitlabToken", ["value", "query"])
+GitlabToken = namedtuple("GitlabToken", ["value", "query", "rc_query"])
 
 _oauth = OAuth()
 _OAUTH_NAME = "gitlab"
@@ -77,11 +82,21 @@ async def get_gitlab_token(
     session_auth: Annotated[dict, Depends(get_session_auth)],
 ) -> GitlabToken:
     if query_param:
-        return GitlabToken(value=query_param, query=dict(gitlab_token=query_param))
+        return GitlabToken(
+            value=query_param,
+            query=dict(gitlab_token=query_param),
+            rc_query=dict(gitlab_token=query_param),
+        )
     elif header_param:
-        return GitlabToken(value=header_param, query=dict(gitlab_token=header_param))
+        return GitlabToken(
+            value=header_param, query=dict(), rc_query=dict(gitlab_token=header_param)
+        )
     elif session_token := session_auth.get("access_token"):
-        return GitlabToken(value=session_token, query=dict())
+        return GitlabToken(value=session_token, query=dict(), rc_query=dict())
+    elif GITLAB_OAUTH_DEFAULT_TOKEN:
+        return GitlabToken(
+            value=GITLAB_OAUTH_DEFAULT_TOKEN, query=dict(), rc_query=dict()
+        )
     else:
         raise HTTPException(
             status_code=HTTP_403_FORBIDDEN,
