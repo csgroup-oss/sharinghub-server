@@ -20,6 +20,7 @@ Content:
   - [Server: session secret key](#server-session-secret-key)
   - [Server: session max age](#server-session-max-age)
   - [Server: web ui path](#server-web-ui-path)
+  - [Server: docs path](#server-docs-path)
   - [Server: HTTP client timeout](#server-http-client-timeout)
   - [Server: enable cache](#server-enable-cache)
   - [Gitlab: URL](#gitlab-url)
@@ -27,6 +28,14 @@ Content:
   - [Gitlab: OAuth client secret](#gitlab-oauth-client-secret)
   - [Gitlab: OAuth default token](#gitlab-oauth-default-token)
   - [JupyterLab: URL](#jupyterlab-url)
+  - [S3: enable](#s3-enable)
+  - [S3: bucket](#s3-bucket)
+  - [S3: access key](#s3-access-key)
+  - [S3: secret key](#s3-secret-key)
+  - [S3: region](#s3-region)
+  - [S3: endpoint url](#s3-endpoint-url)
+  - [S3: presigned expiration](#s3-presigned-expiration)
+  - [S3: upload chunk size](#s3-upload-chunk-size)
   - [STAC: root conf](#stac-root-conf)
   - [STAC: categories page default size](#stac-categories-page-default-size)
   - [STAC: categories](#stac-categories)
@@ -279,6 +288,126 @@ Content:
   gitlab:
     url: https://nb.example.com
   ```
+
+### S3: enable
+
+- Type: boolean
+- Default: `False`
+- Environment variable:
+  - Name: `S3_ENABLE`
+  - Values: `true`, `false`
+- YAML:
+  - Path: `s3.enable`
+  - Example value:
+    ```yaml
+    s3:
+      enable: true
+    ```
+
+### S3: bucket
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `S3_BUCKET`
+  - Example value: `gitlab`
+- YAML:
+  - Path: `s3.bucket`
+  - Example value:
+  ```yaml
+  s3:
+    bucket: gitlab
+  ```
+
+### S3: access key
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `S3_ACCESS_KEY`
+  - Example value: `<access-key>`
+- YAML:
+  - Path: `s3.access-key`
+  - Example value:
+  ```yaml
+  s3:
+    access-key: <access-key>
+  ```
+
+### S3: secret key
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `S3_SECRET_KEY`
+  - Example value: `<secret-key>`
+- YAML:
+  - Path: `s3.secret-key`
+  - Example value:
+  ```yaml
+  s3:
+    secret-key: <secret-key>
+  ```
+
+### S3: region
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `S3_REGION_NAME`
+  - Example value: `test`
+- YAML:
+  - Path: `s3.region`
+  - Example value:
+  ```yaml
+  s3:
+    region: test
+  ```
+
+### S3: endpoint url
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `S3_ENDPOINT_URL`
+  - Example value: `http://127.0.0.1:9000`
+- YAML:
+  - Path: `s3.endpoint`
+  - Example value:
+  ```yaml
+  s3:
+    endpoint: "http://127.0.0.1:9000"
+  ```
+
+### S3: presigned expiration
+
+- Type: integer number
+- Default: `3600`
+- Environment variable:
+  - Name: `S3_PRESIGNED_EXPIRATION`
+  - Example value: `1200`
+- YAML:
+  - Path: `s3.presigned-expiration`
+  - Example value:
+    ```yaml
+    s3:
+      presigned-expiration: 1200
+    ```
+
+### S3: upload chunk size
+
+- Type: integer number
+- Default: `6000000`
+- Environment variable:
+  - Name: `S3_UPLOAD_CHUNK_SIZE`
+  - Example value: `300000`
+- YAML:
+  - Path: `s3.upload-chunk-size`
+  - Example value:
+    ```yaml
+    s3:
+      upload-chunk-size: 300000
+    ```
 
 ### STAC: root conf
 
