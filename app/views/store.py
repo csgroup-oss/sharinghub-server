@@ -8,20 +8,22 @@ from fastapi import APIRouter, HTTPException, Path, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.api.gitlab import GitlabClient
-from app.config import GITLAB_URL
+from app.config import (
+    GITLAB_URL,
+    S3_ACCESS_KEY,
+    S3_BUCKET,
+    S3_ENDPOINT_URL,
+    S3_PRESIGNED_EXPIRATION,
+    S3_REGION_NAME,
+    S3_SECRET_KEY,
+    S3_UPLOAD_CHUNK_SIZE,
+)
 from app.dependencies import GitlabTokenDep
 
 logger = logging.getLogger("app")
 
 router = APIRouter()
 
-S3_BUCKET = "gitlab"
-S3_ACCESS_KEY = "minioadmin"
-S3_SECRET_KEY = "minioadmin"
-S3_REGION_NAME = "test"
-S3_ENDPOINT_URL = "http://127.0.0.1:9000"
-S3_PRESIGNED_EXPIRATION = 3600
-S3_UPLOAD_CHUNK_SIZE = 6000000
 
 s3_client = boto3.client(
     "s3",
