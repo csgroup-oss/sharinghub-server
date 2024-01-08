@@ -1,6 +1,6 @@
 from fastapi.routing import APIRouter
 
-from app.config import JUPYTERLAB_URL, STAC_CATEGORIES, STAC_ROOT_CONF
+from app.config import JUPYTERLAB_URL, S3_ENABLE, STAC_CATEGORIES, STAC_ROOT_CONF
 
 router = APIRouter()
 
@@ -10,6 +10,7 @@ async def configuration():
     text_keys = ["title", "description"]
     exclude_keys = ["locales"]
     return {
+        "store": S3_ENABLE,
         "jupyterlab": {
             "url": JUPYTERLAB_URL,
         },

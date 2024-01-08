@@ -1,11 +1,12 @@
 from fastapi.routing import APIRouter
 
+from app.config import S3_ENABLE
+
 from .auth import router as auth_router
 from .configuration import router as configuration_router
 from .download import router as download_router
 from .proxy import router as proxy_router
 from .stac import router as stac_router
-from .store import router as store_router
 
 router = APIRouter()
 
@@ -14,4 +15,8 @@ router.include_router(configuration_router, prefix="/config", tags=["configurati
 router.include_router(stac_router, prefix="/stac", tags=["stac"])
 router.include_router(download_router, prefix="/download", tags=["download"])
 router.include_router(proxy_router, prefix="/api", tags=["proxy"])
-router.include_router(store_router, prefix="/store", tags=["store"])
+
+if S3_ENABLE:
+    from .store import router as store_router
+
+    router.include_router(store_router, prefix="/store", tags=["store"])
