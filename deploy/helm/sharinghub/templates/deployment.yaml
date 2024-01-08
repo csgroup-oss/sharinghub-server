@@ -61,6 +61,7 @@ spec:
                 secretKeyRef:
                   name: {{ template "sharinghub.fullname" . }}-oidc
                   key: default-token
+                  optional: true
             - name: STAC_CATALOGS_CACHE_TIMEOUT
               value: "{{ .Values.server.stacCatalogsCacheTimeout }}"
             - name: STAC_PROJECTS_CACHE_TIMEOUT
