@@ -5,7 +5,7 @@ from .configuration import router as configuration_router
 from .download import router as download_router
 from .proxy import router as proxy_router
 from .stac import router as stac_router
-from .s3_controller import router as s3_router
+from .store import router as store_router
 
 router = APIRouter()
 
@@ -14,4 +14,4 @@ router.include_router(configuration_router, prefix="/config", tags=["configurati
 router.include_router(stac_router, prefix="/stac", tags=["stac"])
 router.include_router(download_router, prefix="/download", tags=["download"])
 router.include_router(proxy_router, prefix="/api", tags=["proxy"])
-router.include_router(s3_router, prefix="/store", tags=["store"])
+router.include_router(store_router, prefix="/store", tags=["store"])

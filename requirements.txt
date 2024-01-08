@@ -1,5 +1,6 @@
 aiohttp
 authlib
+boto3
 fastapi[all]
 h3
 markdown
@@ -7,4 +8,3 @@ markdown-full-yaml-metadata
 python-dotenv
 pyyaml
 uvicorn
-boto3

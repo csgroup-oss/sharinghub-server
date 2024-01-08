@@ -1,44 +1,17 @@
-# Copyright 2023-2024, CS GROUP - France, https://www.csgroup.eu/
-#
-# This file is part of SharingHUB project
-#     https://gitlab.si.c-s.fr/space_applications/mlops-services/sharinghub-server
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-from io import BytesIO
 import logging
+from io import BytesIO
 from typing import Annotated
 
 import boto3
-from botocore.exceptions import ClientError
-from fastapi import (
-    APIRouter,
-    HTTPException,
-    Path,
-    Request,
-    Response,
-)
-from fastapi.responses import JSONResponse, RedirectResponse
 from botocore.exceptions import BotoCoreError, ClientError
-from app.dependencies import GitlabTokenDep
+from fastapi import APIRouter, HTTPException, Path, Request, Response
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.api.gitlab import GitlabClient
 from app.config import GITLAB_URL
+from app.dependencies import GitlabTokenDep
 
-router = APIRouter()
-
-
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger("app")
 
 router = APIRouter()
 
@@ -48,8 +21,8 @@ S3_SECRET_KEY = "minioadmin"
 S3_REGION_NAME = "test"
 S3_ENDPOINT_URL = "http://127.0.0.1:9000"
 S3_PRESIGNED_EXPIRATION = 3600
+S3_UPLOAD_CHUNK_SIZE = 6000000
 
-# TODO : store configuration
 s3_client = boto3.client(
     "s3",
     aws_access_key_id=S3_ACCESS_KEY,
@@ -58,20 +31,10 @@ s3_client = boto3.client(
     endpoint_url=S3_ENDPOINT_URL,
 )
 
-# Chunck size for upload to S3
-S3_UPLOAD_LEN = 6000000
-
 
 async def check_access(token, project_id):
     """
     Checks the access permissions for a given Gitlab user token and project ID.
-
-    Parameters:
-    - token (str): Gitlab authentication token.
-    - project_id (int): Identifier for the project to be checked.
-
-    Returns:
-    - bool: True if the user has access to the specified project, False otherwise.
 
     Raises:
     - AuthenticationError: If the provided token is invalid or expired.
@@ -88,9 +51,6 @@ async def check_access(token, project_id):
     return True
 
 
-# OK
-# PUT : curl -L  -d @README.md -X PUT  -H 'Content-Type:application/octet-stream' -H 'X-Gitlab-Token:toto'  http://localhost:19422/store/1243/README.md
-# GET : curl -L -H 'X-Gitlab-Token:toto'  http://localhost:19422/store/1243/README.md
 @router.api_route(
     "/{project_id:str}/{path:path}",
     methods=["PUT", "GET", "HEAD"],
@@ -102,7 +62,7 @@ async def s3_get_proxy(
     request: Request,
     token: GitlabTokenDep,
 ) -> Response:
-    check_access(token, project_id)
+    await check_access(token, project_id)
 
     try:
         s3_path = project_id + "/" + path
@@ -123,26 +83,23 @@ async def s3_get_proxy(
                 ExpiresIn=S3_PRESIGNED_EXPIRATION,
             )
     except ClientError as e:
-        # TODO 
-        logging.error(e)
-        return e
+        logger.error(e)
+        raise HTTPException(status_code=500, detail=f"AWS S3 Client Error: {e}")
 
     return RedirectResponse(response)
 
 
-# OK
-# curl -d @README.md -H 'X-Gitlab-Token:toto'  http://localhost:19422/store/1244/README.md
 @router.post(
     "/{project_id:str}/{path:path}",
     description="Create S3 redirect URL for given S3 Service",
 )
 async def s3_post_proxy(
     project_id: Annotated[str, Path(title="The ID of the item to get")],
-    path: Annotated[str, Path(title="The ID of the item to get")],
+    path: Annotated[str, Path(title="The path of the item to get")],
     request: Request,
     token: GitlabTokenDep,
 ):
-    check_access(token, project_id)
+    await check_access(token, project_id)
 
     try:
         s3_path = project_id + "/" + path
@@ -158,7 +115,7 @@ async def s3_post_proxy(
         async for chunk in request.stream():
             byte_buffer.write(chunk)
             byte_buffer_size += len(chunk)
-            if byte_buffer_size > S3_UPLOAD_LEN:
+            if byte_buffer_size > S3_UPLOAD_CHUNK_SIZE:
                 byte_buffer.seek(0)
                 part = s3_client.upload_part(
                     Bucket=S3_BUCKET,
@@ -197,8 +154,8 @@ async def s3_post_proxy(
         )
 
     except BotoCoreError as e:
-        LOGGER.error(e)
+        logger.error(e)
         raise HTTPException(status_code=500, detail=f"Error connecting to AWS S3: {e}")
     except ClientError as e:
-        LOGGER.error(e)
+        logger.error(e)
         raise HTTPException(status_code=500, detail=f"AWS S3 Client Error: {e}")
