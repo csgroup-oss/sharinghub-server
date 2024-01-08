@@ -33,22 +33,9 @@ s3_client = boto3.client(
 
 
 async def check_access(token, project_id):
-    """
-    Checks the access permissions for a given Gitlab user token and project ID.
-
-    Raises:
-    - AuthenticationError: If the provided token is invalid or expired.
-    - ProjectNotFoundError: If the specified project ID does not exist.
-    - AccessDeniedError: If the user does not have the necessary permissions for the project.
-    - Other custom exceptions may be raised based on specific implementation details.
-    """
-
-    # TODO : Implement
+    """Checks the access permissions for a given Gitlab user token and project ID."""
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
-    # ...
-    # raise HTTPException(status_code=403, detail="Access denied")
-
-    return True
+    await gitlab_client.get_project(project_id)
 
 
 @router.api_route(
