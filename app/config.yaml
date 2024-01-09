@@ -8,17 +8,17 @@ stac:
   root:
     id: gitlab-cs
     title: GitLab - CS Group
-    description: Your platform for collaborating on ML and NLP projects store in [GitLab](https://gitlab.si.c-s.fr) instance STAC catalog.
+    description: Your platform for collaborating on ML and NLP projects stored in [GitLab](https://gitlab.si.c-s.fr).
     locales:
       fr:
         title: GitLab - CS Group
-        description: Votre plateforme de collaboration sur les projets ML et NLP stockés dans le catalogue STAC de l'instance [GitLab](https://gitlab.si.c-s.fr).
-  catalogs:
-    topics:
+        description: Votre plateforme de collaboration sur les projets ML et NLP stockés dans [GitLab](https://gitlab.si.c-s.fr).
+  categories:
+    definitions:
       ai-model:
         title: AI Models
         description: AI models are the core of our platform, go and browse them to discover our models.
-        gitlab_name: sharinghub:aimodel
+        gitlab_topic: sharinghub:aimodel
         logo: https://data.web.p2.csgroup.space/sharinghub/ai-model.jpg
         icon: https://img.icons8.com/material/24/artificial-intelligence.png
         locales:
@@ -32,7 +32,7 @@ stac:
       dataset:
         title: Datasets
         description: Datasets are very important in the process of training an AI, discover those that we put at your disposal.
-        gitlab_name: sharinghub:dataset
+        gitlab_topic: sharinghub:dataset
         logo: https://data.web.p2.csgroup.space/sharinghub/datasets.jpg
         icon: https://img.icons8.com/ios/50/data-backup.png
         locales:
@@ -46,7 +46,7 @@ stac:
       processor:
         title: Tools and libraries
         description: We list tools and libraries that can make your life easier in the development of your models, or their use.
-        gitlab_name: sharinghub:processor
+        gitlab_topic: sharinghub:processor
         logo: https://data.web.p2.csgroup.space/sharinghub/processor.jpg
         icon: https://img.icons8.com/pulsar-line/48/maintenance.png
         locales:
@@ -60,7 +60,7 @@ stac:
       challenge:
         title: Challenges
         description: Challenges may be offered to you here. Put yourself to the test!
-        gitlab_name: sharinghub:challenge
+        gitlab_topic: sharinghub:challenge
         logo: https://data.web.p2.csgroup.space/sharinghub/challenge.jpg
         icon: https://img.icons8.com/ios/50/mission-of-a-company.png
         locales:

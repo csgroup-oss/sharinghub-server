@@ -28,8 +28,8 @@ Content:
   - [Gitlab: OAuth default token](#gitlab-oauth-default-token)
   - [JupyterLab: URL](#jupyterlab-url)
   - [STAC: root conf](#stac-root-conf)
-  - [STAC: catalogs cache timeout](#stac-catalogs-cache-timeout)
-  - [STAC: catalogs topics](#stac-catalogs-topics)
+  - [STAC: categories cache timeout](#stac-categories-cache-timeout)
+  - [STAC: categories](#stac-categories)
   - [STAC: projects cache timeout](#stac-projects-cache-timeout)
   - [STAC: projects assets rules](#stac-projects-assets-rules)
   - [STAC: projects assets release source format](#stac-projects-assets-release-source-format)
@@ -296,36 +296,36 @@ Content:
         logo: URL
     ```
 
-### STAC: catalogs cache timeout
+### STAC: categories cache timeout
 
 - Type: floating number
 - Default: `600.0`
 - Environment variable:
-  - Name: `STAC_CATALOGS_CACHE_TIMEOUT`
+  - Name: `STAC_CATEGORIES_CACHE_TIMEOUT`
   - Example value: `30.0`
 - YAML:
-  - Path: `stac.catalogs.cache-timeout`
+  - Path: `stac.categories.cache-timeout`
   - Example value:
     ```yaml
     stac:
-      catalogs:
+      categories:
         cache-timeout: 30.0
     ```
 
-### STAC: catalogs topics
+### STAC: categories
 
 - Type: mapping
 - Default: read from [config file](./app/config.yaml)
 - YAML:
-  - Path: `stac.catalogs.topics`
+  - Path: `stac.categories.definitions`
   - Example value:
     ```yaml
     stac:
-      catalogs:
-        topics:
-          my-topic:
-            title: My Topic
-            description: Custom topic
+      categories:
+        definitions:
+          my-category:
+            title: My Category
+            description: Custom category
             default_type: item
     ```
 

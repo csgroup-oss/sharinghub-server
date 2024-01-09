@@ -118,14 +118,14 @@ JUPYTERLAB_URL: str | None = conf("jupyterlab.url", "JUPYTERLAB_URL", cast=str)
 # Root
 STAC_ROOT_CONF: dict = conf("stac.root", default={}, cast=dict)
 
-# Catalogs
-STAC_CATALOGS_CACHE_TIMEOUT: float = conf(
-    "stac.catalogs.cache-timeout",
-    "STAC_CATALOGS_CACHE_TIMEOUT",
+# Categories
+STAC_CATEGORIES_CACHE_TIMEOUT: float = conf(
+    "stac.categories.cache-timeout",
+    "STAC_CATEGORIES_CACHE_TIMEOUT",
     default=60.0 * 10,
     cast=float,
 )
-STAC_CATALOGS_TOPICS: dict = conf("stac.catalogs.topics", default={}, cast=dict)
+STAC_CATEGORIES: dict = conf("stac.categories.definitions", default={}, cast=dict)
 
 # Projects
 STAC_PROJECTS_CACHE_TIMEOUT: float = conf(

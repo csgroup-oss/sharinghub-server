@@ -20,17 +20,16 @@ from pydantic import (
 
 from app.api.gitlab import GitlabClient, GitlabProject
 from app.api.stac import (
+    build_stac_category,
     build_stac_for_project,
     build_stac_root,
     build_stac_search_result,
-    build_stac_topic,
-    get_gitlab_topic,
 )
 from app.config import (
     ENABLE_CACHE,
     GITLAB_URL,
-    STAC_CATALOGS_CACHE_TIMEOUT,
-    STAC_CATALOGS_TOPICS,
+    STAC_CATEGORIES,
+    STAC_CATEGORIES_CACHE_TIMEOUT,
     STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT,
     STAC_PROJECTS_ASSETS_RULES,
     STAC_PROJECTS_CACHE_TIMEOUT,
@@ -40,12 +39,12 @@ from app.utils.geo import find_parent_of_hashes, hash_polygon
 
 logger = logging.getLogger("app")
 
-CATALOG_CACHE = {}
+CATEGORIES_CACHE = {}
 PROJECT_CACHE = {}
 
-TopicName = enum.StrEnum("TopicName", {k: k for k in STAC_CATALOGS_TOPICS})
-CachedCatalog = namedtuple("CachedCatalog", ["time", "catalog"])
-CachedProject = namedtuple("CachedProject", ["time", "last_activity", "stac"])
+CategoryName = enum.StrEnum("CategoryName", {k: k for k in STAC_CATEGORIES})
+CachedCategorySTAC = namedtuple("CachedCategorySTAC", ["time", "stac"])
+CachedProjectSTAC = namedtuple("CachedProjectSTAC", ["time", "last_activity", "stac"])
 
 router = APIRouter()
 
@@ -144,14 +143,14 @@ async def _stac_search(
 ):
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
 
-    topics = search_form.collections
-    if any(t not in STAC_CATALOGS_TOPICS for t in topics):
+    categories = search_form.collections
+    if any(c not in STAC_CATEGORIES for c in categories):
         raise HTTPException(
             status_code=422,
-            detail=f"Collections should be one of: {', '.join(STAC_CATALOGS_TOPICS)}",
+            detail=f"Collections should be one of: {', '.join(STAC_CATEGORIES)}",
         )
-    if not topics:
-        topics = list(STAC_CATALOGS_TOPICS)
+    if not categories:
+        categories = list(STAC_CATEGORIES)
 
     search_extent: dict[str, GitlabProject] = {}
     if search_form.bbox:
@@ -181,8 +180,8 @@ async def _stac_search(
                 project
                 for project in gitlab_search
                 if any(
-                    STAC_CATALOGS_TOPICS[t]["gitlab_name"] in project["topics"]
-                    for t in topics
+                    STAC_CATEGORIES[c]["gitlab_topic"] in project["topics"]
+                    for c in categories
                 )
             ]
             for p in gitlab_search:
@@ -196,8 +195,8 @@ async def _stac_search(
                 project
                 for project in gitlab_search
                 if any(
-                    STAC_CATALOGS_TOPICS[t]["gitlab_name"] in project["topics"]
-                    for t in topics
+                    STAC_CATEGORIES[c]["gitlab_topic"] in project["topics"]
+                    for c in categories
                 )
             ]
             for p in gitlab_search:
@@ -215,10 +214,10 @@ async def _stac_search(
 
     features = []
     for project in projects:
-        _topic = None
-        for t in STAC_CATALOGS_TOPICS:
-            if STAC_CATALOGS_TOPICS[t]["gitlab_name"] in project["topics"]:
-                _topic = {"name": t, **STAC_CATALOGS_TOPICS[t]}
+        _category = None
+        for c in STAC_CATEGORIES:
+            if STAC_CATEGORIES[c]["gitlab_topic"] in project["topics"]:
+                _category = {"name": c, **STAC_CATEGORIES[c]}
 
         readme, files, release = await asyncio.gather(
             gitlab_client.get_readme(project),
@@ -228,7 +227,7 @@ async def _stac_search(
 
         try:
             _feature = build_stac_for_project(
-                topic=_topic,
+                category=_category,
                 project=project,
                 readme=readme,
                 files=files,
@@ -280,48 +279,51 @@ async def stac_root(
     token: GitlabTokenDep,
 ):
     return build_stac_root(
-        topics=STAC_CATALOGS_TOPICS,
+        categories=STAC_CATEGORIES,
         request=request,
         token=token,
     )
 
 
-@router.get("/{topic}")
-async def stac_topic(
+@router.get("/{category}")
+async def stac_category(
     request: Request,
     token: GitlabTokenDep,
-    topic: TopicName,
+    category: CategoryName,
 ):
-    cache_key = (topic, token.value)
+    cache_key = (category, token.value)
     if (
-        cache_key in CATALOG_CACHE
-        and time.time() - CATALOG_CACHE[cache_key].time < STAC_CATALOGS_CACHE_TIMEOUT
+        cache_key in CATEGORIES_CACHE
+        and time.time() - CATEGORIES_CACHE[cache_key].time
+        < STAC_CATEGORIES_CACHE_TIMEOUT
     ):
-        return CATALOG_CACHE[cache_key].catalog
+        return CATEGORIES_CACHE[cache_key].stac
 
-    _topic = {"name": topic, **STAC_CATALOGS_TOPICS[topic]}
+    _category = {"name": category, **STAC_CATEGORIES[category]}
 
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
-    projects = await gitlab_client.get_projects(get_gitlab_topic(_topic))
+    projects = await gitlab_client.get_projects(_category["gitlab_topic"])
 
-    catalog = build_stac_topic(
-        topic=_topic,
+    category_stac = build_stac_category(
+        category=_category,
         projects=projects,
         request=request,
         token=token,
     )
 
     if ENABLE_CACHE:
-        CATALOG_CACHE[cache_key] = CachedCatalog(time=time.time(), catalog=catalog)
+        CATEGORIES_CACHE[cache_key] = CachedCategorySTAC(
+            time=time.time(), stac=category_stac
+        )
 
-    return catalog
+    return category_stac
 
 
-@router.get("/{topic}/{project_path:path}")
+@router.get("/{category}/{project_path:path}")
 async def stac_project(
     request: Request,
     token: GitlabTokenDep,
-    topic: TopicName,
+    category: CategoryName,
     project_path: str,
 ):
     cache_key = project_path
@@ -334,8 +336,8 @@ async def stac_project(
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     project = await gitlab_client.get_project(project_path)
 
-    _topic = {"name": topic, **STAC_CATALOGS_TOPICS[topic]}
-    gitlab_topic = get_gitlab_topic(_topic)
+    _category = {"name": category, **STAC_CATEGORIES[category]}
+    gitlab_topic = _category["gitlab_topic"]
 
     if gitlab_topic not in project["topics"]:
         raise HTTPException(
@@ -348,7 +350,7 @@ async def stac_project(
         and PROJECT_CACHE[cache_key].last_activity == project["last_activity_at"]
     ):
         stac = PROJECT_CACHE[cache_key].stac
-        PROJECT_CACHE[cache_key] = CachedProject(
+        PROJECT_CACHE[cache_key] = CachedProjectSTAC(
             time=time.time(),
             last_activity=project["last_activity_at"],
             stac=stac,
@@ -362,8 +364,8 @@ async def stac_project(
     )
 
     try:
-        stac = build_stac_for_project(
-            topic=_topic,
+        project_stac = build_stac_for_project(
+            category=_category,
             project=project,
             readme=readme,
             files=files,
@@ -378,10 +380,10 @@ async def stac_project(
         raise HTTPException(status_code=500, detail=str(exc))
 
     if ENABLE_CACHE:
-        PROJECT_CACHE[cache_key] = CachedProject(
+        PROJECT_CACHE[cache_key] = CachedProjectSTAC(
             time=time.time(),
             last_activity=project["last_activity_at"],
-            stac=stac,
+            stac=project_stac,
         )
 
-    return stac
+    return project_stac

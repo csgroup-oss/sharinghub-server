@@ -62,7 +62,7 @@ server:
   allowedOrigins:
     - "http://localhost:8000"
     - "https://sharinghub.web.p2.csgroup.space"
-  stacCatalogsCacheTimeout: 600
+  stacCategoriesCacheTimeout: 600
   stacProjectsCacheTimeout: 300
 
 resources: {}

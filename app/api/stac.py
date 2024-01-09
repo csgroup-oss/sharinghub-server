@@ -48,23 +48,19 @@ class STACContext(TypedDict):
     token: GitlabToken
 
 
-class TopicFields(TypedDict):
+class CategoryFields(TypedDict):
     title: str
     description: NotRequired[str]
     preview: NotRequired[str]
-    gitlab_name: NotRequired[str]
+    gitlab_topic: NotRequired[str]
     features: TypedDict
 
 
-class Topic(TopicFields):
+class Category(CategoryFields):
     name: str
 
 
-TopicSpec: TypeAlias = dict[str, TopicFields]
-
-
-def get_gitlab_topic(topic: Topic) -> str:
-    return topic.get("gitlab_name", topic["name"])
+CategorySpec: TypeAlias = dict[str, CategoryFields]
 
 
 def build_stac_search_result(
@@ -185,11 +181,11 @@ def build_stac_search_result(
     }
 
 
-def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
+def build_stac_root(categories: CategorySpec, **context: Unpack[STACContext]) -> dict:
     _request = context["request"]
     _token = context["token"]
 
-    title = STAC_ROOT_CONF.get("title", "GitLab STAC Catalog")
+    title = STAC_ROOT_CONF.get("title", "GitLab STAC")
     description = STAC_ROOT_CONF.get(
         "description",
         f"Catalog generated from your [Gitlab]({GITLAB_URL}) repositories with SharingHUB.",
@@ -202,12 +198,12 @@ def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
             "type": "application/json",
             "href": url_for(
                 _request,
-                "stac_topic",
-                path=dict(topic=topic_name),
+                "stac_category",
+                path=dict(category=category_name),
                 query={**_token.query},
             ),
         }
-        for topic_name in topics
+        for category_name in categories
     ]
 
     if logo:
@@ -220,11 +216,10 @@ def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
             }
         )
 
-    stac_id = f"{STAC_ROOT_CONF['id']}-catalog"
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
-        "id": stac_id,
+        "id": STAC_ROOT_CONF["id"],
         "title": title,
         "description": description,
         "links": [
@@ -294,20 +289,20 @@ def build_stac_root(topics: TopicSpec, **context: Unpack[STACContext]) -> dict:
     }
 
 
-def build_stac_topic(
-    topic: Topic,
+def build_stac_category(
+    category: Category,
     projects: list[GitlabProject],
     **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
     _token = context["token"]
 
-    title = topic["title"]
-    description = topic.get(
+    title = category["title"]
+    description = category.get(
         "description",
-        f"{title} catalog generated from your [Gitlab]({GITLAB_URL}) repositories with SharingHUB.",
+        f"STAC {title} generated from your [Gitlab]({GITLAB_URL}) repositories with SharingHUB.",
     )
-    logo = topic.get("logo")
+    logo = category.get("logo")
 
     links = [
         {
@@ -317,7 +312,7 @@ def build_stac_topic(
                 _request,
                 "stac_project",
                 path=dict(
-                    topic=topic["name"],
+                    category=category["name"],
                     project_path=project["path_with_namespace"],
                 ),
                 query={**_token.query},
@@ -336,7 +331,7 @@ def build_stac_topic(
             }
         )
 
-    stac_id = f"{STAC_ROOT_CONF['id']}-{slugify(topic['name'])}-catalog"
+    stac_id = f"{STAC_ROOT_CONF['id']}-{slugify(category['name'])}"
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
@@ -358,10 +353,8 @@ def build_stac_topic(
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac_topic",
-                    path=dict(
-                        topic=topic["name"],
-                    ),
+                    "stac_category",
+                    path=dict(category=category["name"]),
                     query={**_token.query},
                 ),
             },
@@ -380,7 +373,7 @@ def build_stac_topic(
 
 
 def build_stac_for_project(
-    topic: Topic,
+    category: Category,
     project: GitlabProject,
     readme: str,
     files: list[GitlabProjectFile],
@@ -397,12 +390,12 @@ def build_stac_for_project(
 
     # STAC data
 
-    stac_id = f"{STAC_ROOT_CONF['id']}-{slugify(topic['name'])}-{project['id']}"
+    stac_id = f"{STAC_ROOT_CONF['id']}-{slugify(category['name'])}-{project['id']}"
     title = project["name"]
     description = _resolve_images(
         md.increase_headings(readme_doc, 3), project, **context
     )
-    keywords = _get_keywords(topic, project, readme_metadata)
+    keywords = _get_keywords(category, project, readme_metadata)
     preview, preview_media_type = _get_preview(readme_metadata, readme_doc)
     license, license_url = _get_license(project, readme_metadata)
     producer, producer_url = _get_producer(project, readme_metadata)
@@ -421,7 +414,7 @@ def build_stac_for_project(
         readme_metadata, resources_links
     )
     ## sharing hub extensions
-    sharinghub_properties = _get_sharinghub_properties(topic, readme_metadata)
+    sharinghub_properties = _get_sharinghub_properties(category, readme_metadata)
 
     # STAC generation
 
@@ -448,7 +441,7 @@ def build_stac_for_project(
                 _request,
                 "stac_project",
                 path=dict(
-                    topic=topic["name"],
+                    category=category["name"],
                     project_path=project["path_with_namespace"],
                 ),
                 query={**_token.query},
@@ -459,10 +452,8 @@ def build_stac_for_project(
             "type": "application/json",
             "href": url_for(
                 _request,
-                "stac_topic",
-                path=dict(
-                    topic=topic["name"],
-                ),
+                "stac_category",
+                path=dict(category=category["name"]),
                 query={**_token.query},
             ),
         },
@@ -735,13 +726,13 @@ def _resolve_images(
     return md_patched
 
 
-def _get_keywords(topic: Topic, project: GitlabProject, metadata: dict) -> list[str]:
-    topic_keyword = slugify(topic["name"])
+def _get_keywords(cat: Category, project: GitlabProject, metadata: dict) -> list[str]:
+    cat_keyword = slugify(cat["name"])
     namespaces_keywords = [
         slugify(g) for g in project["path_with_namespace"].split("/")[:-1]
     ]
     readme_keywords = metadata.get("keywords", [])
-    return list(dict.fromkeys([topic_keyword, *namespaces_keywords, *readme_keywords]))
+    return list(dict.fromkeys([cat_keyword, *namespaces_keywords, *readme_keywords]))
 
 
 def _get_preview(
@@ -843,8 +834,8 @@ def _retrieve_resources_links(
     return links
 
 
-def _get_sharinghub_properties(topic: Topic, metadata: dict) -> dict:
-    return topic.get("features", {}) | metadata.get("sharinghub", {})
+def _get_sharinghub_properties(cat: Category, metadata: dict) -> dict:
+    return cat.get("features", {}) | metadata.get("sharinghub", {})
 
 
 def _parse_resource_link(
@@ -869,7 +860,7 @@ def _parse_resource_link(
             _request,
             "stac_project",
             path=dict(
-                topic=key,
+                category=key,
                 project_path=path,
             ),
             query={**_token.query},
