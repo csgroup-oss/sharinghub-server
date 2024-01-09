@@ -62,6 +62,11 @@ server:
   allowedOrigins:
     - "http://localhost:8000"
     - "https://sharinghub.web.p2.csgroup.space"
+  s3:
+    enable: false
+    bucket: "gitlab"
+    region: ""
+    endpoint: ""
   stacProjectsCacheTimeout: 300
 
 resources: {}
