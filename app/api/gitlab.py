@@ -186,6 +186,9 @@ class GitlabClient:
     async def search(self, scope: str, query: Any) -> list[GitlabProject]:
         return await self._request("/search", scope=scope, search=query)
 
+    async def get_topics(self) -> list[Any]:
+        return await self._request_iterate(f"/topics")
+
     async def _send_request(self, url: str, **params: Any) -> aiohttp.ClientResponse:
         remove_headers = ["host", "cookie"]
         request_headers = dict(self.request.headers) if self.request else {}

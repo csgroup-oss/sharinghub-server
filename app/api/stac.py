@@ -251,12 +251,14 @@ async def search_projects(
         projects = dict(filter(temporal_filter, projects.items()))
 
     if search_query.topics:
+
         def filter_by_topic(project_item: tuple[int, GitlabProject]) -> bool:
             _, _project = project_item
-            for _topic in _project.get('topics', []):
+            for _topic in _project.get("topics", []):
                 if _topic in search_query.topics:
                     return True
             return False
+
         projects = dict(filter(filter_by_topic, projects.items()))
 
     return list(projects.values())

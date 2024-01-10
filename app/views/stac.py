@@ -200,7 +200,7 @@ async def stac2_search(
     intersects: str = "null",
     ids: str = "",
     collections: str = "",
-    topics: str = ""
+    topics: str = "",
 ):
     search_query = STACSearchQuery(
         limit=limit,
@@ -210,7 +210,7 @@ async def stac2_search(
         ids=ids.split(",") if ids else [],
         collections=collections.split(",") if collections else [],
         q=q.split(",") if q else [],
-        topics=topics.split(",") if topics else []
+        topics=topics.split(",") if topics else [],
     )
     return await _stac_search(
         request=request,
