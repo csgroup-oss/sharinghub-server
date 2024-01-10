@@ -37,13 +37,16 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+          volumeMounts:
+            {{- if .Values.config }}
+            - name: {{ template "sharinghub.fullname" . }}-config
+              mountPath: /home/app/app/config.yaml
+              subPath: "config.yaml"
+            {{- end }}
+            {{- if .Values.extraVolumeMounts }}
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
           env:
-            - name: ALLOWED_ORIGINS
-              value: {{ join " " .Values.server.allowedOrigins }}
-            - name: GITLAB_URL
-              value: {{ join " " .Values.server.gitlabUrl }}
-            - name: JUPYTERLAB_URL
-              value: {{ join " " .Values.server.jupyterlabUrl }}
             - name: GITLAB_OAUTH_CLIENT_ID
               valueFrom:
                 secretKeyRef:
@@ -62,10 +65,6 @@ spec:
                   name: {{ template "sharinghub.fullname" . }}-oidc
                   key: default-token
                   optional: true
-            - name: S3_ENABLE
-              value: "{{ .Values.server.s3.enable }}"
-            - name: S3_BUCKET
-              value: "{{ .Values.server.s3.bucket }}"
             - name: S3_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
@@ -78,14 +77,6 @@ spec:
                   name: {{ template "sharinghub.fullname" . }}-s3
                   key: secret-key
                   optional: true
-            - name: S3_REGION_NAME
-              value: "{{ .Values.server.s3.region }}"
-            - name: S3_ENDPOINT_URL
-              value: "{{ .Values.server.s3.endpoint }}"
-            - name: STAC_PROJECTS_CACHE_TIMEOUT
-              value: "{{ .Values.server.stacProjectsCacheTimeout }}"
-            - name: STAC_SEARCH_CACHE_TIMEOUT
-              value: "{{ .Values.server.stacSearchCacheTimeout }}"
           livenessProbe:
             httpGet:
               path: /
@@ -96,6 +87,15 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        {{- if .Values.config }}
+        - name:  {{ template "sharinghub.fullname" . }}-config
+          configMap:
+            name: {{ template "sharinghub.fullname" . }}-config
+        {{- end }}
+        {{- if .Values.extraVolumes }}
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -142,28 +142,21 @@ Deploy CS SharingHUB
 
 ```bash
 # Install
-cd deploy/helm
+kubectl create secret generic sharinghub-oidc --from-literal client-id="<client-id>" --from-literal client-secret="<client-secret>" --namespace sharinghub
+kubectl create secret generic sharinghub-s3 --from-literal access-key="<access-key>" --from-literal secret-key="<secret-key>" --namespace sharinghub
 
-kubectl create secret generic sharinghub-oidc --from-literal client-id="<id>" --from-literal client-secret="<secret>" --namespace sharinghub
-
-helm install -n sharinghub sharinghub ./sharinghub -f values.yaml --create-namespace
-
-# Update
-helm upgrade -n sharinghub sharinghub ./sharinghub -f values.yaml
+# Install & Update
+helm upgrade --install -n sharinghub --create-namespace sharinghub ./deploy/helm/sharinghub -f ./deploy/helm/values.yaml
 ```
 
 Deploy CNES SharingHub
 
 ```bash
 # Install
-cd deploy/helm
-
 kubectl create secret generic sharinghub-cnes-oidc --from-literal default-token="<token>" --namespace sharinghub
 
-helm install -n sharinghub sharinghub-cnes ./sharinghub -f values.cnes.yaml --create-namespace
-
-# Update
-helm upgrade -n sharinghub sharinghub-cnes ./sharinghub -f values.cnes.yaml
+# Install & Update
+helm upgrade --install -n sharinghub --create-namespace sharinghub-cnes ./deploy/helm/sharinghub -f ./deploy/helm/values.cnes.yaml
 ```
 
 ## Configuration

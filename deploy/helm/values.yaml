@@ -1,3 +1,92 @@
+config: |-
+  gitlab:
+    url: https://gitlab.si.c-s.fr
+
+  jupyterlab:
+    url: https://nb.p2.csgroup.space
+
+  s3:
+    enable: true
+    bucket: p2-sharinghub
+    region: sbg
+    endpoint: https://s3.sbg.perf.cloud.ovh.net/
+
+  stac:
+    projects:
+      cache-timeout: 30
+    search:
+      cache-timeout: 20
+    root:
+      id: gitlab-cs
+      title: SharingHUB brings your data and models closer.
+      description: Your platform for collaborating on ML and NLP projects store in [GitLab](https://gitlab.si.c-s.fr) instance STAC catalog.
+      locales:
+        fr:
+          title: SharingHUB rapproche vos données et vos modèles.
+          description: Votre plateforme de collaboration sur les projets ML et NLP stockés dans le catalogue STAC de l'instance [GitLab](https://gitlab.si.c-s.fr).
+    categories:
+      definitions:
+        ai-model:
+          title: AI Models
+          description: AI models are the core of our platform, go and browse them to discover our models.
+          gitlab_topic: sharinghub:aimodel
+          logo: https://data.web.p2.csgroup.space/sharinghub/ai-model.jpg
+          icon: https://img.icons8.com/material/24/artificial-intelligence.png
+          locales:
+            fr:
+              title: Modèles IA
+              description: Les modèles d'IA sont au cœur de notre plateforme, allez les parcourir pour découvrir nos modèles.
+          features:
+            deployment: enable
+            jupyter: disable
+            map-viewer: enable
+            store-s3: disable
+        dataset:
+          title: Datasets
+          description: Datasets are very important in the process of training an AI, discover those that we put at your disposal.
+          gitlab_topic: sharinghub:dataset
+          logo: https://data.web.p2.csgroup.space/sharinghub/datasets.jpg
+          icon: https://img.icons8.com/ios/50/data-backup.png
+          locales:
+            fr:
+              title: Jeux de données
+              description: Les jeux de données sont très importants dans le processus de formation d'une IA, découvrez ceux que nous mettons à votre disposition.
+          features:
+            deployment: disable
+            jupyter: disable
+            map-viewer: enable
+            store-s3: enable
+        processor:
+          title: Tools and libraries
+          description: We list tools and libraries that can make your life easier in the development of your models, or their use.
+          gitlab_topic: sharinghub:processor
+          logo: https://data.web.p2.csgroup.space/sharinghub/processor.jpg
+          icon: https://img.icons8.com/pulsar-line/48/maintenance.png
+          locales:
+            fr:
+              title: Outils et librairies
+              description: Nous répertorions des outils et librairies pouvant vous faciliter la vie dans le développement de vos modèles, ou bien leur utilisation.
+          features:
+            deployment: disable
+            jupyter: disable
+            map-viewer: disable
+            store-s3: disable
+        challenge:
+          title: Challenges
+          description: Challenges may be offered to you here. Put yourself to the test!
+          gitlab_topic: sharinghub:challenge
+          logo: https://data.web.p2.csgroup.space/sharinghub/challenge.jpg
+          icon: https://img.icons8.com/ios/50/mission-of-a-company.png
+          locales:
+            fr:
+              title: Défis
+              description: Des défis pourront vous être proposés ici. Mettez-vous à l'épreuve!
+          features:
+            deployment: disable
+            jupyter: enable
+            map-viewer: enable
+            store-s3: disable
+
 image:
   repository: 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub
   pullPolicy: IfNotPresent
@@ -22,7 +111,3 @@ ingress:
     - secretName: sharinghub-tls
       hosts:
         - sharinghub.p2.csgroup.space
-
-server:
-  stacProjectsCacheTimeout: 30
-  stacSearchCacheTimeout: 15

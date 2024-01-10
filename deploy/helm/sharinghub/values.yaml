@@ -36,6 +36,38 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
+config: |-
+  server:
+    allowed-origins:
+      - http://localhost:8000
+      - https://sharinghub.web.p2.csgroup.space
+
+  gitlab:
+    url: https://gitlab.si.c-s.fr
+
+  jupyterlab:
+    url: https://nb.p2.csgroup.space
+
+  stac:
+    projects:
+      cache-timeout: 300
+    search:
+      cache-timeout: 180
+    root:
+      id: gitlab
+      title: GitLab
+      description: Your platform for collaborating using Gitlab.
+      locales:
+        fr:
+          title: GitLab
+          description: Votre plateforme de collaboration sur Gitlab.
+
+    s3:
+      enable: false
+      bucket: gitlab
+      region: ""
+      endpoint: ""
+
 service:
   type: ClusterIP
   port: 8000
@@ -55,20 +87,6 @@ ingress:
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local
-
-server:
-  gitlabUrl: https://gitlab.si.c-s.fr
-  jupyterlabUrl: https://nb.p2.csgroup.space
-  allowedOrigins:
-    - "http://localhost:8000"
-    - "https://sharinghub.web.p2.csgroup.space"
-  s3:
-    enable: false
-    bucket: "gitlab"
-    region: ""
-    endpoint: ""
-  stacProjectsCacheTimeout: 300
-  stacSearchCacheTimeout: 180
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
