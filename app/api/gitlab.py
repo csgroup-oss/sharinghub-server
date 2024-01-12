@@ -61,6 +61,7 @@ class GitlabProject(TypedDict):
     default_branch: str | None
     avatar_url: str | None
     topics: list[str]
+    star_count: int
 
 
 class _GitlabProjectLicense(TypedDict):
