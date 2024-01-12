@@ -2,6 +2,7 @@ import re
 from functools import cache
 
 import markdown
+from yaml.scanner import ScannerError
 
 IMAGE_PATTERN = r"!\[(?P<alt>.*?)\]\((?P<src>.*?)\)"
 LINK_PATTERN = r"(?<!\!)\[(?P<text>[^\]]+)\]\((?P<href>http[s]?://[^)]+)\)"
@@ -9,9 +10,12 @@ LINK_PATTERN = r"(?<!\!)\[(?P<text>[^\]]+)\]\((?P<href>http[s]?://[^)]+)\)"
 
 @cache
 def parse(markdown_content: str) -> tuple[str, dict]:
-    md = markdown.Markdown(extensions=["full_yaml_metadata"])
-    md.convert(markdown_content)
-    metadata = md.Meta if md.Meta else {}
+    try:
+        md = markdown.Markdown(extensions=["full_yaml_metadata"])
+        md.convert(markdown_content)
+        metadata = md.Meta if md.Meta else {}
+    except ScannerError:
+        metadata = {}
     if markdown_content.startswith("---"):
         doc = markdown_content.split("---", 2)[-1].lstrip()
     else:
