@@ -135,9 +135,7 @@ class GitlabClient:
             return readme.strip()
         except HTTPException as http_exc:
             if http_exc.status_code == 404:
-                raise HTTPException(
-                    status_code=418, detail="Missing README.md, unprocessable project"
-                ) from http_exc
+                return ""
             raise http_exc
 
     async def get_files(self, project: GitlabProject) -> list[GitlabProjectFile]:
