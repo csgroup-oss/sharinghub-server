@@ -395,7 +395,7 @@ def build_stac_for_project(
     description = _resolve_images(
         md.increase_headings(readme_doc, 3), project, **context
     )
-    keywords = _get_keywords(category, project, readme_metadata)
+    keywords = _get_tags(project, category)
     preview, preview_media_type = _get_preview(readme_metadata, readme_doc)
     license, license_url = _get_license(project, readme_metadata)
     producer, producer_url = _get_producer(project, readme_metadata)
@@ -729,13 +729,10 @@ def _resolve_images(
     return md_patched
 
 
-def _get_keywords(cat: Category, project: GitlabProject, metadata: dict) -> list[str]:
-    cat_keyword = slugify(cat["name"])
-    namespaces_keywords = [
-        slugify(g) for g in project["path_with_namespace"].split("/")[:-1]
-    ]
-    readme_keywords = metadata.get("keywords", [])
-    return list(dict.fromkeys([cat_keyword, *namespaces_keywords, *readme_keywords]))
+def _get_tags(project: GitlabProject, category: Category) -> list[str]:
+    project_topics = project["topics"]
+    project_topics.remove(category["gitlab_topic"])
+    return project_topics
 
 
 def _get_preview(
