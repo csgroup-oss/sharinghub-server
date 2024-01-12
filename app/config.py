@@ -119,11 +119,11 @@ JUPYTERLAB_URL: str | None = conf("jupyterlab.url", "JUPYTERLAB_URL", cast=str)
 STAC_ROOT_CONF: dict = conf("stac.root", default={}, cast=dict)
 
 # Categories
-STAC_CATEGORIES_CACHE_TIMEOUT: float = conf(
-    "stac.categories.cache-timeout",
-    "STAC_CATEGORIES_CACHE_TIMEOUT",
-    default=60.0 * 10,
-    cast=float,
+STAC_CATEGORIES_PAGE_DEFAULT_SIZE: int = conf(
+    "stac.categories.page-size",
+    "STAC_CATEGORIES_PAGE_DEFAULT_SIZE",
+    default=12,
+    cast=int,
 )
 STAC_CATEGORIES: dict = conf("stac.categories.definitions", default={}, cast=dict)
 

@@ -1,25 +1,42 @@
+import enum
+import logging
+import math
 import mimetypes
 import os
 import re
+from datetime import datetime as dt
 from pathlib import Path
 from types import EllipsisType
-from typing import Any, NotRequired, TypeAlias, TypedDict, Unpack
+from typing import Annotated, NotRequired, TypedDict, Unpack
 from urllib import parse
 
-from fastapi import Request
+from fastapi import Depends, HTTPException, Request
+from pydantic import (
+    BaseModel,
+    Field,
+    Json,
+    SerializationInfo,
+    computed_field,
+    field_serializer,
+    field_validator,
+)
 
 from app.api.gitlab import (
     GITLAB_LICENSES_SPDX_MAPPING,
+    GitlabClient,
     GitlabProject,
     GitlabProjectFile,
     GitlabProjectRelease,
     project_issues_url,
     project_url,
 )
-from app.config import GITLAB_URL, STAC_ROOT_CONF
+from app.config import GITLAB_URL, STAC_CATEGORIES
 from app.dependencies import GitlabToken
 from app.utils import markdown as md
-from app.utils.http import is_local, slugify, url_for
+from app.utils.geo import find_parent_of_hashes, hash_polygon
+from app.utils.http import is_local, url_for
+
+logger = logging.getLogger("app")
 
 MEDIA_TYPES = {
     "text": "text/plain",
@@ -43,167 +60,258 @@ ML_ASSETS_DEFAULT_GLOBS = {
 FILE_ASSET_PREFIX = "file://"
 
 
+class STACSearchQuery(BaseModel):
+    limit: Annotated[int, Field(strict=True, gt=0)] = 10
+    bbox: list[float] = Field(default_factory=list)
+    datetime: str | None = Field(default=None)
+    intersects: Json = Field(default=None)
+    ids: list[str] = Field(default_factory=list)
+    collections: list[str] = Field(default_factory=list)
+    q: list[str] = Field(default_factory=list)
+
+    @field_validator("datetime")
+    @classmethod
+    def validate_datetime(cls, d: str) -> str:
+        if d:
+            d1, *do = d.split("/")
+            dt.fromisoformat(d1)
+            if do:
+                d2 = do[0]
+                dt.fromisoformat(d2)
+        return d
+
+    @computed_field
+    def datetime_range(self) -> tuple[dt, dt] | None:
+        if self.datetime:
+            start_dt_str, *other_dts_str = self.datetime.split("/")
+            start_dt = dt.fromisoformat(start_dt_str)
+            if other_dts_str:
+                end_dt_str = other_dts_str[0]
+                end_dt = dt.fromisoformat(end_dt_str)
+            else:
+                end_dt = start_dt
+            return start_dt, end_dt
+        return None
+
+    @field_serializer("bbox", "ids", "collections", "q", when_used="unless-none")
+    def serialize_lists(self, v: list[str | float], _info: SerializationInfo) -> str:
+        return ",".join(str(e) for e in v)
+
+
 class STACContext(TypedDict):
     request: Request
     token: GitlabToken
 
 
-class CategoryFields(TypedDict):
+class Pagination(TypedDict):
+    limit: int
+    matched: int
+    returned: int
+    page: int
+
+
+class Category(TypedDict):
+    id: str
     title: str
     description: NotRequired[str]
     preview: NotRequired[str]
-    gitlab_topic: NotRequired[str]
     features: TypedDict
+    gitlab_topic: NotRequired[str]
 
 
-class Category(CategoryFields):
-    name: str
+CategoryName = enum.StrEnum("CategoryName", {k: k for k in STAC_CATEGORIES})
 
 
-CategorySpec: TypeAlias = dict[str, CategoryFields]
+def get_category(category_id: str) -> Category | None:
+    if category_id in STAC_CATEGORIES:
+        return Category(id=category_id, **STAC_CATEGORIES[category_id])
+    return None
 
 
-def build_stac_search_result(
-    features: list[dict],
-    page: int,
-    limit: int,
-    search_query: dict[str, Any],
+def get_categories() -> list[Category]:
+    return [get_category(category_id) for category_id in STAC_CATEGORIES]
+
+
+def get_category_from_collection_id(collection_id: CategoryName) -> Category:
+    category = get_category(category_id=collection_id)
+    if not category:
+        logger.error(
+            f"Collection '{collection_id}' requested but its configuration is missing."
+        )
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    return category
+
+
+CategoryFromCollectionIdDep = Annotated[
+    Category, Depends(get_category_from_collection_id)
+]
+
+
+async def search_projects(
+    search_query: STACSearchQuery, client: GitlabClient
+) -> list[GitlabProject]:
+    projects: dict[int, GitlabProject] = {}
+
+    topics = []
+    for collection_id in set(search_query.collections):
+        category = get_category(collection_id)
+        if category:
+            topics.append(category["gitlab_topic"])
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Collections should be one of: {', '.join(STAC_CATEGORIES)}",
+            )
+    allowed_topics = topics if topics else [c["gitlab_topic"] for c in get_categories()]
+
+    # Collections search
+    for topic in topics:
+        projects |= {p["id"]: p for p in await client.get_projects(topic)}
+
+    # Spatial extent search
+    extent_search: dict[int, GitlabProject] = {}
+    if search_query.bbox:
+        bbox_geojson = {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [search_query.bbox[0], search_query.bbox[1]],
+                    [search_query.bbox[2], search_query.bbox[1]],
+                    [search_query.bbox[2], search_query.bbox[3]],
+                    [search_query.bbox[0], search_query.bbox[3]],
+                    [search_query.bbox[0], search_query.bbox[1]],
+                ]
+            ],
+        }
+        cells = hash_polygon(bbox_geojson)
+        extent_search = [" ".join(cells)]
+        try:
+            while True:
+                cells = find_parent_of_hashes(cells)
+                extent_search.append(" ".join(cells))
+        except:
+            pass
+        for query in extent_search:
+            gitlab_search = await client.search(scope="projects", query=query)
+            gitlab_search = [
+                project
+                for project in gitlab_search
+                if any(t in project["topics"] for t in allowed_topics)
+            ]
+            extent_search |= {p["id"]: p for p in gitlab_search}
+
+    # Free-text search
+    q_search: dict[int, GitlabProject] = {}
+    if search_query.q:
+        for query in search_query.q:
+            gitlab_search = await client.search(scope="projects", query=query)
+            gitlab_search = [
+                project
+                for project in gitlab_search
+                if any(t in project["topics"] for t in allowed_topics)
+            ]
+            q_search |= {p["id"]: p for p in gitlab_search}
+
+    projects = _search_aggregate(projects, extent_search, q_search)
+
+    # Ids search
+    if search_query.ids and not projects:
+        for stac_id in search_query.ids:
+            stac_id_parse = _parse_project_stac_id(stac_id)
+            if stac_id_parse:
+                category, project_id = stac_id_parse
+                try:
+                    project = await client.get_project(project_id)
+                    if category["gitlab_topic"] in project["topics"]:
+                        projects[project["id"]] = project
+                except HTTPException as http_exc:
+                    if http_exc.status_code != 404:
+                        logger.exception(http_exc)
+    elif search_query.ids:
+        projects = {
+            p["id"]: p
+            for p in projects.values()
+            if _get_project_stac_id(project=p, category=get_project_category(p))
+            in search_query.ids
+        }
+
+    # Temporal extent search
+    if dt_range := search_query.datetime_range:
+        search_start_dt, search_end_dt = dt_range
+
+        def temporal_filter(project_item: tuple[int, GitlabProject]) -> bool:
+            _, project = project_item
+            _, temporal_extent = _get_extent(project, {})
+            p_start_dt = dt.fromisoformat(temporal_extent[0])
+            p_end_dt = dt.fromisoformat(temporal_extent[0])
+            return search_start_dt <= p_start_dt <= p_end_dt <= search_end_dt
+
+        projects = dict(filter(temporal_filter, projects.items()))
+
+    return list(projects.values())
+
+
+def _search_aggregate(
+    projects: dict[int, GitlabProject], *search_results: dict[int, GitlabProject]
+) -> None:
+    _projects = dict(projects)
+    for search_result in search_results:
+        if _projects and search_result:
+            _projects = {
+                p_id: p for p_id, p in _projects.items() if p_id in search_result
+            }
+        else:
+            _projects |= search_result
+    return _projects
+
+
+def paginate_projects(
+    projects: list[GitlabProject], page: int, per_page: int
+) -> tuple[list[GitlabProject], Pagination]:
+    page_projects = projects[(page - 1) * per_page : page * per_page]
+    pagination = Pagination(
+        limit=per_page, matched=len(projects), returned=len(page_projects), page=page
+    )
+    return page_projects, pagination
+
+
+def get_project_category(project: GitlabProject) -> Category:
+    categories = get_categories()
+    for category in categories:
+        if category["gitlab_topic"] in project["topics"]:
+            return category
+    return categories[0]
+
+
+def build_stac_root(
+    root_config: dict,
+    conformance_classes: list[str],
+    categories: list[str],
     **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
     _token = context["token"]
 
-    page_features = features[(page - 1) * limit : page * limit]
-    count_matched = len(features)
-    count_returned = len(page_features)
-
-    query_params = search_query | dict(_request.query_params)
-    nav_links = []
-    if page > 1:
-        prev_params = query_params.copy()
-        prev_params["page"] = page - 1
-        prev_url = url_for(
-            _request,
-            "stac_search",
-            query=prev_params,
-        )
-        nav_links.append(
-            {
-                "rel": "prev",
-                "href": prev_url,
-                "type": "application/geo+json",
-            }
-        )
-
-        first_params = query_params.copy()
-        first_params["page"] = 1
-        first_url = url_for(
-            _request,
-            "stac_search",
-            query=first_params,
-        )
-        nav_links.append(
-            {
-                "rel": "first",
-                "href": first_url,
-                "type": "application/geo+json",
-            }
-        )
-
-    if features[page * limit :]:
-        next_params = query_params.copy()
-        next_params["page"] = page + 1
-        next_url = url_for(
-            _request,
-            "stac_search",
-            query=next_params,
-        )
-        nav_links.append(
-            {
-                "rel": "next",
-                "href": next_url,
-                "type": "application/geo+json",
-            }
-        )
-
-        last_params = query_params.copy()
-        last_params["page"] = len(features) // limit + len(features) % limit
-        last_url = url_for(
-            _request,
-            "stac_search",
-            query=last_params,
-        )
-        nav_links.append(
-            {
-                "rel": "last",
-                "href": last_url,
-                "type": "application/geo+json",
-            }
-        )
-
-    return {
-        "stac_version": "1.0.0",
-        "type": "FeatureCollection",
-        "id": url_for(
-            _request,
-            "stac_search",
-            query={**_token.query},
-        ),
-        "context": {
-            "limit": limit,
-            "matched": count_matched,
-            "returned": count_returned,
-        },
-        "numberMatched": count_matched,
-        "numberReturned": count_returned,
-        "features": page_features,
-        "links": [
-            {
-                "rel": "root",
-                "type": "application/json",
-                "href": url_for(
-                    _request,
-                    "stac_root",
-                    query={**_token.query},
-                ),
-            },
-            {
-                "rel": "self",
-                "type": "application/json",
-                "href": url_for(
-                    _request,
-                    "stac_search",
-                    query=query_params,
-                ),
-            },
-            *nav_links,
-        ],
-    }
-
-
-def build_stac_root(categories: CategorySpec, **context: Unpack[STACContext]) -> dict:
-    _request = context["request"]
-    _token = context["token"]
-
-    title = STAC_ROOT_CONF.get("title", "GitLab STAC")
-    description = STAC_ROOT_CONF.get(
+    title = root_config.get("title", "GitLab STAC")
+    description = root_config.get(
         "description",
         f"Catalog generated from your [Gitlab]({GITLAB_URL}) repositories with SharingHUB.",
     )
-    logo = STAC_ROOT_CONF.get("logo")
+    logo = root_config.get("logo")
 
     links = [
         {
             "rel": "child",
-            "type": "application/json",
+            "type": "application/geo+json",
             "href": url_for(
                 _request,
-                "stac_category",
-                path=dict(category=category_name),
+                "stac2_collection",
+                path=dict(collection_id=category_id),
                 query={**_token.query},
             ),
         }
-        for category_name in categories
+        for category_id in categories
     ]
 
     if logo:
@@ -219,25 +327,25 @@ def build_stac_root(categories: CategorySpec, **context: Unpack[STACContext]) ->
     return {
         "stac_version": "1.0.0",
         "type": "Catalog",
-        "id": STAC_ROOT_CONF["id"],
+        "id": root_config["id"],
         "title": title,
         "description": description,
         "links": [
-            {
-                "rel": "root",
-                "type": "application/json",
-                "href": url_for(
-                    _request,
-                    "stac_root",
-                    query={**_token.query},
-                ),
-            },
             {
                 "rel": "self",
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac_root",
+                    "stac2_root",
+                    query={**_token.query},
+                ),
+            },
+            {
+                "rel": "root",
+                "type": "application/json",
+                "href": url_for(
+                    _request,
+                    "stac2_root",
                     query={**_token.query},
                 ),
             },
@@ -250,50 +358,90 @@ def build_stac_root(categories: CategorySpec, **context: Unpack[STACContext]) ->
             {
                 "rel": "service-doc",
                 "type": "text/html",
-                "href": url_for(_request, "index") + "docs",
+                "href": url_for(_request, "index") + "api/docs",
                 "title": "OpenAPI interactive docs: Swagger UI",
             },
             {
-                "rel": "search",
-                "type": "application/geo+json",
+                "rel": "conformance",
+                "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac_search",
+                    "stac2_conformance",
                     query={**_token.query},
                 ),
-                "method": "GET",
-                "title": "STAC Search (GET)",
+            },
+            {
+                "rel": "data",
+                "type": "application/json",
+                "href": url_for(
+                    _request,
+                    "stac2_collections",
+                    query={**_token.query},
+                ),
             },
             {
                 "rel": "search",
                 "type": "application/geo+json",
                 "href": url_for(
                     _request,
-                    "stac_search_post",
+                    "stac2_search",
                     query={**_token.query},
                 ),
-                "method": "POST",
-                "title": "STAC Search (POST)",
+                "method": "GET",
             },
             *links,
         ],
-        "conformsTo": [
-            "https://api.stacspec.org/v1.0.0/core",
-            "https://api.stacspec.org/v1.0.0/item-search",
-            "https://api.stacspec.org/v1.0.0-rc.1/item-search#free-text",
-            "https://api.stacspec.org/v1.0.0-rc.1/item-search#advanced-free-text",
-            "https://api.stacspec.org/v1.0.0-rc.1/ogcapi-features",
-            "https://api.stacspec.org/v1.0.0-rc.1/ogcapi-features#free-text",
-            "https://api.stacspec.org/v1.0.0-rc.1/ogcapi-features#advanced-free-text",
-        ],
+        "conformsTo": conformance_classes,
     }
 
 
-def build_stac_category(
-    category: Category,
-    projects: list[GitlabProject],
-    **context: Unpack[STACContext],
+def build_stac_collections(
+    categories: list[Category], **context: Unpack[STACContext]
 ) -> dict:
+    _request = context["request"]
+    _token = context["token"]
+
+    collections = [
+        build_stac_collection(
+            category=category,
+            request=_request,
+            token=_token,
+        )
+        for category in categories
+    ]
+    _collections_len = len(collections)
+    return {
+        "collections": collections,
+        "links": [
+            {
+                "rel": "self",
+                "type": "application/json",
+                "href": url_for(
+                    _request,
+                    "stac2_collections",
+                    query={**_token.query},
+                ),
+            },
+            {
+                "rel": "root",
+                "type": "application/json",
+                "href": url_for(
+                    _request,
+                    "stac2_root",
+                    query={**_token.query},
+                ),
+            },
+        ],
+        "context": {
+            "page": 1,
+            "limit": _collections_len,
+            "matched": _collections_len,
+            "returned": _collections_len,
+        },
+    }
+
+
+def build_stac_collection(category: Category, **context: Unpack[STACContext]) -> dict:
     _request = context["request"]
     _token = context["token"]
 
@@ -304,22 +452,7 @@ def build_stac_category(
     )
     logo = category.get("logo")
 
-    links = [
-        {
-            "rel": "child",
-            "type": "application/json",
-            "href": url_for(
-                _request,
-                "stac_project",
-                path=dict(
-                    category=category["name"],
-                    project_path=project["path_with_namespace"],
-                ),
-                query={**_token.query},
-            ),
-        }
-        for project in projects
-    ]
+    links = []
 
     if logo:
         logo_media_type, _ = mimetypes.guess_type(logo)
@@ -331,30 +464,34 @@ def build_stac_category(
             }
         )
 
-    stac_id = f"{STAC_ROOT_CONF['id']}-{slugify(category['name'])}"
     return {
         "stac_version": "1.0.0",
-        "type": "Catalog",
-        "id": stac_id,
+        "stac_extensions": [],
+        "type": "Collection",
+        "id": category["id"],
         "title": title,
         "description": description,
-        "links": [
+        "license": "proprietary",
+        "keywords": [category["id"]],
+        "providers": [
             {
-                "rel": "root",
-                "type": "application/json",
-                "href": url_for(
-                    _request,
-                    "stac_root",
-                    query={**_token.query},
-                ),
+                "name": f"GitLab ({GITLAB_URL})",
+                "roles": ["host"],
+                "url": GITLAB_URL,
             },
+        ],
+        "extent": {
+            "spatial": {"bbox": [[-180, -90, 180, 90]]},
+            "temporal": {"interval": [[None, None]]},
+        },
+        "links": [
             {
                 "rel": "self",
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac_category",
-                    path=dict(category=category["name"]),
+                    "stac2_collection",
+                    path=dict(collection_id=category["id"]),
                     query={**_token.query},
                 ),
             },
@@ -363,7 +500,26 @@ def build_stac_category(
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac_root",
+                    "stac2_root",
+                    query={**_token.query},
+                ),
+            },
+            {
+                "rel": "root",
+                "type": "application/json",
+                "href": url_for(
+                    _request,
+                    "stac2_root",
+                    query={**_token.query},
+                ),
+            },
+            {
+                "rel": "items",
+                "type": "application/geo+json",
+                "href": url_for(
+                    _request,
+                    "stac2_collection_items",
+                    path=dict(collection_id=category["id"]),
                     query={**_token.query},
                 ),
             },
@@ -372,14 +528,190 @@ def build_stac_category(
     }
 
 
-def build_stac_for_project(
+def build_features_collection(
+    features: list[dict],
+    pagination: Pagination,
+    route: str,
+    category: Category | None,
+    **context: Unpack[STACContext],
+) -> dict:
+    _request = context["request"]
+    _token = context["token"]
+
+    links = []
+
+    if category:
+        links.append(
+            {
+                "rel": "collection",
+                "type": "application/json",
+                "href": url_for(
+                    _request,
+                    "stac2_collection",
+                    path=dict(collection_id=category["id"]),
+                    query={**_token.query},
+                ),
+            }
+        )
+
+    query_params = dict(_request.query_params)
+
+    if pagination["page"] > 1:
+        prev_params = query_params.copy()
+        prev_params["page"] = pagination["page"] - 1
+        links.append(
+            {
+                "rel": "prev",
+                "href": url_for(
+                    _request,
+                    route,
+                    path=_request.path_params,
+                    query={**prev_params, **_token.query},
+                ),
+                "type": "application/geo+json",
+            }
+        )
+
+        first_params = query_params.copy()
+        first_params["page"] = 1
+        links.append(
+            {
+                "rel": "first",
+                "href": url_for(
+                    _request,
+                    route,
+                    path=_request.path_params,
+                    query={**first_params, **_token.query},
+                ),
+                "type": "application/geo+json",
+            }
+        )
+
+    if pagination["page"] * pagination["limit"] < pagination["matched"]:
+        next_params = query_params.copy()
+        next_params["page"] = pagination["page"] + 1
+
+        links.append(
+            {
+                "rel": "next",
+                "href": url_for(
+                    _request,
+                    route,
+                    path=_request.path_params,
+                    query={**next_params, **_token.query},
+                ),
+                "type": "application/geo+json",
+            }
+        )
+
+        last_params = query_params.copy()
+        last_params["page"] = math.ceil(pagination["matched"] / pagination["limit"])
+        links.append(
+            {
+                "rel": "last",
+                "href": url_for(
+                    _request,
+                    route,
+                    path=_request.path_params,
+                    query={**last_params, **_token.query},
+                ),
+                "type": "application/geo+json",
+            }
+        )
+
+    return {
+        "type": "FeatureCollection",
+        "stac_version": "1.0.0",
+        "stac_extensions": [],
+        "context": {
+            "limit": pagination["limit"],
+            "matched": pagination["matched"],
+            "returned": pagination["returned"],
+        },
+        "numberMatched": pagination["matched"],
+        "numberReturned": pagination["returned"],
+        "features": features,
+        "links": [
+            {
+                "rel": "self",
+                "type": "application/geo+json",
+                "href": url_for(
+                    _request,
+                    route,
+                    path=_request.path_params,
+                    query={**_request.query_params, **_token.query},
+                ),
+            },
+            {
+                "rel": "root",
+                "type": "application/json",
+                "href": url_for(
+                    _request,
+                    "stac2_root",
+                    query={**_token.query},
+                ),
+            },
+            *links,
+        ],
+    }
+
+
+def build_stac_item_preview(
+    project: GitlabProject,
+    readme: str,
     category: Category,
+    **context: Unpack[STACContext],
+) -> dict:
+    readme_doc, readme_metadata = md.parse(readme)
+
+    # STAC data
+    description = _get_preview_description(project, readme_doc)
+    keywords = _get_tags(project, category)
+    preview, preview_media_type = _get_preview(readme_metadata, readme_doc)
+    spatial_extent, _ = _get_extent(project, readme_metadata)
+
+    # STAC generation
+    default_links, default_assets = get_stac_item_default_links_and_assets(
+        project, category, preview, preview_media_type, **context
+    )
+    return {
+        "stac_version": "1.0.0",
+        "stac_extensions": [],
+        "type": "Feature",
+        "id": _get_project_stac_id(project, category),
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    (spatial_extent[0], spatial_extent[1]),
+                    (spatial_extent[2], spatial_extent[1]),
+                    (spatial_extent[2], spatial_extent[3]),
+                    (spatial_extent[0], spatial_extent[3]),
+                    (spatial_extent[0], spatial_extent[1]),
+                ]
+            ],
+        },
+        "bbox": spatial_extent,
+        "properties": {
+            "title": project["name"],
+            "description": description,
+            "datetime": project["last_activity_at"],
+            "keywords": keywords,
+            "sharinghub:stars": project["star_count"],
+        },
+        "links": default_links,
+        "assets": default_assets,
+    }
+
+
+def build_stac_item(
     project: GitlabProject,
     readme: str,
     files: list[GitlabProjectFile],
     assets_rules: list[str],
     release: GitlabProjectRelease | None,
     release_source_format: str,
+    category: Category,
     **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
@@ -390,11 +722,7 @@ def build_stac_for_project(
 
     # STAC data
 
-    stac_id = f"{STAC_ROOT_CONF['id']}-{slugify(category['name'])}-{project['id']}"
-    title = project["name"]
-    description = _resolve_images(
-        md.increase_headings(readme_doc, 3), project, **context
-    )
+    description = _get_description(project, readme_doc, **context)
     keywords = _get_tags(project, category)
     preview, preview_media_type = _get_preview(readme_metadata, readme_doc)
     license, license_url = _get_license(project, readme_metadata)
@@ -405,6 +733,9 @@ def build_stac_for_project(
 
     ## Extensions
 
+    ## sharing hub extensions
+    sharinghub_properties = _get_sharinghub_properties(category, readme_metadata)
+
     ### Scientific Citation extension (https://github.com/stac-extensions/scientific)
     doi, doi_publications = _get_scientific_citations(readme_metadata, readme_doc)
     doi_link, doi_citation = doi
@@ -413,8 +744,6 @@ def build_stac_for_project(
     ml_properties, ml_assets, ml_links = _get_machine_learning(
         readme_metadata, resources_links
     )
-    ## sharing hub extensions
-    sharinghub_properties = _get_sharinghub_properties(category, readme_metadata)
 
     # STAC generation
 
@@ -424,93 +753,7 @@ def build_stac_for_project(
 
     fields = {}
     assets = {}
-    links = [
-        {
-            "rel": "root",
-            "type": "application/json",
-            "href": url_for(
-                _request,
-                "stac_root",
-                query={**_token.query},
-            ),
-        },
-        {
-            "rel": "self",
-            "type": "application/json",
-            "href": url_for(
-                _request,
-                "stac_project",
-                path=dict(
-                    category=category["name"],
-                    project_path=project["path_with_namespace"],
-                ),
-                query={**_token.query},
-            ),
-        },
-        {
-            "rel": "parent",
-            "type": "application/json",
-            "href": url_for(
-                _request,
-                "stac_category",
-                path=dict(category=category["name"]),
-                query={**_token.query},
-            ),
-        },
-        {
-            "rel": "bug_tracker",
-            "type": "text/html",
-            "href": project_issues_url(GITLAB_URL, project),
-            "title": "Issues",
-        },
-        *(
-            {
-                "rel": "derived_from" if "stac" in _labels else "extras",
-                "type": "application/json",
-                "href": _href,
-                "title": _title,
-            }
-            for _title, _href, _labels in resources_links
-        ),
-    ]
-    providers = [
-        {
-            "name": f"GitLab ({GITLAB_URL})",
-            "roles": ["host"],
-            "url": project_url(GITLAB_URL, project),
-        },
-        {
-            "name": producer,
-            "roles": ["producer"],
-            "url": producer_url,
-        },
-    ]
-
-    if is_local(preview):
-        preview = url_for(
-            _request,
-            "download_gitlab_file",
-            path=dict(
-                project_id=project["id"],
-                ref=project["default_branch"],
-                file_path=preview,
-            ),
-            query={**_token.rc_query},
-        )
-    if preview:
-        assets["preview"] = {
-            "href": preview,
-            "title": "Preview",
-            "roles": ["thumbnail"],
-        }
-        if preview_media_type:
-            assets["preview"]["type"] = preview_media_type
-        links.append(
-            {
-                "rel": "preview",
-                "href": preview,
-            }
-        )
+    links = []
 
     if license_url:
         links.append(
@@ -519,6 +762,8 @@ def build_stac_for_project(
                 "href": license_url,
             }
         )
+    if license:
+        fields["license"] = license
 
     for file_path, file_media_type in files_assets.items():
         asset_id = _get_file_asset_id(file_path)
@@ -624,14 +869,14 @@ def build_stac_for_project(
         for prop, val in sharinghub_properties.items():
             fields[f"sharinghub:{prop}"] = val
 
-    if license:
-        fields["license"] = license
-
+    default_links, default_assets = get_stac_item_default_links_and_assets(
+        project, category, preview, preview_media_type, **context
+    )
     return {
         "stac_version": "1.0.0",
         "stac_extensions": stac_extensions,
         "type": "Feature",
-        "id": stac_id,
+        "id": _get_project_stac_id(project, category),
         "geometry": {
             "type": "Polygon",
             "coordinates": [
@@ -646,25 +891,193 @@ def build_stac_for_project(
         },
         "bbox": spatial_extent,
         "properties": {
-            "title": title,
+            "title": project["name"],
             "description": description,
-            "datetime": None,
+            "datetime": project["last_activity_at"],
             "start_datetime": temporal_extent[0],
             "end_datetime": temporal_extent[1],
             "created": temporal_extent[0],
             "updated": temporal_extent[1],
             "keywords": keywords,
-            "providers": providers,
+            "providers": [
+                {
+                    "name": f"GitLab ({GITLAB_URL})",
+                    "roles": ["host"],
+                    "url": project_url(GITLAB_URL, project),
+                },
+                {
+                    "name": producer,
+                    "roles": ["producer"],
+                    "url": producer_url,
+                },
+            ],
+            **fields,
             "sharinghub:name": project["name_with_namespace"],
             "sharinghub:path": project["path_with_namespace"],
             "sharinghub:id": project["id"],
             "sharinghub:stars": project["star_count"],
-            **fields,
         },
-        "links": links,
-        "assets": assets,
-        "collection": None,
+        "links": [
+            *default_links,
+            {
+                "rel": "bug_tracker",
+                "type": "text/html",
+                "href": project_issues_url(GITLAB_URL, project),
+                "title": "Issues",
+            },
+            *(
+                {
+                    "rel": "derived_from" if "stac" in _labels else "extras",
+                    "type": "application/json",
+                    "href": _href,
+                    "title": _title,
+                }
+                for _title, _href, _labels in resources_links
+            ),
+            *links,
+        ],
+        "assets": default_assets | assets,
     }
+
+
+def get_stac_item_default_links_and_assets(
+    project: GitlabProject,
+    category: Category,
+    preview: str | None,
+    preview_media_type: str | None,
+    **context: Unpack[STACContext],
+) -> tuple[list[dict], dict[str, dict]]:
+    _request = context["request"]
+    _token = context["token"]
+
+    assets = {}
+    links = []
+    if is_local(preview):
+        preview = url_for(
+            _request,
+            "download_gitlab_file",
+            path=dict(
+                project_id=project["id"],
+                ref=project["default_branch"],
+                file_path=preview,
+            ),
+            query={**_token.rc_query},
+        )
+    if preview:
+        assets["preview"] = {
+            "href": preview,
+            "title": "Preview",
+            "roles": ["thumbnail"],
+        }
+        if preview_media_type:
+            assets["preview"]["type"] = preview_media_type
+        links.append(
+            {
+                "rel": "preview",
+                "href": preview,
+            }
+        )
+    return [
+        {
+            "rel": "self",
+            "type": "application/geo+json",
+            "href": url_for(
+                _request,
+                "stac2_collection_feature",
+                path=dict(
+                    collection_id=category["id"],
+                    feature_id=project["path_with_namespace"],
+                ),
+                query={**_token.query},
+            ),
+        },
+        {
+            "rel": "parent",
+            "type": "application/json",
+            "href": url_for(
+                _request,
+                "stac2_collection",
+                path=dict(collection_id=category["id"]),
+                query={**_token.query},
+            ),
+        },
+        {
+            "rel": "root",
+            "type": "application/json",
+            "href": url_for(
+                _request,
+                "stac2_root",
+                query={**_token.query},
+            ),
+        },
+        {
+            "rel": "collection",
+            "type": "application/json",
+            "href": url_for(
+                _request,
+                "stac2_collection",
+                path=dict(collection_id=category["id"]),
+                query={**_token.query},
+            ),
+        },
+        *links,
+    ], assets
+
+
+def _get_preview_description(
+    project: GitlabProject, md_content: str, wrap_char: int = 150
+) -> str:
+    description = project["description"]
+    if not description:
+        description = md_content
+        description = md.remove_everything_before_first_heading(description)
+        description = md.remove_headings(description)
+        description = md.remove_images(description)
+        description = md.remove_links(description)
+        description = md.clean_new_lines(description)
+        description = description[:wrap_char].strip()
+        if len(description) == wrap_char:
+            description += "..."
+    return description if description else None
+
+
+def _get_description(
+    project: GitlabProject, md_content: str, **context: Unpack[STACContext]
+) -> str:
+    description = md.increase_headings(md_content, 3)
+    description = _resolve_images(description, project=project, **context)
+    description = md.clean_new_lines(description)
+    return description
+
+
+def _get_tags(project: GitlabProject, category: Category) -> list[str]:
+    project_topics = project["topics"]
+    project_topics.remove(category["gitlab_topic"])
+    return project_topics
+
+
+def _get_preview(
+    metadata: dict,
+    md_content: str,
+) -> tuple[str | None, str | None]:
+    preview = metadata.get("preview")
+    preview = metadata.get("thumbnail", preview)
+    for link_alt, link_img in md.get_images(md_content):
+        if link_alt.lower().strip() in ["preview", "thumbnail"]:
+            preview = link_img
+    media_type, _ = mimetypes.guess_type(preview) if preview else (None, None)
+    return preview, media_type
+
+
+def _get_extent(
+    project: GitlabProject, metadata: dict
+) -> tuple[list[float], list[str | None]]:
+    extent = metadata.get("extent", {})
+    spatial_extent = extent.get("bbox", [-180.0, -90.0, 180.0, 90.0])
+    temporal_extent = extent.get(
+        "temporal", [project["created_at"], project["last_activity_at"]]
+    )
+    return spatial_extent, temporal_extent
 
 
 def _get_assets_mapping(
@@ -729,25 +1142,6 @@ def _resolve_images(
     return md_patched
 
 
-def _get_tags(project: GitlabProject, category: Category) -> list[str]:
-    project_topics = project["topics"]
-    project_topics.remove(category["gitlab_topic"])
-    return project_topics
-
-
-def _get_preview(
-    metadata: dict,
-    md_content: str,
-) -> tuple[str | None, str | None]:
-    preview = metadata.get("preview")
-    preview = metadata.get("thumbnail", preview)
-    for link_alt, link_img in md.get_images(md_content):
-        if link_alt.lower().strip() in ["preview", "thumbnail"]:
-            preview = link_img
-    media_type, _ = mimetypes.guess_type(preview) if preview else (None, None)
-    return preview, media_type
-
-
 def _get_license(
     project: GitlabProject, metadata: dict
 ) -> tuple[str | None, str | None]:
@@ -780,17 +1174,6 @@ def _get_producer(project: GitlabProject, metadata: dict) -> tuple[str, str]:
     producer_url = f"{GITLAB_URL}/{_producer_path}"
     producer_url = metadata.get("producer_url", producer_url)
     return producer, producer_url
-
-
-def _get_extent(
-    project: GitlabProject, metadata: dict
-) -> tuple[list[float], list[str | None]]:
-    extent = metadata.get("extent", {})
-    spatial_extent = extent.get("bbox", [-180.0, -90.0, 180.0, 90.0])
-    temporal_extent = extent.get(
-        "temporal", [project["created_at"], project["last_activity_at"]]
-    )
-    return spatial_extent, temporal_extent
 
 
 def _get_files_assets(
@@ -834,10 +1217,6 @@ def _retrieve_resources_links(
     return links
 
 
-def _get_sharinghub_properties(cat: Category, metadata: dict) -> dict:
-    return cat.get("features", {}) | metadata.get("sharinghub", {})
-
-
 def _parse_resource_link(
     raw_link: str, key: str, labels: list, **context: Unpack[STACContext]
 ) -> tuple[str, str, list[str]]:
@@ -858,10 +1237,10 @@ def _parse_resource_link(
         path = parse.urlparse(link).path.removeprefix("/")
         link = url_for(
             _request,
-            "stac_project",
+            "stac2_collection_feature",
             path=dict(
-                category=key,
-                project_path=path,
+                collection_id=key,
+                feature_id=path,
             ),
             query={**_token.query},
         )
@@ -871,6 +1250,10 @@ def _parse_resource_link(
         title = key
 
     return title, link, _labels
+
+
+def _get_sharinghub_properties(category: Category, metadata: dict) -> dict:
+    return category.get("features", {}) | metadata.get("sharinghub", {})
 
 
 def _get_scientific_citations(
@@ -986,3 +1369,21 @@ def _retrieve_elements(mapping: dict, singular: str, plural: str) -> list:
 
 def _get_file_asset_id(file_path: str) -> str:
     return f"{FILE_ASSET_PREFIX}{file_path}"
+
+
+def _get_project_stac_id(project: GitlabProject, category: Category | None) -> str:
+    if not category:
+        category = get_project_category(project)
+    return f"{category['id']}-{project['id']}"
+
+
+def _parse_project_stac_id(stac_id: str) -> tuple[Category, int] | None:
+    try:
+        category_id, project_id_str = stac_id.rsplit("-", 1)
+        category = get_category(category_id)
+        project_id = int(project_id_str)
+        if category:
+            return category, project_id
+    except ValueError:
+        pass
+    return None

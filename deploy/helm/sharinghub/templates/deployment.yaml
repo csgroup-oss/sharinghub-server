@@ -62,8 +62,6 @@ spec:
                   name: {{ template "sharinghub.fullname" . }}-oidc
                   key: default-token
                   optional: true
-            - name: STAC_CATEGORIES_CACHE_TIMEOUT
-              value: "{{ .Values.server.stacCategoriesCacheTimeout }}"
             - name: STAC_PROJECTS_CACHE_TIMEOUT
               value: "{{ .Values.server.stacProjectsCacheTimeout }}"
           livenessProbe:

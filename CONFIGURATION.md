@@ -28,7 +28,7 @@ Content:
   - [Gitlab: OAuth default token](#gitlab-oauth-default-token)
   - [JupyterLab: URL](#jupyterlab-url)
   - [STAC: root conf](#stac-root-conf)
-  - [STAC: categories cache timeout](#stac-categories-cache-timeout)
+  - [STAC: categories page default size](#stac-categories-page-default-size)
   - [STAC: categories](#stac-categories)
   - [STAC: projects cache timeout](#stac-projects-cache-timeout)
   - [STAC: projects assets rules](#stac-projects-assets-rules)
@@ -296,20 +296,20 @@ Content:
         logo: URL
     ```
 
-### STAC: categories cache timeout
+### STAC: categories page default size
 
-- Type: floating number
-- Default: `600.0`
+- Type: integer number
+- Default: `12`
 - Environment variable:
-  - Name: `STAC_CATEGORIES_CACHE_TIMEOUT`
-  - Example value: `30.0`
+  - Name: `STAC_CATEGORIES_PAGE_DEFAULT_SIZE`
+  - Example value: `20`
 - YAML:
   - Path: `stac.categories.cache-timeout`
   - Example value:
     ```yaml
     stac:
       categories:
-        cache-timeout: 30.0
+        page-size: 20
     ```
 
 ### STAC: categories
