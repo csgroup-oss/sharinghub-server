@@ -29,6 +29,7 @@ stac:
           deployment: enable
           jupyter: disable
           map-viewer: enable
+          store-s3: disable
       dataset:
         title: Datasets
         description: Datasets are very important in the process of training an AI, discover those that we put at your disposal.
@@ -43,6 +44,7 @@ stac:
           deployment: disable
           jupyter: disable
           map-viewer: enable
+          store-s3: enable
       processor:
         title: Tools and libraries
         description: We list tools and libraries that can make your life easier in the development of your models, or their use.
@@ -57,6 +59,7 @@ stac:
           deployment: disable
           jupyter: disable
           map-viewer: disable
+          store-s3: disable
       challenge:
         title: Challenges
         description: Challenges may be offered to you here. Put yourself to the test!
@@ -71,3 +74,4 @@ stac:
           deployment: disable
           jupyter: enable
           map-viewer: enable
+          store-s3: disable

@@ -133,6 +133,7 @@ S3_UPLOAD_CHUNK_SIZE: int = conf(
     default=6000000,
     cast=int,
 )
+S3_FEATURE_NAME = "store-s3"
 
 ####  STAC  ####
 

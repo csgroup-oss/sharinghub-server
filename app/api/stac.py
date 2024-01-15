@@ -276,12 +276,12 @@ def paginate_projects(
     return page_projects, pagination
 
 
-def get_project_category(project: GitlabProject) -> Category:
+def get_project_category(project: GitlabProject) -> Category | None:
     categories = get_categories()
     for category in categories:
         if category["gitlab_topic"] in project["topics"]:
             return category
-    return categories[0]
+    return None
 
 
 def build_stac_root(
@@ -659,9 +659,14 @@ def build_features_collection(
 def build_stac_item_preview(
     project: GitlabProject,
     readme: str,
-    category: Category,
+    category: Category | None,
     **context: Unpack[STACContext],
 ) -> dict:
+    if not category:
+        raise HTTPException(
+            status_code=500, detail="Unexpected error, project have no category"
+        )
+
     readme_doc, readme_metadata = md.parse(readme)
 
     # STAC data
