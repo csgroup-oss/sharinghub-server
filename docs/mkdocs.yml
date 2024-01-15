@@ -15,12 +15,14 @@ theme:
     - navigation.footer
     - navigation.indexes
     - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.top
     - search.highlight
     - search.share
     - search.suggest
     - toc.follow
-  logo: assets/img/logo.png
+  logo: assets/img/logo-white.png
   favicon: assets/img/favicon.ico
   palette:
     # Palette toggle for light mode
@@ -45,6 +47,7 @@ markdown_extensions:
   - attr_list
   - admonition
   - footnotes
+  - md_in_html
   - pymdownx.betterem
   - pymdownx.caret
   - pymdownx.details
