@@ -68,6 +68,7 @@ class STACSearchQuery(BaseModel):
     ids: list[str] = Field(default_factory=list)
     collections: list[str] = Field(default_factory=list)
     q: list[str] = Field(default_factory=list)
+    topics: list[str] = Field(default_factory=list)
 
     @field_validator("datetime")
     @classmethod
@@ -248,6 +249,15 @@ async def search_projects(
             return search_start_dt <= p_start_dt <= p_end_dt <= search_end_dt
 
         projects = dict(filter(temporal_filter, projects.items()))
+
+    if search_query.topics:
+        def filter_by_topic(project_item: tuple[int, GitlabProject]) -> bool:
+            _, _project = project_item
+            for _topic in _project.get('topics', []):
+                if _topic in search_query.topics:
+                    return True
+            return False
+        projects = dict(filter(filter_by_topic, projects.items()))
 
     return list(projects.values())
 
