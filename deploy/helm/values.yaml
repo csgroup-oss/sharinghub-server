@@ -24,5 +24,4 @@ ingress:
         - sharinghub.p2.csgroup.space
 
 server:
-  stacCategoriesCacheTimeout: 20
   stacProjectsCacheTimeout: 30
