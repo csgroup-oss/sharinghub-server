@@ -84,6 +84,8 @@ spec:
               value: "{{ .Values.server.s3.endpoint }}"
             - name: STAC_PROJECTS_CACHE_TIMEOUT
               value: "{{ .Values.server.stacProjectsCacheTimeout }}"
+            - name: STAC_SEARCH_CACHE_TIMEOUT
+              value: "{{ .Values.server.stacSearchCacheTimeout }}"
           livenessProbe:
             httpGet:
               path: /

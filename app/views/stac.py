@@ -6,7 +6,7 @@ from collections import namedtuple
 from fastapi import HTTPException, Request
 from fastapi.routing import APIRouter
 
-from app.api.gitlab import GitlabClient
+from app.api.gitlab import GitlabClient, GitlabProject
 from app.api.stac import (
     Category,
     CategoryFromCollectionIdDep,
@@ -31,6 +31,7 @@ from app.config import (
     STAC_PROJECTS_ASSETS_RULES,
     STAC_PROJECTS_CACHE_TIMEOUT,
     STAC_ROOT_CONF,
+    STAC_SEARCH_CACHE_TIMEOUT,
 )
 from app.dependencies import GitlabTokenDep
 
@@ -40,6 +41,7 @@ router = APIRouter()
 
 
 PROJECT_CACHE = {}
+SEARCH_CACHE = {"readme": {}}
 
 CachedProjectSTAC = namedtuple("CachedProjectSTAC", ["time", "last_activity", "stac"])
 
@@ -233,7 +235,7 @@ async def _stac_search(
     )
 
     page_projects_readme = await asyncio.gather(
-        *(gitlab_client.get_readme(p) for p in page_projects)
+        *(get_cached_readme(gitlab_client, p) for p in page_projects)
     )
 
     return build_features_collection(
@@ -253,3 +255,23 @@ async def _stac_search(
         request=request,
         token=token,
     )
+
+
+async def get_cached_readme(client: GitlabClient, project: GitlabProject) -> str:
+    cache_key = project["id"]
+
+    if (
+        cache_key in SEARCH_CACHE["readme"]
+        and time.time() - SEARCH_CACHE["readme"][cache_key]["time"]
+        < STAC_SEARCH_CACHE_TIMEOUT
+    ):
+        return SEARCH_CACHE["readme"][cache_key]["content"]
+
+    readme = await client.get_readme(project)
+
+    if ENABLE_CACHE:
+        SEARCH_CACHE["readme"][cache_key] = {
+            "time": time.time(),
+            "content": readme,
+        }
+    return readme

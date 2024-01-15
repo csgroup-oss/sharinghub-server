@@ -173,3 +173,9 @@ STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT: str = (
     .lower()
     .lstrip(".")
 )
+STAC_SEARCH_CACHE_TIMEOUT: float = conf(
+    "stac.search.cache-timeout",
+    "STAC_SEARCH_CACHE_TIMEOUT",
+    default=60.0 * 3,
+    cast=float,
+)

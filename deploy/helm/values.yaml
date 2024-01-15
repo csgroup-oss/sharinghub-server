@@ -25,3 +25,4 @@ ingress:
 
 server:
   stacProjectsCacheTimeout: 30
+  stacSearchCacheTimeout: 15

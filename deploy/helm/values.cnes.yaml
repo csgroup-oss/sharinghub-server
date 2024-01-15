@@ -27,3 +27,4 @@ server:
   gitlabUrl: https://gitlab.cnes.fr
   jupyterlabUrl: https://jupyterhub.cnes.fr
   stacProjectsCacheTimeout: 30
+  stacSearchCacheTimeout: 15

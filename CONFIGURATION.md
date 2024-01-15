@@ -42,6 +42,7 @@ Content:
   - [STAC: projects cache timeout](#stac-projects-cache-timeout)
   - [STAC: projects assets rules](#stac-projects-assets-rules)
   - [STAC: projects assets release source format](#stac-projects-assets-release-source-format)
+  - [STAC: projects cache timeout](#stac-projects-cache-timeout-1)
 
 ## Variables
 
@@ -508,4 +509,20 @@ Content:
       projects:
         assets:
           release-source-format: tar.gz
+    ```
+
+### STAC: projects cache timeout
+
+- Type: floating number
+- Default: `180.0`
+- Environment variable:
+  - Name: `STAC_SEARCH_CACHE_TIMEOUT`
+  - Example value: `15.0`
+- YAML:
+  - Path: `stac.search.cache-timeout`
+  - Example value:
+    ```yaml
+    stac:
+      search:
+        cache-timeout: 15.0
     ```
