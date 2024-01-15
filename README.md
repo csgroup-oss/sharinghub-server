@@ -60,8 +60,7 @@ npm run build:minimal -- --catalogTitle="SharingHUB" --historyMode="hash" --path
 # Build docs (reuse previous virtualenv)
 pip install -r requirements-docs.txt
 cd docs
-mkdocs build -f mkdocs.en.yml
-mkdocs build -f mkdocs.fr.yml
+mkdocs build
 ```
 
 We use `python-dotenv`, if a `.env` file is present it will be loaded.

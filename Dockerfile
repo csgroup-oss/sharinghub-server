@@ -8,8 +8,7 @@ COPY docs/ /docs
 
 WORKDIR /docs
 
-RUN mkdocs build -f mkdocs.en.yml && \
-    mkdocs build -f mkdocs.fr.yml
+RUN mkdocs build
 
 FROM node:lts-alpine3.18 AS web-ui
 

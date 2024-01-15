@@ -4,8 +4,8 @@ site_description: "Documentation of the SharingHub."
 copyright: "Copyright &copy; 2024, CS Group"
 
 # Configuration
-site_dir: "build/html/en"
-docs_dir: "src/en"
+site_dir: "build/html"
+docs_dir: "src"
 theme:
   name: material
   language: en
@@ -20,6 +20,8 @@ theme:
     - search.share
     - search.suggest
     - toc.follow
+  logo: assets/img/logo.png
+  favicon: assets/img/favicon.ico
   palette:
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
@@ -88,11 +90,3 @@ extra:
       link: "https://gitlab.si.c-s.fr/space_applications/mlops-services/sharinghub-docs"
     - icon: fontawesome/solid/copyright
       link: "https://www.csgroup.eu"
-
-  alternate:
-    - name: English
-      link: /docs/en/
-      lang: en
-    - name: Français
-      link: /docs/fr/
-      lang: fr
