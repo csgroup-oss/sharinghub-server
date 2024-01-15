@@ -72,16 +72,18 @@ plugins:
   - macros
   - search:
       lang: en
-  - section-index
   - tags
   - termynal
 
 # Page tree
 nav:
   - index.md
-  - terms-of-service.md
-  - privacy.md
-  - about-us.md
+  - Tutorials:
+    - tutorials/manage_large_dataset.md
+  - Legal Notice:
+    - legal/terms-of-service.md
+    - legal/privacy.md
+    - legal/about-us.md
 
 # Footer links
 extra:
