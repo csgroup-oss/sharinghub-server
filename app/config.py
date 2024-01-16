@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from app.utils.config import Config, cbool, cdict, cjson, clist, cpath
+from app.utils.config import Config, cbool, clist, cpath
 
 load_dotenv()
 
@@ -20,7 +20,7 @@ if not NO_DEFAULT_CONFIG:
     _CONFIG_FILES.insert(0, DEFAULT_CONFIG_PATH)
 conf = Config.load(*_CONFIG_FILES, secret_dir=SECRET_DIR)
 
-########## CONFIGURATION ##########
+# __________ CONFIGURATION __________ #
 
 DEBUG: bool = conf("server.debug", "DEBUG", default=False, cast=cbool())
 
@@ -94,7 +94,7 @@ ENABLE_CACHE: bool = conf(
     "server.cache", "ENABLE_CACHE", default=not DEBUG, cast=cbool()
 )
 
-#### GitLab ####
+# ____ GitLab ____ #
 
 GITLAB_URL: str = conf("gitlab.url", "GITLAB_URL", cast=str)
 _CLIENT_ID: str | None = conf(
@@ -109,11 +109,11 @@ GITLAB_OAUTH_DEFAULT_TOKEN: str | None = conf(
     "gitlab.oauth.default-token", "GITLAB_OAUTH_DEFAULT_TOKEN", cast=str
 )
 
-## JupyterLab ##
+# __ JupyterLab __ #
 
 JUPYTERLAB_URL: str | None = conf("jupyterlab.url", "JUPYTERLAB_URL", cast=str)
 
-#####  S3  #####
+# ______ S3 ______ #
 
 S3_ENABLE: bool = conf("s3.enable", "S3_ENABLE", default=False, cast=cbool())
 S3_BUCKET: str | None = conf("s3.bucket", "S3_BUCKET", cast=str)
@@ -135,7 +135,7 @@ S3_UPLOAD_CHUNK_SIZE: int = conf(
 )
 S3_FEATURE_NAME = "store-s3"
 
-####  STAC  ####
+# _____ STAC _____ #
 
 # Root
 STAC_ROOT_CONF: dict = conf("stac.root", default={}, cast=dict)

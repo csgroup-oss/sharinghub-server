@@ -12,8 +12,8 @@ from app.utils import singleton
 def url_for(
     request: Request,
     name: str | None = None,
-    path: dict[str, Any] = None,
-    query: dict[str, Any] = None,
+    path: dict[str, Any] | None = None,
+    query: dict[str, Any] | None = None,
 ) -> str:
     path_params = path if path else {}
     query_params = query if query else {}

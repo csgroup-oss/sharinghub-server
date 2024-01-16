@@ -1,8 +1,9 @@
 import json
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import yaml
 
@@ -28,7 +29,7 @@ class Config:
         for file_path in files:
             if os.path.isfile(file_path):
                 _files.append(os.path.realpath(file_path))
-                with open(file_path, "r") as f:
+                with open(file_path) as f:
                     _content = yaml.load(f, Loader=yaml.SafeLoader)
                 if isinstance(_content, dict):
                     mapping = merge(mapping, _content)

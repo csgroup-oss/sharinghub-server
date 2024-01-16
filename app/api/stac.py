@@ -190,7 +190,7 @@ async def search_projects(
             while True:
                 cells = find_parent_of_hashes(cells)
                 extent_search.append(" ".join(cells))
-        except:
+        except:  # nosec B110
             pass
         for query in extent_search:
             gitlab_search = await client.search(scope="projects", query=query)
@@ -736,16 +736,16 @@ def build_stac_item(
     files_assets = _get_files_assets(files, assets_mapping)
     resources_links = _get_resources_links(readme_metadata, **context)
 
-    ## Extensions
+    # _ Extensions
 
-    ## sharing hub extensions
+    # __ sharing hub extensions
     sharinghub_properties = _get_sharinghub_properties(category, readme_metadata)
 
-    ### Scientific Citation extension (https://github.com/stac-extensions/scientific)
+    # __ Scientific Citation extension (https://github.com/stac-extensions/scientific)
     doi, doi_publications = _get_scientific_citations(readme_metadata, readme_doc)
     doi_link, doi_citation = doi
 
-    ### ML Model Extension Specification (https://github.com/stac-extensions/ml-model)
+    # __ ML Model Extension Specification (https://github.com/stac-extensions/ml-model)
     ml_properties, ml_assets, ml_links = _get_machine_learning(
         readme_metadata, resources_links
     )

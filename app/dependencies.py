@@ -1,5 +1,6 @@
 from collections import namedtuple
-from typing import Annotated, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Annotated
 
 from authlib.integrations.starlette_client import OAuth, StarletteOAuth2App
 from fastapi import Depends, HTTPException, Request, Security
@@ -44,7 +45,7 @@ async def get_oauth() -> StarletteOAuth2App | None:
         )
     raise HTTPException(
         status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-        detail=f"GitLab authentication not configured",
+        detail="GitLab authentication not configured",
     )
 
 
