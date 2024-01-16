@@ -154,23 +154,27 @@ async def search_projects(
 ) -> list[GitlabProject]:
     projects: dict[int, GitlabProject] = {}
 
-    topics: list[str] = []
+    collections_topics: list[str] = []
     for collection_id in set(search_query.collections):
         category = get_category(collection_id)
         if category:
-            topics.append(category["gitlab_topic"])
+            collections_topics.append(category["gitlab_topic"])
         else:
             raise HTTPException(
                 status_code=422,
                 detail=f"Collections should be one of: {', '.join(STAC_CATEGORIES)}",
             )
-    _allowed_categories_topics = (
-        topics if topics else [c["gitlab_topic"] for c in get_categories()]
+    collections_topics = (
+        collections_topics
+        if collections_topics
+        else [c["gitlab_topic"] for c in get_categories()]
     )
-    topics.extend(search_query.topics)
 
     # Collections search
-    projects |= {p["id"]: p for p in await client.get_projects(*topics)}
+    for topic in collections_topics:
+        projects |= {
+            p["id"]: p for p in await client.get_projects(topic, *search_query.topics)
+        }
 
     # Spatial extent search
     extent_search: dict[int, GitlabProject] = {}
@@ -200,7 +204,7 @@ async def search_projects(
             gitlab_search = [
                 project
                 for project in gitlab_search
-                if any(t in project["topics"] for t in _allowed_categories_topics)
+                if any(t in project["topics"] for t in collections_topics)
             ]
             extent_search |= {p["id"]: p for p in gitlab_search}
 
@@ -212,7 +216,7 @@ async def search_projects(
             gitlab_search = [
                 project
                 for project in gitlab_search
-                if any(t in project["topics"] for t in _allowed_categories_topics)
+                if any(t in project["topics"] for t in collections_topics)
             ]
             q_search |= {p["id"]: p for p in gitlab_search}
 
