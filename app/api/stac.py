@@ -154,7 +154,7 @@ async def search_projects(
 ) -> list[GitlabProject]:
     projects: dict[int, GitlabProject] = {}
 
-    topics = []
+    topics: list[str] = []
     for collection_id in set(search_query.collections):
         category = get_category(collection_id)
         if category:
@@ -164,11 +164,13 @@ async def search_projects(
                 status_code=422,
                 detail=f"Collections should be one of: {', '.join(STAC_CATEGORIES)}",
             )
-    allowed_topics = topics if topics else [c["gitlab_topic"] for c in get_categories()]
+    _allowed_categories_topics = (
+        topics if topics else [c["gitlab_topic"] for c in get_categories()]
+    )
+    topics.extend(search_query.topics)
 
     # Collections search
-    for topic in topics:
-        projects |= {p["id"]: p for p in await client.get_projects(topic)}
+    projects |= {p["id"]: p for p in await client.get_projects(*topics)}
 
     # Spatial extent search
     extent_search: dict[int, GitlabProject] = {}
@@ -198,7 +200,7 @@ async def search_projects(
             gitlab_search = [
                 project
                 for project in gitlab_search
-                if any(t in project["topics"] for t in allowed_topics)
+                if any(t in project["topics"] for t in _allowed_categories_topics)
             ]
             extent_search |= {p["id"]: p for p in gitlab_search}
 
@@ -210,7 +212,7 @@ async def search_projects(
             gitlab_search = [
                 project
                 for project in gitlab_search
-                if any(t in project["topics"] for t in allowed_topics)
+                if any(t in project["topics"] for t in _allowed_categories_topics)
             ]
             q_search |= {p["id"]: p for p in gitlab_search}
 
@@ -249,17 +251,6 @@ async def search_projects(
             return search_start_dt <= p_start_dt <= p_end_dt <= search_end_dt
 
         projects = dict(filter(temporal_filter, projects.items()))
-
-    if search_query.topics:
-
-        def filter_by_topic(project_item: tuple[int, GitlabProject]) -> bool:
-            _, _project = project_item
-            for _topic in _project.get("topics", []):
-                if _topic in search_query.topics:
-                    return True
-            return False
-
-        projects = dict(filter(filter_by_topic, projects.items()))
 
     return list(projects.values())
 

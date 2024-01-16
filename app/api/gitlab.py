@@ -118,8 +118,10 @@ class GitlabClient:
     def _resolve(self, endpoint: str) -> str:
         return f"{self.api_url}{endpoint}"
 
-    async def get_projects(self, topic: str) -> list[GitlabProject]:
-        return await self._request_iterate(f"/projects?topic={topic}&simple=true")
+    async def get_projects(self, *topics: str) -> list[GitlabProject]:
+        return await self._request_iterate(
+            f"/projects?topic={','.join(topics)}&simple=true"
+        )
 
     async def get_project(self, project_id: str | int) -> GitlabProject:
         return await self._request(
