@@ -235,6 +235,7 @@ async def _stac_search(
     page_projects, pagination = paginate_projects(
         projects, page, per_page=search_query.limit
     )
+
     page_projects_readme = await asyncio.gather(
         *(get_cached_readme(gitlab_client, p) for p in page_projects)
     )

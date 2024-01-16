@@ -1,8 +1,5 @@
-import json
-
 from fastapi import Request
 from fastapi.routing import APIRouter
-from starlette.responses import JSONResponse
 
 from app.api.gitlab import GitlabClient
 from app.config import GITLAB_IGNORE_TOPICS, GITLAB_URL
@@ -17,8 +14,8 @@ async def api_get_topics(
 ):
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     response = await gitlab_client.get_topics()
-    results = [el for el in response if el.get("title", {}) not in GITLAB_IGNORE_TOPICS]
-    return JSONResponse(content=results)
+    results = [el for el in response if el.get("title") not in GITLAB_IGNORE_TOPICS]
+    return results
 
 
 @router.api_route(

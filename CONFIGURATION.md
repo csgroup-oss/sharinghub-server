@@ -275,6 +275,24 @@ Content:
       default-token: <default-token>
   ```
 
+### Gitlab: ignore topics
+
+- Type: list of string
+- Default: `[]`
+- Environment variable:
+  - Name: `GITLAB_IGNORE_TOPICS`
+  - Example value: `gitlab-ci devops`
+- YAML:
+  - Path: `gitlab.ignore.topics`
+  - Example value:
+    ```yaml
+    gitlab:
+      ignore:
+        topics:
+          - "gitlab-ci"
+          - "devops"
+    ```
+
 ### JupyterLab: URL
 
 - Type: string
