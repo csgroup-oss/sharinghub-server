@@ -56,6 +56,7 @@ class GitlabProject(TypedDict):
     web_url: str
     created_at: str
     last_activity_at: str
+    readme_url: str | None
     license_url: NotRequired[str | None]
     license: NotRequired["_GitlabProjectLicense"]
     default_branch: str | None
@@ -129,16 +130,20 @@ class GitlabClient:
         )
 
     async def get_readme(self, project: GitlabProject) -> str:
-        try:
-            readme = await self._request(
-                f"{self._get_project_api_url(project['id'])}/repository/files/README.md/raw",
-                media_type="text",
+        if project["readme_url"]:
+            readme_path = project["readme_url"].replace(
+                f"{project['web_url']}/-/blob/{project['default_branch']}/", ""
             )
-            return readme.strip()
-        except HTTPException as http_exc:
-            if http_exc.status_code == 404:
-                return ""
-            raise http_exc
+            try:
+                readme = await self._request(
+                    f"{self._get_project_api_url(project['id'])}/repository/files/{readme_path}/raw",
+                    media_type="text",
+                )
+                return readme.strip()
+            except HTTPException as http_exc:
+                if http_exc.status_code != 404:
+                    raise http_exc
+        return ""
 
     async def get_files(self, project: GitlabProject) -> list[GitlabProjectFile]:
         return [
