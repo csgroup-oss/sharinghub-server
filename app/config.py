@@ -186,3 +186,9 @@ STAC_SEARCH_CACHE_TIMEOUT: float = conf(
     default=60.0 * 3,
     cast=float,
 )
+
+# ______________ PATCH ______________ #
+
+GITLAB_IGNORE_TOPICS.extend(
+    c.get("gitlab_topic", c_id) for c_id, c in STAC_CATEGORIES.items()
+)
