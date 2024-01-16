@@ -125,14 +125,14 @@ Content:
 - Default: random uuid
 - Environment variable:
   - Name: `SESSION_SECRET_KEY`
-  - Example value: `f785090f-0716-4ccb-89f0-afbd3c4a56d3`
+  - Example value: `<secret key>`
 - YAML:
   - Path: `server.session.secret-key`
   - Example value:
     ```yaml
     server:
       session:
-        secret-key: f785090f-0716-4ccb-89f0-afbd3c4a56d3
+        secret-key: <secret key>
     ```
 
 ### Server: session max age
