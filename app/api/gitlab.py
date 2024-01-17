@@ -146,13 +146,18 @@ class GitlabClient:
         return ""
 
     async def get_files(self, project: GitlabProject) -> list[GitlabProjectFile]:
-        return [
-            file
-            for file in await self._request_iterate(
-                f"{self._get_project_api_url(project['id'])}/repository/tree?recursive=true"
-            )
-            if file["type"] == "blob"
-        ]
+        try:
+            return [
+                file
+                for file in await self._request_iterate(
+                    f"{self._get_project_api_url(project['id'])}/repository/tree?recursive=true"
+                )
+                if file["type"] == "blob"
+            ]
+        except HTTPException as http_exc:
+            if http_exc.status_code != 404:
+                raise http_exc
+        return []
 
     async def get_latest_release(
         self, project: GitlabProject
