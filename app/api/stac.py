@@ -177,7 +177,7 @@ async def search_projects(
         }
 
     # Spatial extent search
-    extent_search: dict[int, GitlabProject] = {}
+    extent_search = None
     if search_query.bbox:
         bbox_geojson = {
             "type": "Polygon",
@@ -192,24 +192,24 @@ async def search_projects(
             ],
         }
         cells = hash_polygon(bbox_geojson)
-        extent_search = [" ".join(cells)]
+        _extent_search = [" ".join(cells)]
         try:
             while True:
                 cells = find_parent_of_hashes(cells)
-                extent_search.append(" ".join(cells))
+                _extent_search.append(" ".join(cells))
         except:  # nosec B110
             pass
-        for query in extent_search:
+        for query in _extent_search:
             gitlab_search = await client.search(scope="projects", query=query)
             gitlab_search = [
                 project
                 for project in gitlab_search
                 if any(t in project["topics"] for t in collections_topics)
             ]
-            extent_search |= {p["id"]: p for p in gitlab_search}
+            extent_search = {p["id"]: p for p in gitlab_search}
 
     # Free-text search
-    q_search: dict[int, GitlabProject] = {}
+    q_search = None
     if search_query.q:
         for query in search_query.q:
             gitlab_search = await client.search(scope="projects", query=query)
@@ -218,7 +218,7 @@ async def search_projects(
                 for project in gitlab_search
                 if any(t in project["topics"] for t in collections_topics)
             ]
-            q_search |= {p["id"]: p for p in gitlab_search}
+            q_search = {p["id"]: p for p in gitlab_search}
 
     projects = _search_aggregate(projects, extent_search, q_search)
 
@@ -264,12 +264,13 @@ def _search_aggregate(
 ) -> None:
     _projects = dict(projects)
     for search_result in search_results:
-        if _projects and search_result:
-            _projects = {
-                p_id: p for p_id, p in _projects.items() if p_id in search_result
-            }
-        else:
-            _projects |= search_result
+        if search_result is not None:
+            if _projects:
+                _projects = {
+                    p_id: p for p_id, p in _projects.items() if p_id in search_result
+                }
+            else:
+                _projects |= search_result
     return _projects
 
 
