@@ -4,6 +4,7 @@ from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
 
 import aiohttp
+import pypandoc
 from fastapi import HTTPException, Request
 from fastapi.responses import StreamingResponse
 from starlette.background import BackgroundTask
@@ -139,6 +140,8 @@ class GitlabClient:
                     f"{self._get_project_api_url(project['id'])}/repository/files/{readme_path}/raw",
                     media_type="text",
                 )
+                if os.path.splitext(readme_path)[1] == ".rst":
+                    readme = pypandoc.convert_text(readme, "md", format="rst")
                 return readme.strip()
             except HTTPException as http_exc:
                 if http_exc.status_code != 404:

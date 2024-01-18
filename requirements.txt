@@ -5,6 +5,7 @@ fastapi[all]
 h3
 markdown
 markdown-full-yaml-metadata
+pypandoc_binary
 python-dotenv
 pyyaml
 uvicorn
