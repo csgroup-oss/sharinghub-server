@@ -711,6 +711,7 @@ def build_stac_item_preview(
             "datetime": project["last_activity_at"],
             "keywords": keywords,
             "sharinghub:stars": project["star_count"],
+            "sharinghub:category": category["id"],
         },
         "links": default_links,
         "assets": default_assets,
