@@ -43,8 +43,6 @@ router = APIRouter()
 PROJECT_CACHE = {}
 SEARCH_CACHE = {"readme": {}}
 
-CachedProjectSTAC = namedtuple("CachedProjectSTAC", ["time", "last_activity", "stac"])
-
 
 CONFORMANCE = [
     "https://api.stacspec.org/v1.0.0/core",
@@ -128,13 +126,6 @@ async def stac2_collection_feature(
     category: CategoryFromCollectionIdDep,
     feature_id: str,
 ):
-    cache_key = feature_id
-    if (
-        cache_key in PROJECT_CACHE
-        and time.time() - PROJECT_CACHE[cache_key].time < STAC_PROJECTS_CACHE_TIMEOUT
-    ):
-        return PROJECT_CACHE[cache_key].stac
-
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     project = await gitlab_client.get_project(project_id=feature_id)
 
@@ -144,17 +135,24 @@ async def stac2_collection_feature(
             detail=f"Project '{feature_id}' do not belong to topic '{category['gitlab_topic']}'",
         )
 
-    if (
-        cache_key in PROJECT_CACHE
-        and PROJECT_CACHE[cache_key].last_activity == project["last_activity_at"]
-    ):
-        stac = PROJECT_CACHE[cache_key].stac
-        PROJECT_CACHE[cache_key] = CachedProjectSTAC(
-            time=time.time(),
-            last_activity=project["last_activity_at"],
-            stac=stac,
-        )
-        return stac
+    cache_key = project["id"]
+    if cache_key in PROJECT_CACHE:
+        elapsed_time = time.time() - PROJECT_CACHE[cache_key]["time"]
+        if elapsed_time < STAC_PROJECTS_CACHE_TIMEOUT:
+            logger.debug(
+                f"Read project stac from cache '{category['id']}:{project['path_with_namespace']}' "
+                f"({elapsed_time:.3f}/{STAC_PROJECTS_CACHE_TIMEOUT} s)"
+            )
+            return PROJECT_CACHE[cache_key]["stac"]
+        elif PROJECT_CACHE[cache_key]["last_activity"] == project[
+            "last_activity_at"
+        ] and set(PROJECT_CACHE[cache_key]["topics"]) == set(project["topics"]):
+            logger.debug(
+                "Read project stac from cache"
+                f"'{category['id']}:{project['path_with_namespace']}' (no changes detected)"
+            )
+            PROJECT_CACHE[cache_key]["time"] = time.time()
+            return PROJECT_CACHE[cache_key]["stac"]
 
     readme, files, release = await asyncio.gather(
         gitlab_client.get_readme(project),
@@ -179,11 +177,13 @@ async def stac2_collection_feature(
         raise HTTPException(status_code=500, detail=str(exc))
 
     if ENABLE_CACHE:
-        PROJECT_CACHE[cache_key] = CachedProjectSTAC(
-            time=time.time(),
-            last_activity=project["last_activity_at"],
-            stac=project_stac,
-        )
+        logger.debug(f"Write stac '{category['id']}:{feature_id}' in cache")
+        PROJECT_CACHE[cache_key] = {
+            "time": time.time(),
+            "last_activity": project["last_activity_at"],
+            "topics": project["topics"],
+            "stac": project_stac,
+        }
 
     return project_stac
 
@@ -267,11 +267,13 @@ async def get_cached_readme(client: GitlabClient, project: GitlabProject) -> str
         and time.time() - SEARCH_CACHE["readme"][cache_key]["time"]
         < STAC_SEARCH_CACHE_TIMEOUT
     ):
+        logger.debug(f"Read readme from cache for '{project['path_with_namespace']}'")
         return SEARCH_CACHE["readme"][cache_key]["content"]
 
     readme = await client.get_readme(project)
 
     if ENABLE_CACHE:
+        logger.debug(f"Write readme in cache for '{project['path_with_namespace']}'")
         SEARCH_CACHE["readme"][cache_key] = {
             "time": time.time(),
             "content": readme,

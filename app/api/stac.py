@@ -1064,7 +1064,7 @@ def _get_description(
 
 
 def _get_tags(project: GitlabProject, category: Category) -> list[str]:
-    project_topics = project["topics"]
+    project_topics = list(project["topics"])
     project_topics.remove(category["gitlab_topic"])
     return project_topics
 
