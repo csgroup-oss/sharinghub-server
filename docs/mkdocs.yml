@@ -72,7 +72,8 @@ markdown_extensions:
 
 # Plugins
 plugins:
-  - macros
+  - macros:
+      render_by_default: false
   - search:
       lang: en
   - tags
@@ -82,11 +83,12 @@ plugins:
 nav:
   - index.md
   - Tutorials:
-    - tutorials/manage_large_dataset.md
+      - tutorials/manage_dataset_with_dvc.md
+      - tutorials/manage_dataset_with_shell.md
   - Legal Notice:
-    - legal/terms-of-service.md
-    - legal/privacy.md
-    - legal/about-us.md
+      - legal/terms-of-service.md
+      - legal/privacy.md
+      - legal/about-us.md
 
 # Footer links
 extra:

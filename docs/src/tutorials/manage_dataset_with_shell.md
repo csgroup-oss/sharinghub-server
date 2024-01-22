@@ -1,4 +1,4 @@
-# Manage large dataset
+# Manage large dataset with shell
 
 ## Introduction
 
@@ -44,7 +44,9 @@ To facilitate the upload of complex tree structures, the "upload_to_sharinghub.s
 upload_to_sharinghub.sh <dir_path_to_upload> <project_id>
 ```
 
-```shell upload_to_sharinghub.sh
+upload_to_sharinghub.sh:
+
+```shell
 #!/bin/bash
 
 urlencode() {
