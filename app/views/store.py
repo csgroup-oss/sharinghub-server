@@ -7,8 +7,8 @@ from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, HTTPException, Path, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from app.api.gitlab import GitlabClient
-from app.api.stac import get_project_category
+from app.api.category import FeatureVal
+from app.api.providers.gitlab import GitlabClient
 from app.config import (
     GITLAB_URL,
     S3_ACCESS_KEY,
@@ -40,12 +40,10 @@ async def check_access(token, project_id):
     """Checks the access permissions for a given Gitlab user token and project ID."""
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     project = await gitlab_client.get_project(project_id)
-    category = get_project_category(project)
-    if not category:
-        raise HTTPException(
-            status_code=403, detail="Project don't have one of the configured topics"
-        )
-    if category["features"].get(S3_FEATURE_NAME, "disable") != "enable":
+    if (
+        project.category.features.get(S3_FEATURE_NAME, FeatureVal.DISABLE)
+        != FeatureVal.ENABLE
+    ):
         raise HTTPException(
             status_code=403,
             detail="S3 store is not enabled for this project's category",

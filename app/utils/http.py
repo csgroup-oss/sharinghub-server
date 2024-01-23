@@ -1,4 +1,5 @@
 import re
+from enum import StrEnum, auto
 from socket import AF_INET
 from typing import Any
 from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
@@ -7,6 +8,16 @@ import aiohttp
 from fastapi import Request
 
 from app.utils import singleton
+
+
+class HttpMethod(StrEnum):
+    GET = auto()
+    POST = auto()
+    PUT = auto()
+    DELETE = auto()
+    PATCH = auto()
+    HEAD = auto()
+    OPTIONS = auto()
 
 
 def url_for(
@@ -34,6 +45,13 @@ def slugify(s: str) -> str:
     s = re.sub(r"[\s_-]+", "-", s)
     s = re.sub(r"^-+|-+$", "", s)
     return s
+
+
+def clean_url(url: str, trailing_slash: bool = True) -> str:
+    u = urlparse(url)
+    if u.scheme in ["http", "https"] and u.netloc:
+        return url.removesuffix("/") + ("/" if trailing_slash else "")
+    raise ValueError(f"Not a valid URL: '{url}'")
 
 
 def is_local(uri: str) -> bool:
