@@ -9,7 +9,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.config import (
+from app.settings import (
     ALLOWED_ORIGINS,
     API_PREFIX,
     DEBUG,
@@ -21,7 +21,8 @@ from app.config import (
     WEB_UI_PATH,
 )
 from app.utils.http import AiohttpClient, url_for
-from app.views import router as views_router
+
+from .router import router as views_router
 
 dictConfig(LOGGING)
 logger = logging.getLogger("app")

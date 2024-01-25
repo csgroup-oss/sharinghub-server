@@ -1,11 +1,15 @@
 from fastapi import Request
 from fastapi.routing import APIRouter
 
-from app.api.providers.gitlab import GitlabClient
-from app.config import GITLAB_IGNORE_TOPICS, GITLAB_URL
-from app.dependencies import GitlabTokenDep
+from app.auth import GitlabTokenDep
+from app.providers.client import GitlabClient
+from app.settings import GITLAB_IGNORE_TOPICS, GITLAB_URL
+from app.stac.api.category import get_categories
 
 router = APIRouter()
+
+
+_IGNORE_LIST = [*GITLAB_IGNORE_TOPICS, *(c.gitlab_topic for c in get_categories())]
 
 
 @router.get("/topics")
@@ -14,7 +18,7 @@ async def api_get_topics(
 ):
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     topics = await gitlab_client.get_topics()
-    return [t for t in topics if t not in GITLAB_IGNORE_TOPICS]
+    return [t for t in topics if t.name not in _IGNORE_LIST]
 
 
 @router.api_route(

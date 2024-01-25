@@ -1,6 +1,8 @@
 from fastapi.routing import APIRouter
 
-from app.config import JUPYTERLAB_URL, S3_ENABLE, STAC_CATEGORIES, STAC_ROOT_CONF
+from app.settings import JUPYTERLAB_URL
+from app.stac.settings import STAC_CATEGORIES, STAC_ROOT_CONF
+from app.store.settings import S3_ENABLE
 
 router = APIRouter()
 

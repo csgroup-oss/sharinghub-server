@@ -1,5 +1,8 @@
+import json
 import logging
 import os
+from datetime import datetime
+from pathlib import Path
 from typing import Any, NotRequired, TypedDict
 
 import aiohttp
@@ -7,7 +10,7 @@ import pypandoc
 from fastapi import HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from app.api.category import get_category_from_topics
+from app.stac.api.category import get_category_from_topics
 from app.utils.http import (
     AiohttpClient,
     HttpMethod,
@@ -16,7 +19,8 @@ from app.utils.http import (
     urlsafe_path,
 )
 
-from .base import License, Project, ProviderClient, Release, ReleaseAsset, Topic
+from ..schemas import License, Project, Release, ReleaseAsset, Topic
+from ._base import CursorPagination, ProviderClient
 
 logger = logging.getLogger("app")
 
@@ -123,22 +127,117 @@ class GitlabClient(ProviderClient):
         )
         return [Topic(**t) for t in _topics]
 
-    async def search(self, scope: str, query: Any) -> list[Project]:
-        gitlab_projects: list[GitlabProject] = await self._request(
-            url=self._rest_api(f"/search"), query=dict(scope=scope, search=query)
+    async def search(
+        self,
+        query: str | None,
+        topics: list[str],
+        bbox: list[float],
+        datetime_range: tuple[datetime, datetime] | None,
+        limit: int,
+        prev: str | None,
+        next: str | None,
+    ) -> tuple[list[Project], CursorPagination]:
+        projects_cur, pagination = await self._search_projects(
+            query=query, topics=topics, limit=limit, prev=prev, next=next
         )
-        return [_adapt_project(p) for p in gitlab_projects]
+        projects = [p[1] for p in projects_cur]
+        return projects, pagination
 
-    async def get_projects(self, *topics: str) -> list[Project]:
-        url = self._rest_api(f"/projects?topic={','.join(topics)}&simple=true")
-        gitlab_projects: list[GitlabProject] = await self._rest_iterate(url)
-        return [_adapt_project(p) for p in gitlab_projects]
+    async def _search_projects(
+        self,
+        query: str | None,
+        topics: list[str],
+        limit: int,
+        prev: str | None,
+        next: str | None,
+    ) -> tuple[list[tuple[str, Project]], CursorPagination]:
+        if prev:
+            cursor = prev
+            limit_param = "last"
+            cursor_param = "before"
+        else:
+            cursor = next
+            limit_param = "first"
+            cursor_param = "after"
+
+        graphql_variables: dict[str, Any] = {"limit": limit, "cursor": cursor}
+        graphql_query_params: dict[str, tuple[str, str]] = {
+            "limit": ("Int", limit_param),
+            "cursor": ("String", cursor_param),
+        }
+
+        if query:
+            graphql_query_params["search"] = ("String!", "search")
+            graphql_variables["search"] = query
+        if topics:
+            graphql_query_params["topics"] = ("[String!]", "topics")
+            graphql_variables["topics"] = topics
+
+        _params_definition = ", ".join(
+            f"${p}: {graphql_query_params[p][0]}" for p in graphql_query_params
+        )
+        _params = ", ".join(
+            f"{graphql_query_params[p][1]}: ${p}" for p in graphql_query_params
+        )
+        graphql_query = f"""
+        query searchProjects({_params_definition}) {{
+            search: projects(sort: "name_asc", {_params}) {{
+                nodes {{
+                    id
+                    name
+                    nameWithNamespace
+                    fullPath
+                    description
+                    webUrl
+                    createdAt
+                    lastActivityAt
+                    starCount
+                    topics
+                    repository {{
+                        rootRef
+                        tree {{
+                            blobs {{
+                                nodes {{
+                                    path
+                                }}
+                            }}
+                        }}
+                    }}
+                }}
+                edges {{
+                    cursor
+                }}
+                pageInfo {{
+                    hasPreviousPage
+                    hasNextPage
+                    startCursor
+                    endCursor
+                }}
+                count
+            }}
+        }}
+        """
+        logger.debug(f"GraphQL searchProjects: {graphql_variables}")
+        result = await self._graphql(graphql_query, variables=graphql_variables)
+        data = result["data"]["search"]
+
+        page_info = data["pageInfo"]
+        pagination = CursorPagination(
+            total=data["count"],
+            start=page_info["startCursor"] if page_info["hasPreviousPage"] else None,
+            end=page_info["endCursor"] if page_info["hasNextPage"] else None,
+        )
+        projects: list[tuple[str, Project]] = [
+            (data["edges"][i]["cursor"], _adapt_graphql_project(project_data))
+            for i, project_data in enumerate(data["nodes"])
+        ]
+        return projects, pagination
 
     async def get_project(self, path: str) -> Project:
         path = urlsafe_path(path.strip("/"))
         url = self._rest_api(f"/projects/{path}?license=true")
         gitlab_project: GitlabProject = await self._request(url)
-        return _adapt_project(gitlab_project)
+        return _adapt_rest_project(gitlab_project)
 
     async def get_readme(self, project: Project) -> str:
         if project.readme:
@@ -181,25 +280,38 @@ class GitlabClient(ProviderClient):
             raise http_exc
 
     async def download_file(
-        self, project_path: str, ref: str, file_path: str
+        self, project_path: str, ref: str, file_path: str, request: Request
     ) -> StreamingResponse:
         path = urlsafe_path(project_path.strip("/"))
         fpath = urlsafe_path(file_path)
         url = self._rest_api(
             f"/projects/{path}/repository/files/{fpath}/raw?ref={ref}&lfs=true"
         )
-        return await self._request_streaming(url, filename=os.path.basename(file_path))
+        return await self._request_streaming(
+            url, filename=os.path.basename(file_path), request=request
+        )
 
     async def download_archive(
-        self, project_path: str, ref: str, format: str
+        self, project_path: str, ref: str, format: str, request: Request
     ) -> StreamingResponse:
         path = urlsafe_path(project_path.strip("/"))
         url = self._rest_api(f"/projects/{path}/repository/archive.{format}?sha={ref}")
-        return await self._request_streaming(url)
+        return await self._request_streaming(url, request=request)
 
     async def rest_proxy(self, endpoint: str, request: Request) -> StreamingResponse:
         url = self._rest_api(endpoint)
         return await self._request_streaming(url, request=request)
+
+    async def _graphql(
+        self, query: str, *, variables: dict[str, Any] | None = None
+    ) -> dict[str, Any] | list[Any] | str | None:
+        return await self._request(
+            url=self.graphql_url,
+            media_type="json",
+            method="POST",
+            headers={"Content-Type": "application/json"},
+            body=json.dumps({"query": query, "variables": variables}),
+        )
 
     async def _request(
         self, url: str, media_type: str = "json", **params: Any
@@ -293,9 +405,9 @@ class GitlabClient(ProviderClient):
         url: str,
         *,
         method: HttpMethod = HttpMethod.GET,
+        headers: dict[str, str] | None = None,
         query: dict[str, Any] | None = None,
         body: Any = None,
-        headers: dict[str, str] | None = None,
         request: Request | None = None,
     ) -> aiohttp.ClientResponse:
         if query is None:
@@ -317,6 +429,7 @@ class GitlabClient(ProviderClient):
         query.pop("gitlab_token", None)
 
         url = url_add_query_params(url, query)
+        method = method.upper()
         headers = self.headers | headers
         async with AiohttpClient() as client:
             logger.debug(f"Request {method}: {url}")
@@ -336,7 +449,36 @@ class GitlabClient(ProviderClient):
         return response
 
 
-def _adapt_project(gitlab_project: GitlabProject) -> Project:
+def _adapt_graphql_project(project_data: dict) -> Project:
+    category = get_category_from_topics(project_data["topics"])
+    readme_path = None
+    if project_data["repository"]["tree"]:
+        for file in project_data["repository"]["tree"]["blobs"]["nodes"]:
+            fpath = Path(file["path"])
+            if fpath.stem.lower() == "readme":
+                readme_path = str(fpath)
+
+    return Project(
+        id=int(project_data["id"].split("/")[-1]),
+        name=project_data["name"],
+        full_name=project_data["nameWithNamespace"],
+        path=project_data["fullPath"],
+        description=project_data["description"],
+        url=project_data["webUrl"],
+        issues_url=project_data["webUrl"] + "/issues",
+        created_at=project_data["createdAt"],
+        last_update=project_data["lastActivityAt"],
+        star_count=project_data["starCount"],
+        topics=project_data["topics"],
+        category=category,
+        default_branch=project_data["repository"]["rootRef"],
+        readme=readme_path,
+        license_id=None,
+        license_url=None,
+    )
+
+
+def _adapt_rest_project(gitlab_project: GitlabProject) -> Project:
     if gitlab_project["readme_url"]:
         readme_path = gitlab_project["readme_url"].replace(
             f"{gitlab_project['web_url']}/-/blob/{gitlab_project['default_branch']}/",

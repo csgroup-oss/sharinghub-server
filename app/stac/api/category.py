@@ -1,11 +1,11 @@
 import logging
-from enum import StrEnum, auto
+from enum import StrEnum
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
 from pydantic import AnyHttpUrl, BaseModel, Field
 
-from app.config import STAC_CATEGORIES
+from ..settings import STAC_CATEGORIES
 
 logger = logging.getLogger("app")
 

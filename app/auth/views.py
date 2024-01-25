@@ -3,13 +3,10 @@ from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from app.dependencies import (
-    OAuthDep,
-    PostCleanSessionDep,
-    PreCleanSessionDep,
-    SessionAuthDep,
-)
+from app.session import PostCleanSessionDep, PreCleanSessionDep
 from app.utils.http import url_for
+
+from .depends import OAuthDep, SessionAuthDep
 
 router = APIRouter()
 

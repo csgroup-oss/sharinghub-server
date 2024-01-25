@@ -20,12 +20,13 @@ from pydantic import (
     field_validator,
 )
 
-from app.api.category import Category, get_category
-from app.api.providers import Project, Release
-from app.config import GITLAB_URL
-from app.dependencies import GitlabToken
+from app.auth import GitlabToken
+from app.providers.schemas import Project, Release
+from app.settings import GITLAB_URL
 from app.utils import markdown as md
 from app.utils.http import is_local, url_for
+
+from .category import Category, get_category
 
 logger = logging.getLogger("app")
 
@@ -90,16 +91,17 @@ class STACSearchQuery(BaseModel):
         return ",".join(str(e) for e in v)
 
 
-class STACContext(TypedDict):
-    request: Request
-    token: GitlabToken
-
-
-class Pagination(TypedDict):
+class STACPagination(TypedDict):
     limit: int
     matched: int
     returned: int
-    page: int
+    next: str | None
+    prev: str | None
+
+
+class STACContext(TypedDict):
+    request: Request
+    token: GitlabToken
 
 
 def get_project_stac_id(project: Project) -> str:
@@ -267,11 +269,12 @@ def build_stac_collections(
             },
         ],
         "context": {
-            "page": 1,
             "limit": _collections_len,
             "matched": _collections_len,
             "returned": _collections_len,
         },
+        "numberMatched": _collections_len,
+        "numberReturned": _collections_len,
     }
 
 
@@ -366,7 +369,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
 
 def build_features_collection(
     features: list[dict],
-    pagination: Pagination,
+    pagination: STACPagination,
     route: str,
     category: Category | None,
     **context: Unpack[STACContext],
@@ -392,9 +395,10 @@ def build_features_collection(
 
     query_params = dict(_request.query_params)
 
-    if pagination["page"] > 1:
+    if pagination["prev"]:
         prev_params = query_params.copy()
-        prev_params["page"] = pagination["page"] - 1
+        prev_params.pop("next", None)
+        prev_params["prev"] = pagination["prev"]
         links.append(
             {
                 "rel": "prev",
@@ -402,31 +406,16 @@ def build_features_collection(
                     _request,
                     route,
                     path=_request.path_params,
-                    query={**prev_params, **_token.query},
+                    query=prev_params,
                 ),
                 "type": "application/geo+json",
             }
         )
 
-        first_params = query_params.copy()
-        first_params["page"] = 1
-        links.append(
-            {
-                "rel": "first",
-                "href": url_for(
-                    _request,
-                    route,
-                    path=_request.path_params,
-                    query={**first_params, **_token.query},
-                ),
-                "type": "application/geo+json",
-            }
-        )
-
-    if pagination["page"] * pagination["limit"] < pagination["matched"]:
+    if pagination["next"]:
         next_params = query_params.copy()
-        next_params["page"] = pagination["page"] + 1
-
+        next_params.pop("prev", None)
+        next_params["next"] = pagination["next"]
         links.append(
             {
                 "rel": "next",
@@ -434,22 +423,7 @@ def build_features_collection(
                     _request,
                     route,
                     path=_request.path_params,
-                    query={**next_params, **_token.query},
-                ),
-                "type": "application/geo+json",
-            }
-        )
-
-        last_params = query_params.copy()
-        last_params["page"] = math.ceil(pagination["matched"] / pagination["limit"])
-        links.append(
-            {
-                "rel": "last",
-                "href": url_for(
-                    _request,
-                    route,
-                    path=_request.path_params,
-                    query={**last_params, **_token.query},
+                    query=next_params,
                 ),
                 "type": "application/geo+json",
             }
@@ -610,10 +584,9 @@ def build_stac_item(
                 "download_gitlab_file",
                 path=dict(
                     project_path=project.path,
-                    ref=project.default_branch,
                     file_path=file_path,
                 ),
-                query={**_token.rc_query},
+                query={"ref": project.default_branch, **_token.rc_query},
             ),
             "title": file_path,
             "roles": ["data"],
@@ -627,10 +600,9 @@ def build_stac_item(
             "download_gitlab_archive",
             path=dict(
                 project_path=project.path,
-                ref=release.tag,
                 format=release_source_format,
             ),
-            query={**_token.rc_query},
+            query={"ref": release.tag, **_token.rc_query},
         )
         media_type, _ = mimetypes.guess_type(f"archive.{release_source_format}")
         assets["release"] = {
@@ -794,10 +766,9 @@ def get_stac_item_default_links_and_assets(
             "download_gitlab_file",
             path=dict(
                 project_path=project.path,
-                ref=project.default_branch,
                 file_path=preview,
             ),
-            query={**_token.rc_query},
+            query={"ref": project.default_branch, **_token.rc_query},
         )
     if preview:
         assets["preview"] = {
@@ -946,10 +917,9 @@ def _resolve_images(
                 "download_gitlab_file",
                 path=dict(
                     project_path=project.path,
-                    ref=project.default_branch,
                     file_path=path,
                 ),
-                query={**_token.rc_query},
+                query={"ref": project.default_branch, **_token.rc_query},
             )
         return f'src="{url}"'
 
@@ -963,10 +933,9 @@ def _resolve_images(
                 "download_gitlab_file",
                 path=dict(
                     project_path=project.path,
-                    ref=project.default_branch,
                     file_path=path,
                 ),
-                query={**_token.rc_query},
+                query={"ref": project.default_branch, **_token.rc_query},
             )
         return f"![{image['alt']}]({url})"
 

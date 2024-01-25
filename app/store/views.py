@@ -7,10 +7,12 @@ from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, HTTPException, Path, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from app.api.category import FeatureVal
-from app.api.providers.gitlab import GitlabClient
-from app.config import (
-    GITLAB_URL,
+from app.auth import GitlabTokenDep
+from app.providers.client import GitlabClient
+from app.settings import GITLAB_URL
+from app.stac.api.category import FeatureVal
+
+from .settings import (
     S3_ACCESS_KEY,
     S3_BUCKET,
     S3_ENDPOINT_URL,
@@ -20,7 +22,6 @@ from app.config import (
     S3_SECRET_KEY,
     S3_UPLOAD_CHUNK_SIZE,
 )
-from app.dependencies import GitlabTokenDep
 
 logger = logging.getLogger("app")
 

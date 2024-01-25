@@ -2,12 +2,10 @@ import logging
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Protocol
 
-from fastapi.responses import StreamingResponse
 from pydantic import AnyHttpUrl, BaseModel
 
-from app.api.category import Category
+from app.stac.api.category import Category
 
 logger = logging.getLogger("app")
 
@@ -64,36 +62,3 @@ class Topic(BaseModel):
     name: str
     title: str
     total_projects_count: int
-
-
-class ProviderClient(Protocol):
-    async def get_topics(self) -> list[Topic]:
-        ...
-
-    async def search(self, scope: str, query: Any) -> list[Project]:
-        ...
-
-    async def get_projects(self, *topics: str) -> list[Project]:
-        ...
-
-    async def get_project(self, path: str) -> Project:
-        ...
-
-    async def get_readme(self, project: Project) -> str:
-        ...
-
-    async def get_files(self, project: Project) -> list[str]:
-        ...
-
-    async def get_latest_release(self, project: Project) -> Release | None:
-        ...
-
-    async def download_file(
-        self, project_path: str, ref: str, file_path: str
-    ) -> StreamingResponse:
-        ...
-
-    async def download_archive(
-        self, project_path: str, ref: str, format: str
-    ) -> StreamingResponse:
-        ...

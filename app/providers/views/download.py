@@ -3,16 +3,16 @@ import logging
 from fastapi import Request
 from fastapi.routing import APIRouter
 
-from app.api.providers.gitlab import GitlabClient
-from app.config import GITLAB_URL
-from app.dependencies import GitlabTokenDep
+from app.auth import GitlabTokenDep
+from app.providers.client import GitlabClient
+from app.settings import GITLAB_URL
 
 logger = logging.getLogger("app")
 
 router = APIRouter()
 
 
-@router.get("/file/{project_path:path}/{ref}/{file_path:path}")
+@router.get("/{project_path:path}/repository/{file_path:path}")
 async def download_gitlab_file(
     request: Request,
     token: GitlabTokenDep,
@@ -26,10 +26,11 @@ async def download_gitlab_file(
         project_path=project_path,
         ref=ref,
         file_path=file_path,
+        request=request,
     )
 
 
-@router.get("/archive/{project_path:path}/{ref}/archive.{format}")
+@router.get("/{project_path:path}/archive.{format}")
 async def download_gitlab_archive(
     request: Request,
     token: GitlabTokenDep,
@@ -40,5 +41,5 @@ async def download_gitlab_archive(
     """Download proxy for a GitLab project archive."""
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     return await gitlab_client.download_archive(
-        project_path=project_path, ref=ref, format=format
+        project_path=project_path, ref=ref, format=format, request=request
     )

@@ -5,11 +5,13 @@ import time
 from fastapi import HTTPException, Request
 from fastapi.routing import APIRouter
 
-from app.api.category import Category, CategoryFromCollectionIdDep, get_categories
-from app.api.providers import Project
-from app.api.providers.gitlab import GitlabClient
-from app.api.search import paginate_projects, search_projects
-from app.api.stac import (
+from app.auth import GitlabTokenDep
+from app.providers.client import GitlabClient
+from app.providers.schemas import Project
+from app.settings import ENABLE_CACHE, GITLAB_URL
+from app.stac.api.category import Category, CategoryFromCollectionIdDep, get_categories
+
+from .api.build import (
     STACSearchQuery,
     build_features_collection,
     build_stac_collection,
@@ -18,9 +20,8 @@ from app.api.stac import (
     build_stac_item_preview,
     build_stac_root,
 )
-from app.config import (
-    ENABLE_CACHE,
-    GITLAB_URL,
+from .api.search import search_projects
+from .settings import (
     STAC_CATEGORIES_PAGE_DEFAULT_SIZE,
     STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT,
     STAC_PROJECTS_ASSETS_RULES,
@@ -28,7 +29,6 @@ from app.config import (
     STAC_ROOT_CONF,
     STAC_SEARCH_CACHE_TIMEOUT,
 )
-from app.dependencies import GitlabTokenDep
 
 logger = logging.getLogger("app")
 
@@ -91,9 +91,10 @@ async def stac2_collection_items(
     request: Request,
     token: GitlabTokenDep,
     category: CategoryFromCollectionIdDep,
-    page: int = 1,
-    q: str = "",
     limit: int = STAC_CATEGORIES_PAGE_DEFAULT_SIZE,
+    prev: str | None = None,
+    next: str | None = None,
+    q: str = "",
     bbox: str = "",
     datetime: str = "",
 ):
@@ -110,7 +111,8 @@ async def stac2_collection_items(
         route="stac2_collection_items",
         search_query=search_query,
         category=category,
-        page=page,
+        prev=prev,
+        next=next,
     )
 
 
@@ -191,9 +193,10 @@ async def stac2_collection_feature(
 async def stac2_search(
     request: Request,
     token: GitlabTokenDep,
-    page: int = 1,
-    q: str = "",
     limit: int = STAC_CATEGORIES_PAGE_DEFAULT_SIZE,
+    prev: str | None = None,
+    next: str | None = None,
+    q: str = "",
     bbox: str = "",
     datetime: str = "",
     intersects: str = "null",
@@ -217,7 +220,8 @@ async def stac2_search(
         route="stac2_search",
         search_query=search_query,
         category=None,
-        page=page,
+        prev=prev,
+        next=next,
     )
 
 
@@ -227,27 +231,25 @@ async def _stac_search(
     route: str,
     search_query: STACSearchQuery,
     category: Category | None,
-    page: int = 1,
+    prev: str | None,
+    next: str | None,
 ) -> dict:
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
-    projects = await search_projects(search_query, client=gitlab_client)
-    page_projects, pagination = paginate_projects(
-        projects, page, per_page=search_query.limit
+    projects, pagination = await search_projects(
+        gitlab_client, search_query, category, prev=prev, next=next
     )
-
-    page_projects_readme = await asyncio.gather(
-        *(get_cached_readme(gitlab_client, p) for p in page_projects)
+    projects_readme = await asyncio.gather(
+        *(get_cached_readme(gitlab_client, p) for p in projects)
     )
-
     return build_features_collection(
         features=[
             build_stac_item_preview(
                 project=p,
-                readme=page_projects_readme[i],
+                readme=projects_readme[i],
                 request=request,
                 token=token,
             )
-            for i, p in enumerate(page_projects)
+            for i, p in enumerate(projects)
         ],
         pagination=pagination,
         route=route,
