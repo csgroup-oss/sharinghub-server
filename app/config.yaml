@@ -134,3 +134,14 @@ external-urls:
         locales:
           fr:
             name: Deuxième lien
+
+alerts:
+  timeout: 3
+  type: info
+  url: /login
+  title: "Welcome to new SharingHUB"
+  message: "To see all projects and unlock all features, please login..."
+  locales:
+    fr:
+      title: "Bienvenue sur le nouveau SharingHUB"
+      message: "Pour voir tous les projets et débloquer toutes les fonctionnalités, veuillez vous connecter..."

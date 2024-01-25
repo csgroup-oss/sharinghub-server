@@ -95,6 +95,7 @@ ENABLE_CACHE: bool = conf(
 )
 
 EXTERNAL_URLS: list = conf("external-urls", default=[], cast=clist())
+ALERT_MESSAGE: dict = conf("alerts", default={}, cast=dict)
 
 # ____ GitLab ____ #
 

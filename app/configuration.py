@@ -1,6 +1,6 @@
 from fastapi.routing import APIRouter
 
-from app.settings import EXTERNAL_URLS, JUPYTERLAB_URL
+from app.settings import ALERT_MESSAGE, EXTERNAL_URLS, JUPYTERLAB_URL
 from app.stac.settings import STAC_CATEGORIES, STAC_ROOT_CONF
 from app.store.settings import S3_ENABLE
 
@@ -48,6 +48,18 @@ async def configuration():
             for category_name, category in STAC_CATEGORIES.items()
         },
         "external_urls": normalize_external_urls(EXTERNAL_URLS, text_keys),
+        "alert_info": {
+            **{k: v for k, v in ALERT_MESSAGE.items() if k not in ["message", "title"]},
+            "locales": {
+                "en": {
+                    k: v for k, v in ALERT_MESSAGE.items() if k in ["message", "title"]
+                },
+                **{
+                    locale: {k: v for k, v in translation.items()}
+                    for locale, translation in ALERT_MESSAGE.get("locales", {}).items()
+                },
+            },
+        },
     }
 
 

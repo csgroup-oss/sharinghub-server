@@ -45,7 +45,8 @@ Content:
   - [STAC: projects assets release source format](#stac-projects-assets-release-source-format)
   - [STAC: projects cache timeout](#stac-projects-cache-timeout-1)
   - [TAGS: sections](#tags-sections)
-  - [External URLS](#external-urls)
+  - [FRONT-CONFIG: external urls](#front-config-external-urls)
+  - [FRONT-CONFIG: visitor alert message](#front-config-visitor-alert-message)
 
 ## Variables
 
@@ -573,7 +574,7 @@ Content:
           - "Mask generation"
   ```
 
-### External URLS
+### FRONT-CONFIG: external urls
 
 - Type: mapping
 - Default: read from [config file](./app/config.yaml)
@@ -600,4 +601,24 @@ Content:
             locales:
               fr:
                 name: <localization>
+  ```
+
+### FRONT-CONFIG: visitor alert message
+
+- Type: mapping
+- Default: read from [config file](./app/config.yaml)
+- YAML:
+  - Path: `alerts`
+- Example value:
+  ```yaml
+    alerts:
+      timeout: 3 # days unit
+      type: info # color of alert | possibility (info, danger, success, warning,primary, dark, secondary)
+      url: /login # no required if want redirect to others service
+      title: "Welcome to new SharingHUB "
+      message: "To see all projects and unlock all features, please login.."
+      locales:
+        fr:
+          title: "Bienvenue sur le nouveau sharing hub"
+          message: "Pour voir tous les projets et débloquer toutes les fonctionnalités, veuillez vous connecter..."
   ```
