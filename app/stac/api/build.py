@@ -499,7 +499,9 @@ def build_stac_item_preview(
                     (spatial_extent[0], spatial_extent[1]),
                 ]
             ],
-        },
+        }
+        if spatial_extent
+        else None,
         "bbox": spatial_extent,
         "properties": {
             "title": project.name,
@@ -697,7 +699,9 @@ def build_stac_item(
                     (spatial_extent[0], spatial_extent[1]),
                 ]
             ],
-        },
+        }
+        if spatial_extent
+        else None,
         "bbox": spatial_extent,
         "properties": {
             "title": project.name,
@@ -880,7 +884,7 @@ def get_extent(
     project: Project, metadata: dict
 ) -> tuple[list[float], list[str | None]]:
     extent = metadata.get("extent", {})
-    spatial_extent = extent.get("bbox", [-180.0, -90.0, 180.0, 90.0])
+    spatial_extent = extent.get("bbox")
     temporal_extent = extent.get("temporal", [project.created_at, project.last_update])
     return spatial_extent, temporal_extent
 
