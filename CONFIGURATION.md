@@ -45,6 +45,7 @@ Content:
   - [STAC: projects assets release source format](#stac-projects-assets-release-source-format)
   - [STAC: projects cache timeout](#stac-projects-cache-timeout-1)
   - [TAGS: sections](#tags-sections)
+  - [External URLS](#external-urls)
 
 ## Variables
 
@@ -570,4 +571,33 @@ Content:
           - "Object detection"
           - "Image segmentation"
           - "Mask generation"
+  ```
+
+### External URLS
+
+- Type: mapping
+- Default: read from [config file](./app/config.yaml)
+- YAML:
+  - Path: `external-urls`
+- Example value:
+  ```yaml
+    external-urls:
+      - name: Link
+        url : <url>
+        icon: <icon>  # not required
+        locales:
+          fr:
+            name: French Localization
+      - name: Links with dropdown
+        icon: <icon>
+        locales:
+          fr:
+            name: French Localization
+        dropdown:
+          - name : Link Children
+            url: <url>
+            icon: <icon>
+            locales:
+              fr:
+                name: <localization>
   ```

@@ -94,6 +94,8 @@ ENABLE_CACHE: bool = conf(
     "server.cache", "ENABLE_CACHE", default=not DEBUG, cast=cbool()
 )
 
+EXTERNAL_URLS: list = conf("external-urls", default=[], cast=clist())
+
 # ____ GitLab ____ #
 
 GITLAB_URL: str = conf("gitlab.url", "GITLAB_URL", cast=str)

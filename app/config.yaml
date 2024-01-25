@@ -108,3 +108,29 @@ tags:
       keywords:
         - "Tabular Classification"
         - "Tabular Regression"
+
+external-urls:
+  - name: Docs
+    url: /docs/
+    icon: https://img.icons8.com/material-outlined/24/books--v1.png
+    locales:
+      fr:
+        name: Docs
+  - name: External Links
+    icon: https://img.icons8.com/color/48/info--v1.png
+    locales:
+      fr:
+        name: Liens Externes
+    dropdown:
+      - name: First Link
+        url: https://icons8.com/icons/set/danger
+        icon: https://img.icons8.com/ios/50/warning-shield.png
+        locales:
+          fr:
+            name: Premier Lien
+      - name: Second Link
+        url: https://icons8.com/icons/set/stop
+        icon: https://img.icons8.com/flat-round/64/stop.png
+        locales:
+          fr:
+            name: Deuxième lien
