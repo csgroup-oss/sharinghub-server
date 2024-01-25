@@ -75,3 +75,36 @@ stac:
           jupyter: enable
           map-viewer: enable
           store-s3: disable
+
+tags:
+  gitlab:
+    minimum_count: 1
+  sections:
+    - name: "Computer Vision"
+      enabled_for:
+        - ai-model
+        - dataset
+        - processor
+      keywords:
+        - "Image qualification"
+        - "Object detection"
+        - "Image segmentation"
+        - "Mask generation"
+    - name: "Multimodal"
+      enabled_for:
+        - ai-model
+        - dataset
+        - processor
+      keywords:
+        - "Feature Extraction"
+        - "Text-to-Image"
+        - "Image-to-3D"
+        - "Text-to-3D"
+    - name: "Tabular"
+      enabled_for:
+        - ai-model
+        - dataset
+        - processor
+      keywords:
+        - "Tabular Classification"
+        - "Tabular Regression"

@@ -27,6 +27,7 @@ Content:
   - [Gitlab: OAuth client id](#gitlab-oauth-client-id)
   - [Gitlab: OAuth client secret](#gitlab-oauth-client-secret)
   - [Gitlab: OAuth default token](#gitlab-oauth-default-token)
+  - [Gitlab: ignore topics](#gitlab-ignore-topics)
   - [JupyterLab: URL](#jupyterlab-url)
   - [S3: enable](#s3-enable)
   - [S3: bucket](#s3-bucket)
@@ -43,6 +44,7 @@ Content:
   - [STAC: projects assets rules](#stac-projects-assets-rules)
   - [STAC: projects assets release source format](#stac-projects-assets-release-source-format)
   - [STAC: projects cache timeout](#stac-projects-cache-timeout-1)
+  - [TAGS: sections](#tags-sections)
 
 ## Variables
 
@@ -544,3 +546,28 @@ Content:
       search:
         cache-timeout: 15.0
     ```
+
+### TAGS: sections
+
+- Type: mapping
+- Default: read from [config file](./app/config.yaml)
+- YAML:
+  - Path: `tags`
+- Example value:
+  ```yaml
+  tags:
+    gitlab:
+      minimum_count: 1
+    sections:
+      - name: "Computer Vision"
+        enabled_for:
+          - ai-model
+          - dataset
+          - processor
+          - challenge
+        keywords:
+          - "Image qualification"
+          - "Object detection"
+          - "Image segmentation"
+          - "Mask generation"
+  ```

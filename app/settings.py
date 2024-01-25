@@ -103,6 +103,7 @@ GITLAB_IGNORE_TOPICS: list[str] = conf(
     default=[],
     cast=clist(sep=" "),
 )
+TAGS_OPTIONS: dict = conf("tags", default={}, cast=dict)
 
 # __ JupyterLab __ #
 
