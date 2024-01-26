@@ -254,7 +254,7 @@ class GitlabClient(ProviderClient):
         url = self._project_rest_api(project, "/repository/tree?recursive=true")
         try:
             files: list[GitlabProjectFile] = await self._rest_iterate(url)
-            return [f["path"] for f in files]
+            return [f["path"] for f in files if f["type"] == "blob"]
         except HTTPException as http_exc:
             if http_exc.status_code != 404:
                 raise http_exc
