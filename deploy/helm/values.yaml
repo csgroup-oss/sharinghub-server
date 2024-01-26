@@ -38,9 +38,9 @@ config: |-
               description: Les modèles d'IA sont au cœur de notre plateforme, allez les parcourir pour découvrir nos modèles.
           features:
             deployment: enable
-            jupyter: disable
+            jupyter: enable
             map-viewer: enable
-            store-s3: disable
+            store-s3: enable
         dataset:
           title: Datasets
           description: Datasets are very important in the process of training an AI, discover those that we put at your disposal.
@@ -53,7 +53,7 @@ config: |-
               description: Les jeux de données sont très importants dans le processus de formation d'une IA, découvrez ceux que nous mettons à votre disposition.
           features:
             deployment: disable
-            jupyter: disable
+            jupyter: enable
             map-viewer: enable
             store-s3: enable
         processor:
