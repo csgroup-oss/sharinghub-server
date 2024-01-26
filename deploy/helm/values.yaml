@@ -1,6 +1,15 @@
 config: |-
   gitlab:
     url: https://gitlab.si.c-s.fr
+    ignore:
+      topics:
+        - devops
+        - gitlab-ci
+        - squash-tm
+        - squash-devops
+        - ci
+        - docx
+        - sharinghub:debug
 
   jupyterlab:
     url: https://nb.p2.csgroup.space
@@ -10,6 +19,25 @@ config: |-
     bucket: p2-sharinghub
     region: sbg
     endpoint: https://s3.sbg.perf.cloud.ovh.net/
+
+  external-urls:
+    - name: Docs
+      url: /docs/
+      icon: https://img.icons8.com/material-outlined/24/books--v1.png
+      locales:
+        fr:
+          name: Docs
+
+  alerts:
+    timeout: 3
+    type: info
+    url: /login
+    title: "Welcome to SharingHUB"
+    message: "To see all projects and unlock all features, please login..."
+    locales:
+      fr:
+        title: "Bienvenue sur le SharingHUB"
+        message: "Pour voir tous les projets et débloquer toutes les fonctionnalités, veuillez vous connecter..."
 
   stac:
     projects:
@@ -86,6 +114,39 @@ config: |-
             jupyter: enable
             map-viewer: enable
             store-s3: disable
+
+  tags:
+    gitlab:
+      minimum_count: 1
+    sections:
+      - name: "Computer Vision"
+        enabled_for:
+          - ai-model
+          - dataset
+          - processor
+        keywords:
+          - "Image qualification"
+          - "Object detection"
+          - "Image segmentation"
+          - "Mask generation"
+      - name: "Multimodal"
+        enabled_for:
+          - ai-model
+          - dataset
+          - processor
+        keywords:
+          - "Feature Extraction"
+          - "Text-to-Image"
+          - "Image-to-3D"
+          - "Text-to-3D"
+      - name: "Tabular"
+        enabled_for:
+          - ai-model
+          - dataset
+          - processor
+        keywords:
+          - "Tabular Classification"
+          - "Tabular Regression"
 
 image:
   repository: 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub
