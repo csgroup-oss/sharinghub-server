@@ -29,7 +29,7 @@ stac:
           deployment: enable
           jupyter: disable
           map-viewer: enable
-          store-s3: disable
+          store-s3: enable
       dataset:
         title: Datasets
         description: Datasets are very important in the process of training an AI, discover those that we put at your disposal.

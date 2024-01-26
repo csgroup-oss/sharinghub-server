@@ -26,7 +26,7 @@ from app.settings import GITLAB_URL
 from app.utils import markdown as md
 from app.utils.http import is_local, url_for
 
-from .category import Category, get_category
+from .category import Category, FeatureVal, get_category
 
 logger = logging.getLogger("app")
 
@@ -545,9 +545,7 @@ def build_stac_item(
     # _ Extensions
 
     # __ sharing hub extensions
-    sharinghub_properties = _get_sharinghub_properties(
-        project.category, readme_metadata
-    )
+    sharinghub_properties = _get_sharinghub_properties(project, files, readme_metadata)
 
     # __ Scientific Citation extension (https://github.com/stac-extensions/scientific)
     doi, doi_publications = _get_scientific_citations(readme_metadata, readme_doc)
@@ -725,10 +723,6 @@ def build_stac_item(
                 },
             ],
             **fields,
-            "sharinghub:name": project.full_name,
-            "sharinghub:path": project.path,
-            "sharinghub:id": project.id,
-            "sharinghub:stars": project.star_count,
         },
         "links": [
             *default_links,
@@ -1049,8 +1043,21 @@ def _parse_resource_link(
     return title, link, _labels
 
 
-def _get_sharinghub_properties(category: Category, metadata: dict) -> dict:
-    return category.features | metadata.get("sharinghub", {})
+def _get_sharinghub_properties(
+    project: Project, files: list[str], metadata: dict
+) -> dict:
+    features = project.category.features
+    if not [fpath for fpath in files if fpath.startswith(".dvc/")]:
+        features["store-s3"] = FeatureVal.DISABLE
+    return {
+        "id": project.id,
+        "name": project.full_name,
+        "path": project.path,
+        "stars": project.star_count,
+        "category": project.category.id,
+        **features,
+        **metadata.get("sharinghub", {}),
+    }
 
 
 def _get_scientific_citations(
