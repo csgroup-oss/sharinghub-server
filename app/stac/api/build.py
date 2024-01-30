@@ -488,21 +488,25 @@ def build_stac_item_preview(
         "stac_extensions": [],
         "type": "Feature",
         "id": get_project_stac_id(project),
-        "geometry": {
-            "type": "Polygon",
-            "coordinates": [
-                [
-                    (spatial_extent[0], spatial_extent[1]),
-                    (spatial_extent[2], spatial_extent[1]),
-                    (spatial_extent[2], spatial_extent[3]),
-                    (spatial_extent[0], spatial_extent[3]),
-                    (spatial_extent[0], spatial_extent[1]),
-                ]
-            ],
-        }
-        if spatial_extent
-        else None,
-        "bbox": spatial_extent,
+        **(
+            {
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            (spatial_extent[0], spatial_extent[1]),
+                            (spatial_extent[2], spatial_extent[1]),
+                            (spatial_extent[2], spatial_extent[3]),
+                            (spatial_extent[0], spatial_extent[3]),
+                            (spatial_extent[0], spatial_extent[1]),
+                        ]
+                    ],
+                },
+                "bbox": spatial_extent,
+            }
+            if spatial_extent
+            else {"geometry": None}
+        ),
         "properties": {
             "title": project.name,
             "description": description,
@@ -686,21 +690,25 @@ def build_stac_item(
         "stac_extensions": stac_extensions,
         "type": "Feature",
         "id": get_project_stac_id(project),
-        "geometry": {
-            "type": "Polygon",
-            "coordinates": [
-                [
-                    (spatial_extent[0], spatial_extent[1]),
-                    (spatial_extent[2], spatial_extent[1]),
-                    (spatial_extent[2], spatial_extent[3]),
-                    (spatial_extent[0], spatial_extent[3]),
-                    (spatial_extent[0], spatial_extent[1]),
-                ]
-            ],
-        }
-        if spatial_extent
-        else None,
-        "bbox": spatial_extent,
+        **(
+            {
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            (spatial_extent[0], spatial_extent[1]),
+                            (spatial_extent[2], spatial_extent[1]),
+                            (spatial_extent[2], spatial_extent[3]),
+                            (spatial_extent[0], spatial_extent[3]),
+                            (spatial_extent[0], spatial_extent[1]),
+                        ]
+                    ],
+                },
+                "bbox": spatial_extent,
+            }
+            if spatial_extent
+            else {"geometry": None}
+        ),
         "properties": {
             "title": project.name,
             "description": description,
