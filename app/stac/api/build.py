@@ -481,7 +481,7 @@ def build_stac_item_preview(
     spatial_extent, temporal_extent = get_extent(project, readme_metadata)
 
     # STAC generation
-    default_links, default_assets = get_stac_item_default_links_and_assets(
+    default_fields, default_links, default_assets = get_stac_item_default_values(
         project, preview, preview_media_type, **context
     )
     return {
@@ -508,6 +508,7 @@ def build_stac_item_preview(
             if spatial_extent
             else {"geometry": None}
         ),
+        **default_fields,
         "properties": {
             "title": project.name,
             "description": description,
@@ -687,7 +688,7 @@ def build_stac_item(
         for prop, val in sharinghub_properties.items():
             fields[f"sharinghub:{prop}"] = val
 
-    default_links, default_assets = get_stac_item_default_links_and_assets(
+    default_fields, default_links, default_assets = get_stac_item_default_values(
         project, preview, preview_media_type, **context
     )
     return {
@@ -714,6 +715,7 @@ def build_stac_item(
             if spatial_extent
             else {"geometry": None}
         ),
+        **default_fields,
         "properties": {
             "title": project.name,
             "description": description,
@@ -760,42 +762,18 @@ def build_stac_item(
     }
 
 
-def get_stac_item_default_links_and_assets(
+def get_stac_item_default_values(
     project: Project,
     preview: str | None,
     preview_media_type: str | None,
     **context: Unpack[STACContext],
-) -> tuple[list[dict], dict[str, dict]]:
+) -> tuple[dict[str, str], list[dict], dict[str, dict]]:
     _request = context["request"]
     _token = context["token"]
 
+    fields = {}
     assets = {}
-    links = []
-    if is_local(preview):
-        preview = url_for(
-            _request,
-            "download_gitlab_file",
-            path=dict(
-                project_path=project.path,
-                file_path=preview,
-            ),
-            query={"ref": project.default_branch, **_token.rc_query},
-        )
-    if preview:
-        assets["preview"] = {
-            "href": preview,
-            "title": "Preview",
-            "roles": ["thumbnail"],
-        }
-        if preview_media_type:
-            assets["preview"]["type"] = preview_media_type
-        links.append(
-            {
-                "rel": "preview",
-                "href": preview,
-            }
-        )
-    return [
+    links = [
         {
             "rel": "self",
             "type": "application/geo+json",
@@ -828,18 +806,48 @@ def get_stac_item_default_links_and_assets(
                 query={**_token.query},
             ),
         },
-        {
-            "rel": "collection",
-            "type": "application/json",
-            "href": url_for(
-                _request,
-                "stac2_collection",
-                path=dict(collection_id=project.category.id),
-                query={**_token.query},
+    ]
+
+    if project.category:
+        fields["collection"] = project.category.id
+        links.append(
+            {
+                "rel": "collection",
+                "type": "application/json",
+                "href": url_for(
+                    _request,
+                    "stac2_collection",
+                    path=dict(collection_id=project.category.id),
+                    query={**_token.query},
+                ),
+            }
+        )
+
+    if is_local(preview):
+        preview = url_for(
+            _request,
+            "download_gitlab_file",
+            path=dict(
+                project_path=project.path,
+                file_path=preview,
             ),
-        },
-        *links,
-    ], assets
+            query={"ref": project.default_branch, **_token.rc_query},
+        )
+    if preview:
+        assets["preview"] = {
+            "href": preview,
+            "title": "Preview",
+            "roles": ["thumbnail"],
+        }
+        if preview_media_type:
+            assets["preview"]["type"] = preview_media_type
+        links.append(
+            {
+                "rel": "preview",
+                "href": preview,
+            }
+        )
+    return fields, links, assets
 
 
 def _get_preview_description(
