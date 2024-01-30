@@ -35,12 +35,18 @@ async def search_projects(
 
     topics = [category.gitlab_topic, *search_query.topics]
 
+    sortby = search_query.sortby
+    if sortby:
+        sortby = sortby.replace("properties.", "")
+        sortby = sortby.replace("sharinghub:", "")
+
     projects, cursor_pagination = await client.search(
         query=" ".join(search_query.q),
         topics=topics,
         bbox=search_query.bbox,
         datetime_range=search_query.datetime_range,
         limit=search_query.limit,
+        sort=sortby,
         prev=prev,
         next=next,
     )

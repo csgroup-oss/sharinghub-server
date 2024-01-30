@@ -43,8 +43,10 @@ CONFORMANCE = [
     "https://api.stacspec.org/v1.0.0/core",
     "https://api.stacspec.org/v1.0.0/collections",
     "https://api.stacspec.org/v1.0.0/ogcapi-features",
+    "https://api.stacspec.org/v1.0.0/ogcapi-features#sort",
     "https://api.stacspec.org/v1.0.0-rc.1/ogcapi-features#free-text",
     "https://api.stacspec.org/v1.0.0/item-search",
+    "https://api.stacspec.org/v1.0.0/item-search#sort",
     "https://api.stacspec.org/v1.0.0-rc.1/item-search#free-text",
     "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core",
     "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30",
@@ -92,6 +94,7 @@ async def stac2_collection_items(
     token: GitlabTokenDep,
     category: CategoryFromCollectionIdDep,
     limit: int = STAC_CATEGORIES_PAGE_DEFAULT_SIZE,
+    sortby: str | None = None,
     prev: str | None = None,
     next: str | None = None,
     q: str = "",
@@ -100,6 +103,7 @@ async def stac2_collection_items(
 ):
     search_query = STACSearchQuery(
         limit=limit,
+        sortby=sortby,
         bbox=[float(p) for p in bbox.split(",")] if bbox else [],
         datetime=datetime if datetime else None,
         collections=[category.id],
@@ -194,6 +198,7 @@ async def stac2_search(
     request: Request,
     token: GitlabTokenDep,
     limit: int = STAC_CATEGORIES_PAGE_DEFAULT_SIZE,
+    sortby: str | None = None,
     prev: str | None = None,
     next: str | None = None,
     q: str = "",
@@ -206,6 +211,7 @@ async def stac2_search(
 ):
     search_query = STACSearchQuery(
         limit=limit,
+        sortby=sortby,
         bbox=[float(p) for p in bbox.split(",")] if bbox else [],
         datetime=datetime if datetime else None,
         intersects=intersects,

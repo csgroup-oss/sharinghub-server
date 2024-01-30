@@ -100,6 +100,15 @@ class GitlabTopic(TypedDict):
     avatar_url: str | None
 
 
+GITLAB_GRAPHQL_SORTS = ["id", "name", "created", "updated", "stars"]
+GITLAB_GRAPHQL_SORTS_ALIASES = {
+    "title": "name",
+    "datetime": "updated",
+    "start_datetime": "created",
+    "end_datetime": "updated",
+}
+
+
 class GitlabClient(ProviderClient):
     def __init__(
         self, url: str, token: str, *, headers: dict[str, str] | None = None
@@ -134,11 +143,12 @@ class GitlabClient(ProviderClient):
         bbox: list[float],
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
+        sort: str | None,
         prev: str | None,
         next: str | None,
     ) -> tuple[list[Project], CursorPagination]:
         projects_cur, pagination = await self._search_projects(
-            query=query, topics=topics, limit=limit, prev=prev, next=next
+            query=query, topics=topics, limit=limit, sort=sort, prev=prev, next=next
         )
         projects = [p[1] for p in projects_cur]
         return projects, pagination
@@ -148,6 +158,7 @@ class GitlabClient(ProviderClient):
         query: str | None,
         topics: list[str],
         limit: int,
+        sort: str | None,
         prev: str | None,
         next: str | None,
     ) -> tuple[list[tuple[str, Project]], CursorPagination]:
@@ -160,9 +171,28 @@ class GitlabClient(ProviderClient):
             limit_param = "first"
             cursor_param = "after"
 
-        graphql_variables: dict[str, Any] = {"limit": limit, "cursor": cursor}
+        if sort:
+            sort_direction = "desc" if sort.startswith("-") else "asc"
+            sort_field = sort.lstrip("-+").strip()
+
+            if sort_field not in GITLAB_GRAPHQL_SORTS:
+                sort_field = GITLAB_GRAPHQL_SORTS_ALIASES.get(
+                    sort_field, GITLAB_GRAPHQL_SORTS[0]
+                )
+        else:
+            sort_direction = "asc"
+            sort_field = GITLAB_GRAPHQL_SORTS[0]
+
+        sort = f"{sort_field}_{sort_direction}"
+
+        graphql_variables: dict[str, Any] = {
+            "limit": limit,
+            "sortby": sort,
+            "cursor": cursor,
+        }
         graphql_query_params: dict[str, tuple[str, str]] = {
             "limit": ("Int", limit_param),
+            "sortby": ("String", "sort"),
             "cursor": ("String", cursor_param),
         }
 
@@ -181,7 +211,7 @@ class GitlabClient(ProviderClient):
         )
         graphql_query = f"""
         query searchProjects({_params_definition}) {{
-            search: projects(sort: "name_asc", {_params}) {{
+            search: projects({_params}) {{
                 nodes {{
                     id
                     name

@@ -54,6 +54,7 @@ FILE_ASSET_PREFIX = "file://"
 
 class STACSearchQuery(BaseModel):
     limit: Annotated[int, Field(strict=True, gt=0)] = 10
+    sortby: str | None = Field(default=None)
     bbox: list[float] = Field(default_factory=list)
     datetime: str | None = Field(default=None)
     intersects: Json = Field(default=None)
@@ -477,7 +478,7 @@ def build_stac_item_preview(
     description = _get_preview_description(project, readme_doc)
     keywords = _get_tags(project)
     preview, preview_media_type = _get_preview(readme_metadata, readme_doc)
-    spatial_extent, _ = get_extent(project, readme_metadata)
+    spatial_extent, temporal_extent = get_extent(project, readme_metadata)
 
     # STAC generation
     default_links, default_assets = get_stac_item_default_links_and_assets(
@@ -511,6 +512,10 @@ def build_stac_item_preview(
             "title": project.name,
             "description": description,
             "datetime": project.last_update,
+            "start_datetime": temporal_extent[0],
+            "end_datetime": temporal_extent[1],
+            "created": temporal_extent[0],
+            "updated": temporal_extent[1],
             "keywords": keywords,
             "sharinghub:stars": project.star_count,
             "sharinghub:category": project.category.id,

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal, Protocol, TypedDict
+from typing import Protocol, TypedDict
 
 from fastapi.responses import StreamingResponse
 
@@ -23,6 +23,7 @@ class ProviderClient(Protocol):
         bbox: list[float],
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
+        sort: str | None,
         prev: str | None,
         next: str | None,
     ) -> tuple[list[Project], CursorPagination]:
