@@ -107,6 +107,7 @@ GITLAB_GRAPHQL_SORTS_ALIASES = {
     "start_datetime": "created",
     "end_datetime": "updated",
 }
+GITLAB_GRAPHQL_REQUEST_MAX_SIZE = 40
 
 
 class GitlabClient(ProviderClient):
@@ -147,11 +148,84 @@ class GitlabClient(ProviderClient):
         prev: str | None,
         next: str | None,
     ) -> tuple[list[Project], CursorPagination]:
-        projects_cur, pagination = await self._search_projects(
-            query=query, topics=topics, limit=limit, sort=sort, prev=prev, next=next
+        if prev:
+            cursor = prev
+            direction = -1
+        else:
+            cursor = next
+            direction = 1
+
+        is_simple_search = not any((bbox, datetime_range))
+
+        req_limit = limit if is_simple_search else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
+        req = {
+            "query": query,
+            "topics": topics,
+            "limit": req_limit,
+            "sort": sort,
+            "direction": direction,
+        }
+
+        projects_cur: list[tuple[str, GitlabProject]] = []
+
+        _stop = False
+        _paginations: list[CursorPagination] = []
+        while len(projects_cur) < limit and not _stop:
+            _projects_cur, _pagination = await self._search_projects(
+                **req, cursor=cursor
+            )
+            _paginations.append(_pagination)
+
+            # ---------------------- #
+
+            if datetime_range:
+                _projects_cur = [
+                    e
+                    for e in _projects_cur
+                    if datetime_range[0]
+                    <= datetime.fromisoformat(e[1]["createdAt"])
+                    <= datetime_range[1]
+                    or datetime_range[0]
+                    <= datetime.fromisoformat(e[1]["lastActivityAt"])
+                    <= datetime_range[1]
+                ]
+
+            # ---------------------- #
+
+            if direction > 0:
+                projects_cur = [*projects_cur, *_projects_cur]
+                cursor = _pagination["end"]
+            else:
+                projects_cur = [*_projects_cur, *projects_cur]
+                cursor = _pagination["start"]
+
+            if not cursor:
+                _stop = True
+
+        if projects_cur:
+            if direction > 0:
+                projects_cur, _left = projects_cur[:limit], projects_cur[limit:]
+                _prev = projects_cur[0][0] if _paginations[0]["start"] else None
+                _next = projects_cur[-1][0] if _left else _paginations[-1]["end"]
+            else:
+                _left, projects_cur = projects_cur[:-limit], projects_cur[-limit:]
+                _prev = projects_cur[0][0] if _left else _paginations[-1]["start"]
+                _next = projects_cur[-1][0] if _paginations[0]["end"] else None
+        else:
+            logger.error(
+                f"Could not find any project {'after' if direction > 0 else 'before'}: "
+                f"{prev if prev else next} "
+                f"({query=}, {topics=}, {limit=}, {datetime_range=} {bbox=})"
+            )
+            _prev = None
+            _next = None
+
+        projects_cur = projects_cur[:limit] if direction > 0 else projects_cur[-limit:]
+        return [_adapt_graphql_project(p[1]) for p in projects_cur], CursorPagination(
+            total=_paginations[0]["total"] if is_simple_search else None,
+            start=_prev,
+            end=_next,
         )
-        projects = [p[1] for p in projects_cur]
-        return projects, pagination
 
     async def _search_projects(
         self,
@@ -159,17 +233,15 @@ class GitlabClient(ProviderClient):
         topics: list[str],
         limit: int,
         sort: str | None,
-        prev: str | None,
-        next: str | None,
-    ) -> tuple[list[tuple[str, Project]], CursorPagination]:
-        if prev:
-            cursor = prev
-            limit_param = "last"
-            cursor_param = "before"
-        else:
-            cursor = next
+        cursor: str | None,
+        direction: int,
+    ) -> tuple[list[tuple[str, GitlabProject]], CursorPagination]:
+        if direction > 0:
             limit_param = "first"
             cursor_param = "after"
+        else:
+            limit_param = "last"
+            cursor_param = "before"
 
         if sort:
             sort_direction = "desc" if sort.startswith("-") else "asc"
@@ -257,11 +329,11 @@ class GitlabClient(ProviderClient):
             start=page_info["startCursor"] if page_info["hasPreviousPage"] else None,
             end=page_info["endCursor"] if page_info["hasNextPage"] else None,
         )
-        projects: list[tuple[str, Project]] = [
-            (data["edges"][i]["cursor"], _adapt_graphql_project(project_data))
+        projects_cur: list[tuple[str, GitlabProject]] = [
+            (data["edges"][i]["cursor"], project_data)
             for i, project_data in enumerate(data["nodes"])
         ]
-        return projects, pagination
+        return projects_cur, pagination
 
     async def get_project(self, path: str) -> Project:
         path = urlsafe_path(path.strip("/"))

@@ -7,7 +7,7 @@ from ..schemas import Project, Release, Topic
 
 
 class CursorPagination(TypedDict):
-    total: int
+    total: int | None
     start: str | None
     end: str | None
 
