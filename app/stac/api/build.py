@@ -568,9 +568,7 @@ def build_stac_item(
 
     # STAC generation
 
-    stac_extensions = [
-        "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
-    ]
+    stac_extensions = []
 
     fields = {}
     assets = {}
@@ -625,6 +623,10 @@ def build_stac_item(
         if media_type:
             assets["release"]["type"] = media_type
 
+    if any((doi_link, doi_citation, doi_publications)):
+        stac_extensions.append(
+            "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
+        )
     if doi_link:
         fields["sci:doi"] = parse.urlparse(doi_link).path.removeprefix("/")
         links.append(
