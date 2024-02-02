@@ -1,22 +1,21 @@
-from h3 import h3
+import re
+
+from shapely import geometry
+
+BBOX_PATTERN = re.compile(
+    r"bbox:\s*(?P<coordinates>(-?\d+\.\d+),\s*(-?\d+\.\d+),\s*(-?\d+\.\d+),\s*(-?\d+\.\d+))",
+    flags=re.MULTILINE,
+)
 
 
-def hash_polygon(geojson, limit=80):
-    cells_ok = list()
-    for i in range(15):
-        cells = h3.polyfill(geojson, i, geo_json_conformant=True)
-        # cells = h3.compact(cells)
-        if len(cells) > limit:
-            break
-        cells_ok = cells
-    return cells_ok
+def read_bbox(text: str) -> list[float] | None:
+    if bbox_match := re.search(BBOX_PATTERN, text):
+        bbox_text = bbox_match.groupdict()["coordinates"]
+        return [float(n) for n in bbox_text.split(",")]
+    return None
 
 
-def find_parent_of_hashes(h3_hashes):
-    parent_hashes = set()
-
-    for h3_hash in h3_hashes:
-        parent_hash = h3.h3_to_parent(h3_hash)
-        parent_hashes.add(parent_hash)
-
-    return parent_hashes
+def intersect(bbox1: list[float], bbox2: list[float]) -> bool:
+    bbox1_polygon = geometry.box(*bbox1, ccw=True)
+    bbox2_polygon = geometry.box(*bbox2, ccw=True)
+    return bbox1_polygon.intersects(bbox2_polygon)

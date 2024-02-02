@@ -23,6 +23,7 @@ from pydantic import (
 from app.auth import GitlabToken
 from app.providers.schemas import Project, Release
 from app.settings import GITLAB_URL
+from app.utils import geo
 from app.utils import markdown as md
 from app.utils.http import is_local, url_for
 
@@ -856,6 +857,9 @@ def _get_preview_description(
     project: Project, md_content: str, wrap_char: int = 150
 ) -> str:
     description = project.description
+    if description:
+        description = re.sub(geo.BBOX_PATTERN, "", description).strip()
+
     if not description:
         description = md_content
         description = md.remove_everything_before_first_heading(description)
@@ -901,7 +905,13 @@ def get_extent(
     project: Project, metadata: dict
 ) -> tuple[list[float], list[str | None]]:
     extent = metadata.get("extent", {})
-    spatial_extent = extent.get("bbox")
+
+    if project.description:
+        bbox = geo.read_bbox(project.description)
+    else:
+        bbox = None
+
+    spatial_extent = bbox if bbox else extent.get("bbox")
     temporal_extent = extent.get("temporal", [project.created_at, project.last_update])
     return spatial_extent, temporal_extent
 

@@ -11,6 +11,7 @@ from fastapi import HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.stac.api.category import get_category_from_topics
+from app.utils import geo
 from app.utils.http import (
     AiohttpClient,
     HttpMethod,
@@ -138,7 +139,7 @@ GITLAB_GRAPHQL_SORTS_ALIASES = {
     "start_datetime": "created",
     "end_datetime": "updated",
 }
-GITLAB_GRAPHQL_REQUEST_MAX_SIZE = 40
+GITLAB_GRAPHQL_REQUEST_MAX_SIZE = 100
 
 
 class GitlabClient(ProviderClient):
@@ -223,6 +224,16 @@ class GitlabClient(ProviderClient):
 
             if datetime_range:
                 _projects_cur = [_pc for _pc in _projects_cur if temporal_check(_pc[1])]
+
+            def spatial_check(project_data: GitlabGRAPHQL_Project) -> bool:
+                if project_data["description"]:
+                    project_bbox = geo.read_bbox(project_data["description"])
+                    if project_bbox:
+                        return geo.intersect(bbox, project_bbox)
+                return False
+
+            if bbox:
+                _projects_cur = [_pc for _pc in _projects_cur if spatial_check(_pc[1])]
 
             # ---------------------- #
 

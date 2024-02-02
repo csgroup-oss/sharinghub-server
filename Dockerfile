@@ -24,6 +24,9 @@ FROM amd64/python:3.11-alpine as build
 
 # Install runtime dependencies
 RUN apk add \
+        # Shapely
+        g++ \
+        geos-dev \
         # MIME TYPES
         mailcap
 
