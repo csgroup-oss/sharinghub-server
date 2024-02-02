@@ -4,9 +4,10 @@ from functools import cache
 import markdown
 from yaml.scanner import ScannerError
 
-HEADING_PATTERN = r"(#{1,6})\s+(?P<title>.*)"
-IMAGE_PATTERN = r"!\[(?P<alt>.*?)\]\((?P<src>.*?)\)"
-LINK_PATTERN = r"(?<!\!)\[(?P<text>[^\]]*)\]\((?P<href>http[s]?://[^)]+)\)"
+HEADING_PATTERN = re.compile(r"(#{1,6})\s+(?P<title>.*)", flags=re.MULTILINE)
+IMAGE_PATTERN = re.compile(r"!\[(?P<alt>.*?)\]\((?P<src>.*?)\)")
+LINK_PATTERN = re.compile(r"(?<!\!)\[(?P<text>[^\]]*)\]\((?P<href>http[s]?://[^)]+)\)")
+EMPTY_LINES_PATTERN = re.compile(r"(\n){3,}")
 
 
 @cache
@@ -80,7 +81,7 @@ def remove_links(markdown_content: str) -> str:
 
 @cache
 def remove_everything_before_first_heading(markdown_content: str) -> str:
-    first_heading = re.search(HEADING_PATTERN, markdown_content, flags=re.MULTILINE)
+    first_heading = re.search(HEADING_PATTERN, markdown_content)
     if first_heading:
         markdown_content = markdown_content[first_heading.end() :]
     return markdown_content
@@ -88,4 +89,4 @@ def remove_everything_before_first_heading(markdown_content: str) -> str:
 
 @cache
 def clean_new_lines(markdown_content: str) -> str:
-    return re.sub(r"(\n){3,}", "\n\n", markdown_content).strip()
+    return re.sub(EMPTY_LINES_PATTERN, "\n\n", markdown_content).strip()
