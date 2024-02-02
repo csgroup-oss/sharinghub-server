@@ -209,17 +209,20 @@ class GitlabClient(ProviderClient):
 
             # ---------------------- #
 
+            def temporal_check(project_data: GitlabGRAPHQL_Project) -> bool:
+                created_at = datetime.fromisoformat(project_data["createdAt"])
+                updated_at = datetime.fromisoformat(project_data["lastActivityAt"])
+                return (
+                    datetime_range[0] <= created_at <= datetime_range[1]
+                    or datetime_range[0] <= updated_at <= datetime_range[1]
+                    or created_at
+                    <= datetime_range[0]
+                    <= datetime_range[1]
+                    <= updated_at
+                )
+
             if datetime_range:
-                _projects_cur = [
-                    e
-                    for e in _projects_cur
-                    if datetime_range[0]
-                    <= datetime.fromisoformat(e[1]["createdAt"])
-                    <= datetime_range[1]
-                    or datetime_range[0]
-                    <= datetime.fromisoformat(e[1]["lastActivityAt"])
-                    <= datetime_range[1]
-                ]
+                _projects_cur = [_pc for _pc in _projects_cur if temporal_check(_pc[1])]
 
             # ---------------------- #
 
