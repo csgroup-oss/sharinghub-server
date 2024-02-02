@@ -42,7 +42,7 @@ GITLAB_LICENSES_SPDX_MAPPING = {
 }
 
 
-class GitlabProject(TypedDict):
+class GitlabREST_Project(TypedDict):
     id: str
     description: str | None
     name: str
@@ -54,50 +54,81 @@ class GitlabProject(TypedDict):
     last_activity_at: str
     readme_url: str | None
     license_url: NotRequired[str | None]
-    license: NotRequired["_GitlabProjectLicense"]
+    license: NotRequired["_GitlabREST_ProjectLicense"]
     default_branch: str | None
     topics: list[str]
     star_count: int
 
 
-class _GitlabProjectLicense(TypedDict):
+class _GitlabREST_ProjectLicense(TypedDict):
     key: str
     name: str
     html_url: str
 
 
-class GitlabProjectFile(TypedDict):
+class GitlabREST_ProjectFile(TypedDict):
     id: str
     name: str
     path: str
 
 
-class GitlabProjectRelease(TypedDict):
+class GitlabREST_ProjectRelease(TypedDict):
     name: str
     tag_name: str
     description: str
     commit_path: str
     tag_path: str
-    assets: "_GitlabProjectReleaseAssets"
+    assets: "_GitlabREST_ProjectReleaseAssets"
 
 
-class _GitlabProjectReleaseAssets(TypedDict):
+class _GitlabREST_ProjectReleaseAssets(TypedDict):
     count: int
-    sources: list["_GitlabProjectReleaseSources"]
+    sources: list["_GitlabREST_ProjectReleaseSources"]
 
 
-class _GitlabProjectReleaseSources(TypedDict):
+class _GitlabREST_ProjectReleaseSources(TypedDict):
     format: str
     url: str
 
 
-class GitlabTopic(TypedDict):
+class GitlabREST_Topic(TypedDict):
     id: str
     name: str
     title: str
     description: str | None
     total_projects_count: int
     avatar_url: str | None
+
+
+class GitlabGRAPHQL_Project(TypedDict):
+    id: str
+    name: str
+    nameWithNamespace: str
+    fullPath: str
+    description: str | None
+    webUrl: str
+    createdAt: str
+    lastActivityAt: str
+    starCount: int
+    topics: list[str]
+    repository: "_GitlabGRAPHQL_Repository"
+
+
+class _GitlabGRAPHQL_Tree(TypedDict):
+    blobs: "_GitlabGRAPHQL_TreeBlobs"
+
+
+class _GitlabGRAPHQL_Repository(TypedDict):
+    rootRef: str | None
+    tree: _GitlabGRAPHQL_Tree | None
+
+
+class _GitlabGRAPHQL_TreeBlobs(TypedDict):
+    nodes: list["_GitlabGRAPHQL_TreeBlobNode"]
+
+
+class _GitlabGRAPHQL_TreeBlobNode(TypedDict):
+    path: str
 
 
 GITLAB_GRAPHQL_SORTS = ["id", "name", "created", "updated", "stars"]
@@ -132,7 +163,7 @@ class GitlabClient(ProviderClient):
         return self._rest_api(f"/projects/{path}/{endpoint}")
 
     async def get_topics(self) -> list[Topic]:
-        _topics: list[GitlabTopic] = await self._rest_iterate(
+        _topics: list[GitlabREST_Topic] = await self._rest_iterate(
             url=self._rest_api("/topics")
         )
         return [Topic(**t) for t in _topics]
@@ -166,7 +197,7 @@ class GitlabClient(ProviderClient):
             "direction": direction,
         }
 
-        projects_cur: list[tuple[str, GitlabProject]] = []
+        projects_cur: list[tuple[str, GitlabGRAPHQL_Project]] = []
 
         _stop = False
         _paginations: list[CursorPagination] = []
@@ -235,7 +266,7 @@ class GitlabClient(ProviderClient):
         sort: str | None,
         cursor: str | None,
         direction: int,
-    ) -> tuple[list[tuple[str, GitlabProject]], CursorPagination]:
+    ) -> tuple[list[tuple[str, GitlabGRAPHQL_Project]], CursorPagination]:
         if direction > 0:
             limit_param = "first"
             cursor_param = "after"
@@ -329,7 +360,7 @@ class GitlabClient(ProviderClient):
             start=page_info["startCursor"] if page_info["hasPreviousPage"] else None,
             end=page_info["endCursor"] if page_info["hasNextPage"] else None,
         )
-        projects_cur: list[tuple[str, GitlabProject]] = [
+        projects_cur: list[tuple[str, GitlabGRAPHQL_Project]] = [
             (data["edges"][i]["cursor"], project_data)
             for i, project_data in enumerate(data["nodes"])
         ]
@@ -338,7 +369,7 @@ class GitlabClient(ProviderClient):
     async def get_project(self, path: str) -> Project:
         path = urlsafe_path(path.strip("/"))
         url = self._rest_api(f"/projects/{path}?license=true")
-        gitlab_project: GitlabProject = await self._request(url)
+        gitlab_project: GitlabREST_Project = await self._request(url)
         return _adapt_rest_project(gitlab_project)
 
     async def get_readme(self, project: Project) -> str:
@@ -355,7 +386,7 @@ class GitlabClient(ProviderClient):
     async def get_files(self, project: Project) -> list[str]:
         url = self._project_rest_api(project, "/repository/tree?recursive=true")
         try:
-            files: list[GitlabProjectFile] = await self._rest_iterate(url)
+            files: list[GitlabREST_ProjectFile] = await self._rest_iterate(url)
             return [f["path"] for f in files if f["type"] == "blob"]
         except HTTPException as http_exc:
             if http_exc.status_code != 404:
@@ -365,7 +396,7 @@ class GitlabClient(ProviderClient):
     async def get_latest_release(self, project: Project) -> Release | None:
         url = self._project_rest_api(project, "/releases/permalink/latest")
         try:
-            _release: GitlabProjectRelease = await self._request(url)
+            _release: GitlabREST_ProjectRelease = await self._request(url)
             return Release(
                 name=_release["name"],
                 tag=_release["tag_name"],
@@ -551,7 +582,7 @@ class GitlabClient(ProviderClient):
         return response
 
 
-def _adapt_graphql_project(project_data: dict) -> Project:
+def _adapt_graphql_project(project_data: GitlabGRAPHQL_Project) -> Project:
     category = get_category_from_topics(project_data["topics"])
     readme_path = None
     if project_data["repository"]["tree"]:
@@ -580,37 +611,37 @@ def _adapt_graphql_project(project_data: dict) -> Project:
     )
 
 
-def _adapt_rest_project(gitlab_project: GitlabProject) -> Project:
-    if gitlab_project["readme_url"]:
-        readme_path = gitlab_project["readme_url"].replace(
-            f"{gitlab_project['web_url']}/-/blob/{gitlab_project['default_branch']}/",
+def _adapt_rest_project(project_data: GitlabREST_Project) -> Project:
+    if project_data["readme_url"]:
+        readme_path = project_data["readme_url"].replace(
+            f"{project_data['web_url']}/-/blob/{project_data['default_branch']}/",
             "",
         )
     else:
         readme_path = None
 
-    if gitlab_project.get("license"):
-        license_id = GITLAB_LICENSES_SPDX_MAPPING.get(gitlab_project["license"]["key"])
+    if project_data.get("license"):
+        license_id = GITLAB_LICENSES_SPDX_MAPPING.get(project_data["license"]["key"])
     else:
         license_id = None
 
-    category = get_category_from_topics(gitlab_project["topics"])
+    category = get_category_from_topics(project_data["topics"])
 
     return Project(
-        id=gitlab_project["id"],
-        name=gitlab_project["name"],
-        full_name=gitlab_project["name_with_namespace"],
-        path=gitlab_project["path_with_namespace"],
-        description=gitlab_project["description"],
-        url=gitlab_project["web_url"],
-        issues_url=gitlab_project["web_url"] + "/issues",
-        created_at=gitlab_project["created_at"],
-        last_update=gitlab_project["last_activity_at"],
-        star_count=gitlab_project["star_count"],
-        topics=gitlab_project["topics"],
+        id=project_data["id"],
+        name=project_data["name"],
+        full_name=project_data["name_with_namespace"],
+        path=project_data["path_with_namespace"],
+        description=project_data["description"],
+        url=project_data["web_url"],
+        issues_url=project_data["web_url"] + "/issues",
+        created_at=project_data["created_at"],
+        last_update=project_data["last_activity_at"],
+        star_count=project_data["star_count"],
+        topics=project_data["topics"],
         category=category,
-        default_branch=gitlab_project["default_branch"],
+        default_branch=project_data["default_branch"],
         readme=readme_path,
         license_id=license_id,
-        license_url=gitlab_project.get("license_url"),
+        license_url=project_data.get("license_url"),
     )
