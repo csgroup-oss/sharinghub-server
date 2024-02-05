@@ -226,7 +226,8 @@ class GitlabClient(ProviderClient):
 
         _stop = False
         _paginations: list[CursorPagination] = []
-        while len(projects_cur) < limit and not _stop:
+        _search_size = limit + 1
+        while len(projects_cur) < _search_size and not _stop:
             _projects_cur, _pagination = await self._search_projects(
                 **req, cursor=cursor
             )
