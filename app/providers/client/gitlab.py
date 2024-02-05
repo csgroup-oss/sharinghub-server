@@ -101,7 +101,7 @@ class GitlabREST_Topic(TypedDict):
     avatar_url: str | None
 
 
-class GitlabGRAPHQL_Project(TypedDict):
+class GitlabGraphQL_Project(TypedDict):
     id: str
     name: str
     nameWithNamespace: str
@@ -112,23 +112,23 @@ class GitlabGRAPHQL_Project(TypedDict):
     lastActivityAt: str
     starCount: int
     topics: list[str]
-    repository: "_GitlabGRAPHQL_Repository"
+    repository: "_GitlabGraphQL_Repository"
 
 
-class _GitlabGRAPHQL_Tree(TypedDict):
-    blobs: "_GitlabGRAPHQL_TreeBlobs"
+class _GitlabGraphQL_Tree(TypedDict):
+    blobs: "_GitlabGraphQL_TreeBlobs"
 
 
-class _GitlabGRAPHQL_Repository(TypedDict):
+class _GitlabGraphQL_Repository(TypedDict):
     rootRef: str | None
-    tree: _GitlabGRAPHQL_Tree | None
+    tree: _GitlabGraphQL_Tree | None
 
 
-class _GitlabGRAPHQL_TreeBlobs(TypedDict):
-    nodes: list["_GitlabGRAPHQL_TreeBlobNode"]
+class _GitlabGraphQL_TreeBlobs(TypedDict):
+    nodes: list["_GitlabGraphQL_TreeBlobNode"]
 
 
-class _GitlabGRAPHQL_TreeBlobNode(TypedDict):
+class _GitlabGraphQL_TreeBlobNode(TypedDict):
     path: str
 
 
@@ -211,9 +211,10 @@ class GitlabClient(ProviderClient):
             cursor = next
             direction = 1
 
+        search_size = limit + 1
         is_simple_search = not any((bbox, datetime_range))
 
-        req_limit = limit if is_simple_search else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
+        req_limit = search_size if is_simple_search else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
         req = {
             "query": query,
             "topics": topics,
@@ -222,20 +223,18 @@ class GitlabClient(ProviderClient):
             "direction": direction,
         }
 
-        projects_cur: list[tuple[str, GitlabGRAPHQL_Project]] = []
+        projects_cur: list[tuple[str, GitlabGraphQL_Project]] = []
+        paginations: list[CursorPagination] = []
 
         _stop = False
-        _paginations: list[CursorPagination] = []
-        _search_size = limit + 1
-        while len(projects_cur) < _search_size and not _stop:
+        while len(projects_cur) < search_size and not _stop:
             _projects_cur, _pagination = await self._search_projects(
                 **req, cursor=cursor
             )
-            _paginations.append(_pagination)
 
             # ---------------------- #
 
-            def temporal_check(project_data: GitlabGRAPHQL_Project) -> bool:
+            def temporal_check(project_data: GitlabGraphQL_Project) -> bool:
                 created_at = datetime.fromisoformat(project_data["createdAt"])
                 updated_at = datetime.fromisoformat(project_data["lastActivityAt"])
                 return (
@@ -250,7 +249,7 @@ class GitlabClient(ProviderClient):
             if datetime_range:
                 _projects_cur = [_pc for _pc in _projects_cur if temporal_check(_pc[1])]
 
-            def spatial_check(project_data: GitlabGRAPHQL_Project) -> bool:
+            def spatial_check(project_data: GitlabGraphQL_Project) -> bool:
                 if project_data["description"]:
                     project_bbox = geo.read_bbox(project_data["description"])
                     if project_bbox:
@@ -269,33 +268,36 @@ class GitlabClient(ProviderClient):
                 projects_cur = [*_projects_cur, *projects_cur]
                 cursor = _pagination["start"]
 
+            paginations.append(_pagination)
+
             if not cursor:
                 _stop = True
 
         if projects_cur:
             if direction > 0:
                 projects_cur, _left = projects_cur[:limit], projects_cur[limit:]
-                _prev = projects_cur[0][0] if _paginations[0]["start"] else None
-                _next = projects_cur[-1][0] if _left else _paginations[-1]["end"]
+                start_cursor = projects_cur[0][0] if paginations[0]["start"] else None
+                end_cursor = projects_cur[-1][0] if _left else paginations[-1]["end"]
             else:
                 _left, projects_cur = projects_cur[:-limit], projects_cur[-limit:]
-                _prev = projects_cur[0][0] if _left else _paginations[-1]["start"]
-                _next = projects_cur[-1][0] if _paginations[0]["end"] else None
+                start_cursor = projects_cur[0][0] if _left else paginations[-1]["start"]
+                end_cursor = projects_cur[-1][0] if paginations[0]["end"] else None
         else:
             logger.error(
                 f"Could not find any project {'after' if direction > 0 else 'before'}: "
                 f"{prev if prev else next} "
                 f"({query=}, {topics=}, {limit=}, {datetime_range=} {bbox=})"
             )
-            _prev = None
-            _next = None
+            start_cursor = None
+            end_cursor = None
 
-        projects_cur = projects_cur[:limit] if direction > 0 else projects_cur[-limit:]
-        return [_adapt_graphql_project(p[1]) for p in projects_cur], CursorPagination(
-            total=_paginations[0]["total"] if is_simple_search else None,
-            start=_prev,
-            end=_next,
+        projects = [_adapt_graphql_project(p[1]) for p in projects_cur]
+        pagination = CursorPagination(
+            total=paginations[0]["total"] if is_simple_search else None,
+            start=start_cursor,
+            end=end_cursor,
         )
+        return projects, pagination
 
     async def _search_projects(
         self,
@@ -305,31 +307,13 @@ class GitlabClient(ProviderClient):
         sort: str | None,
         cursor: str | None,
         direction: int,
-    ) -> tuple[list[tuple[str, GitlabGRAPHQL_Project]], CursorPagination]:
-        if direction > 0:
-            limit_param = "first"
-            cursor_param = "after"
-        else:
-            limit_param = "last"
-            cursor_param = "before"
+    ) -> tuple[list[tuple[str, GitlabGraphQL_Project]], CursorPagination]:
+        limit_param, cursor_param = self._get_graphql_cursor_params(direction)
 
-        if sort:
-            sort_direction = "desc" if sort.startswith("-") else "asc"
-            sort_field = sort.lstrip("-+").strip()
-
-            if sort_field not in GITLAB_GRAPHQL_SORTS:
-                sort_field = GITLAB_GRAPHQL_SORTS_ALIASES.get(
-                    sort_field, GITLAB_GRAPHQL_SORTS[0]
-                )
-        else:
-            sort_direction = "asc"
-            sort_field = GITLAB_GRAPHQL_SORTS[0]
-
-        sort = f"{sort_field}_{sort_direction}"
-
+        graphql_sort = self._get_graphql_sort(sort)
         graphql_variables: dict[str, Any] = {
             "limit": limit,
-            "sortby": sort,
+            "sortby": graphql_sort,
             "cursor": cursor,
         }
         graphql_query_params: dict[str, tuple[str, str]] = {
@@ -381,11 +365,34 @@ class GitlabClient(ProviderClient):
             start=page_info["startCursor"] if page_info["hasPreviousPage"] else None,
             end=page_info["endCursor"] if page_info["hasNextPage"] else None,
         )
-        projects_cur: list[tuple[str, GitlabGRAPHQL_Project]] = [
+        projects_cur: list[tuple[str, GitlabGraphQL_Project]] = [
             (data["edges"][i]["cursor"], project_data)
             for i, project_data in enumerate(data["nodes"])
         ]
         return projects_cur, pagination
+
+    def _get_graphql_cursor_params(self, direction) -> tuple[str, str]:
+        if direction > 0:
+            limit_param = "first"
+            cursor_param = "after"
+        else:
+            limit_param = "last"
+            cursor_param = "before"
+        return limit_param, cursor_param
+
+    def _get_graphql_sort(self, sort: str | None) -> tuple[str, str]:
+        if sort:
+            sort_direction = "desc" if sort.startswith("-") else "asc"
+            sort_field = sort.lstrip("-+").strip()
+
+            if sort_field not in GITLAB_GRAPHQL_SORTS:
+                sort_field = GITLAB_GRAPHQL_SORTS_ALIASES.get(
+                    sort_field, GITLAB_GRAPHQL_SORTS[0]
+                )
+        else:
+            sort_direction = "asc"
+            sort_field = GITLAB_GRAPHQL_SORTS[0]
+        return f"{sort_field}_{sort_direction}"
 
     async def get_project(self, path: str) -> Project:
         path = urlsafe_path(path.strip("/"))
@@ -603,7 +610,7 @@ class GitlabClient(ProviderClient):
         return response
 
 
-def _adapt_graphql_project(project_data: GitlabGRAPHQL_Project) -> Project:
+def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     category = get_category_from_topics(project_data["topics"])
     readme_path = None
     if project_data["repository"]["tree"]:
