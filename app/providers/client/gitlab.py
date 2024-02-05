@@ -140,6 +140,30 @@ GITLAB_GRAPHQL_SORTS_ALIASES = {
     "end_datetime": "updated",
 }
 GITLAB_GRAPHQL_REQUEST_MAX_SIZE = 100
+GITLAB_GRAPHQL_PROJECT_FRAGMENT = """
+fragment projectFields on Project {
+    id
+    name
+    nameWithNamespace
+    fullPath
+    description
+    webUrl
+    createdAt
+    lastActivityAt
+    starCount
+    topics
+    repository {
+        rootRef
+        tree {
+            blobs {
+                nodes {
+                    path
+                }
+            }
+        }
+    }
+}
+"""
 
 
 class GitlabClient(ProviderClient):
@@ -330,26 +354,7 @@ class GitlabClient(ProviderClient):
         query searchProjects({_params_definition}) {{
             search: projects({_params}) {{
                 nodes {{
-                    id
-                    name
-                    nameWithNamespace
-                    fullPath
-                    description
-                    webUrl
-                    createdAt
-                    lastActivityAt
-                    starCount
-                    topics
-                    repository {{
-                        rootRef
-                        tree {{
-                            blobs {{
-                                nodes {{
-                                    path
-                                }}
-                            }}
-                        }}
-                    }}
+                    ...projectFields
                 }}
                 edges {{
                     cursor
@@ -363,6 +368,7 @@ class GitlabClient(ProviderClient):
                 count
             }}
         }}
+        {GITLAB_GRAPHQL_PROJECT_FRAGMENT}
         """
         logger.debug(f"GraphQL searchProjects: {graphql_variables}")
         result = await self._graphql(graphql_query, variables=graphql_variables)
