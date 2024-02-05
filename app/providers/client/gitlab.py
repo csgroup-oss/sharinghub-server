@@ -199,6 +199,7 @@ class GitlabClient(ProviderClient):
         topics: list[str],
         bbox: list[float],
         datetime_range: tuple[datetime, datetime] | None,
+        stars: bool,
         limit: int,
         sort: str | None,
         prev: str | None,
@@ -212,10 +213,10 @@ class GitlabClient(ProviderClient):
             direction = 1
 
         search_size = limit + 1
-        is_simple_search = not any((bbox, datetime_range))
+        is_simple_search = not any((stars, bbox, datetime_range))
 
         req_limit = search_size if is_simple_search else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
-        req = {
+        req_params = {
             "query": query,
             "topics": topics,
             "limit": req_limit,
@@ -228,35 +229,46 @@ class GitlabClient(ProviderClient):
 
         _stop = False
         while len(projects_cur) < search_size and not _stop:
-            _projects_cur, _pagination = await self._search_projects(
-                **req, cursor=cursor
-            )
-
-            # ---------------------- #
-
-            def temporal_check(project_data: GitlabGraphQL_Project) -> bool:
-                created_at = datetime.fromisoformat(project_data["createdAt"])
-                updated_at = datetime.fromisoformat(project_data["lastActivityAt"])
-                return (
-                    datetime_range[0] <= created_at <= datetime_range[1]
-                    or datetime_range[0] <= updated_at <= datetime_range[1]
-                    or created_at
-                    <= datetime_range[0]
-                    <= datetime_range[1]
-                    <= updated_at
+            if not stars:
+                _projects_cur, _pagination = await self._search_projects(
+                    **req_params, cursor=cursor
+                )
+            else:
+                _projects_cur, _pagination = await self._search_starred_projects(
+                    **req_params, cursor=cursor
                 )
 
+                # Filter by topics
+                _topics = set(topics)
+                _projects_cur = [
+                    _pc for _pc in _projects_cur if _topics.issubset(_pc[1]["topics"])
+                ]
+
             if datetime_range:
+
+                def temporal_check(project_data: GitlabGraphQL_Project) -> bool:
+                    created_at = datetime.fromisoformat(project_data["createdAt"])
+                    updated_at = datetime.fromisoformat(project_data["lastActivityAt"])
+                    return (
+                        datetime_range[0] <= created_at <= datetime_range[1]
+                        or datetime_range[0] <= updated_at <= datetime_range[1]
+                        or created_at
+                        <= datetime_range[0]
+                        <= datetime_range[1]
+                        <= updated_at
+                    )
+
                 _projects_cur = [_pc for _pc in _projects_cur if temporal_check(_pc[1])]
 
-            def spatial_check(project_data: GitlabGraphQL_Project) -> bool:
-                if project_data["description"]:
-                    project_bbox = geo.read_bbox(project_data["description"])
-                    if project_bbox:
-                        return geo.intersect(bbox, project_bbox)
-                return False
-
             if bbox:
+
+                def spatial_check(project_data: GitlabGraphQL_Project) -> bool:
+                    if project_data["description"]:
+                        project_bbox = geo.read_bbox(project_data["description"])
+                        if project_bbox:
+                            return geo.intersect(bbox, project_bbox)
+                    return False
+
                 _projects_cur = [_pc for _pc in _projects_cur if spatial_check(_pc[1])]
 
             # ---------------------- #
@@ -358,6 +370,71 @@ class GitlabClient(ProviderClient):
         logger.debug(f"GraphQL searchProjects: {graphql_variables}")
         result = await self._graphql(graphql_query, variables=graphql_variables)
         data = result["data"]["search"]
+
+        page_info = data["pageInfo"]
+        pagination = CursorPagination(
+            total=data["count"],
+            start=page_info["startCursor"] if page_info["hasPreviousPage"] else None,
+            end=page_info["endCursor"] if page_info["hasNextPage"] else None,
+        )
+        projects_cur: list[tuple[str, GitlabGraphQL_Project]] = [
+            (data["edges"][i]["cursor"], project_data)
+            for i, project_data in enumerate(data["nodes"])
+        ]
+        return projects_cur, pagination
+
+    async def _search_starred_projects(
+        self,
+        query: str | None,
+        limit: int,
+        cursor: str | None,
+        direction: int,
+        **kwargs: Any,
+    ) -> tuple[list[tuple[str, GitlabGraphQL_Project]], CursorPagination]:
+        limit_param, cursor_param = self._get_graphql_cursor_params(direction)
+        graphql_variables: dict[str, Any] = {
+            "limit": limit,
+            "cursor": cursor,
+        }
+        graphql_query_params: dict[str, tuple[str, str]] = {
+            "limit": ("Int", limit_param),
+            "cursor": ("String", cursor_param),
+        }
+        if query:
+            graphql_query_params["search"] = ("String!", "search")
+            graphql_variables["search"] = query
+
+        _params_definition = ", ".join(
+            f"${p}: {graphql_query_params[p][0]}" for p in graphql_query_params
+        )
+        _params = ", ".join(
+            f"{graphql_query_params[p][1]}: ${p}" for p in graphql_query_params
+        )
+        graphql_query = f"""
+        query searchStarredProjects({_params_definition}) {{
+            currentUser {{
+                starredProjects({_params}) {{
+                    nodes {{
+                        ...projectFields
+                    }}
+                    edges {{
+                        cursor
+                    }}
+                    pageInfo {{
+                        hasPreviousPage
+                        hasNextPage
+                        startCursor
+                        endCursor
+                    }}
+                    count
+                }}
+            }}
+        }}
+        {GITLAB_GRAPHQL_PROJECT_FRAGMENT}
+        """
+        logger.debug(f"GraphQL searchStarredProjects: {graphql_variables}")
+        result = await self._graphql(graphql_query, variables=graphql_variables)
+        data = result["data"]["currentUser"]["starredProjects"]
 
         page_info = data["pageInfo"]
         pagination = CursorPagination(

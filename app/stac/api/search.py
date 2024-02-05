@@ -45,6 +45,7 @@ async def search_projects(
         topics=topics,
         bbox=search_query.bbox,
         datetime_range=search_query.datetime_range,
+        stars=search_query.stars,
         limit=search_query.limit,
         sort=sortby,
         prev=prev,

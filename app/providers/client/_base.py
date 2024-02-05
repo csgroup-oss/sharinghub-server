@@ -22,6 +22,7 @@ class ProviderClient(Protocol):
         topics: list[str],
         bbox: list[float],
         datetime_range: tuple[datetime, datetime] | None,
+        stars: bool,
         limit: int,
         sort: str | None,
         prev: str | None,
