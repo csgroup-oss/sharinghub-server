@@ -197,9 +197,9 @@ class GitlabClient(ProviderClient):
         self,
         query: str | None,
         topics: list[str],
+        flags: list[str],
         bbox: list[float],
         datetime_range: tuple[datetime, datetime] | None,
-        stars: bool,
         limit: int,
         sort: str | None,
         prev: str | None,
@@ -212,10 +212,13 @@ class GitlabClient(ProviderClient):
             cursor = next
             direction = 1
 
-        search_size = limit + 1
-        is_simple_search = not any((stars, bbox, datetime_range))
+        # Flags
+        starred = "starred" in flags
 
-        req_limit = search_size if is_simple_search else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
+        is_simple_search = not any((bbox, datetime_range, starred))
+        search_size = limit if is_simple_search else limit + 1
+
+        req_limit = limit if is_simple_search else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
         req_params = {
             "query": query,
             "topics": topics,
@@ -229,7 +232,7 @@ class GitlabClient(ProviderClient):
 
         _stop = False
         while len(projects_cur) < search_size and not _stop:
-            if not stars:
+            if not starred:
                 _projects_cur, _pagination = await self._search_projects(
                     **req_params, cursor=cursor
                 )

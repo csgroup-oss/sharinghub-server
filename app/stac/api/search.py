@@ -1,4 +1,5 @@
 import logging
+import re
 
 from fastapi import HTTPException
 
@@ -9,6 +10,11 @@ from app.stac.api.category import Category, get_category
 from .build import STACPagination, STACSearchQuery
 
 logger = logging.getLogger("app")
+
+
+QUERY_TOPIC_PATTERN = re.compile(r"\[(?P<topic>[\w\s\-]+)\]")
+QUERY_FLAG_PATTERN = re.compile(r":(?P<flag>[\w\-]+)")
+QUERY_CLEAN_PATTERN = re.compile(r"(\s){2,}")
 
 
 async def search_projects(
@@ -33,19 +39,22 @@ async def search_projects(
             detail=f"Category not found for: {', '.join(search_query.collections)}",
         )
 
-    topics = [category.gitlab_topic, *search_query.topics]
+    query, topics, flags = _parse_stac_query(" ".join(search_query.q))
+    topics.append(category.gitlab_topic)
 
     sortby = search_query.sortby
     if sortby:
         sortby = sortby.replace("properties.", "")
         sortby = sortby.replace("sharinghub:", "")
 
+    logger.debug(f"Query: {search_query.q}")
+    logger.debug(f"Query parsed: {query=} {topics=} {flags=}")
     projects, cursor_pagination = await client.search(
-        query=" ".join(search_query.q),
+        query=query,
         topics=topics,
+        flags=flags,
         bbox=search_query.bbox,
         datetime_range=search_query.datetime_range,
-        stars=search_query.stars,
         limit=search_query.limit,
         sort=sortby,
         prev=prev,
@@ -59,3 +68,17 @@ async def search_projects(
         next=cursor_pagination["end"],
     )
     return projects, pagination
+
+
+def _parse_stac_query(query: str) -> tuple[str | None, list[str], list[str]]:
+    if query:
+        topics = [
+            m.groupdict()["topic"] for m in re.finditer(QUERY_TOPIC_PATTERN, query)
+        ]
+        flags = [m.groupdict()["flag"] for m in re.finditer(QUERY_FLAG_PATTERN, query)]
+        query = re.sub(QUERY_TOPIC_PATTERN, "", query)
+        query = re.sub(QUERY_FLAG_PATTERN, "", query)
+        query = re.sub(QUERY_CLEAN_PATTERN, " ", query).strip()
+        query = query if query else None
+        return query, topics, flags
+    return None, [], []

@@ -62,8 +62,6 @@ class STACSearchQuery(BaseModel):
     ids: list[str] = Field(default_factory=list)
     collections: list[str] = Field(default_factory=list)
     q: list[str] = Field(default_factory=list)
-    topics: list[str] = Field(default_factory=list)
-    stars: bool = Field(default=False)
 
     @field_validator("datetime")
     @classmethod
