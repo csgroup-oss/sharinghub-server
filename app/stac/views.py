@@ -52,7 +52,7 @@ CONFORMANCE = [
 
 
 @router.get("/")
-async def stac2_root(request: Request, token: GitlabTokenDep):
+async def stac_root(request: Request, token: GitlabTokenDep):
     return build_stac_root(
         root_config=STAC_ROOT_CONF,
         conformance_classes=CONFORMANCE,
@@ -63,19 +63,19 @@ async def stac2_root(request: Request, token: GitlabTokenDep):
 
 
 @router.get("/conformance")
-async def stac2_conformance():
+async def stac_conformance():
     return {"conformsTo": CONFORMANCE}
 
 
 @router.get("/collections")
-async def stac2_collections(request: Request, token: GitlabTokenDep):
+async def stac_collections(request: Request, token: GitlabTokenDep):
     return build_stac_collections(
         categories=get_categories(), request=request, token=token
     )
 
 
 @router.get("/collections/{collection_id}")
-async def stac2_collection(
+async def stac_collection(
     request: Request, token: GitlabTokenDep, category: CategoryFromCollectionIdDep
 ):
     return build_stac_collection(
@@ -86,7 +86,7 @@ async def stac2_collection(
 
 
 @router.get("/collections/{collection_id}/items")
-async def stac2_collection_items(
+async def stac_collection_items(
     request: Request,
     token: GitlabTokenDep,
     category: CategoryFromCollectionIdDep,
@@ -109,7 +109,7 @@ async def stac2_collection_items(
     return await _stac_search(
         request=request,
         token=token,
-        route="stac2_collection_items",
+        route="stac_collection_items",
         search_query=search_query,
         category=category,
         prev=prev,
@@ -118,7 +118,7 @@ async def stac2_collection_items(
 
 
 @router.get("/collections/{collection_id}/items/{feature_id:path}")
-async def stac2_collection_feature(
+async def stac_collection_feature(
     request: Request,
     token: GitlabTokenDep,
     category: CategoryFromCollectionIdDep,
@@ -193,7 +193,7 @@ async def stac2_collection_feature(
 
 
 @router.get("/search")
-async def stac2_search(
+async def stac_search(
     request: Request,
     token: GitlabTokenDep,
     limit: int = STAC_CATEGORIES_PAGE_DEFAULT_SIZE,
@@ -220,7 +220,7 @@ async def stac2_search(
     return await _stac_search(
         request=request,
         token=token,
-        route="stac2_search",
+        route="stac_search",
         search_query=search_query,
         category=None,
         prev=prev,

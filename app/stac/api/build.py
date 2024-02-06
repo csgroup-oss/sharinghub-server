@@ -143,7 +143,7 @@ def build_stac_root(
             "type": "application/geo+json",
             "href": url_for(
                 _request,
-                "stac2_collection",
+                "stac_collection",
                 path=dict(collection_id=category.id),
                 query={**_token.query},
             ),
@@ -173,7 +173,7 @@ def build_stac_root(
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac2_root",
+                    "stac_root",
                     query={**_token.query},
                 ),
             },
@@ -182,7 +182,7 @@ def build_stac_root(
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac2_root",
+                    "stac_root",
                     query={**_token.query},
                 ),
             },
@@ -203,7 +203,7 @@ def build_stac_root(
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac2_conformance",
+                    "stac_conformance",
                     query={**_token.query},
                 ),
             },
@@ -212,7 +212,7 @@ def build_stac_root(
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac2_collections",
+                    "stac_collections",
                     query={**_token.query},
                 ),
             },
@@ -221,7 +221,7 @@ def build_stac_root(
                 "type": "application/geo+json",
                 "href": url_for(
                     _request,
-                    "stac2_search",
+                    "stac_search",
                     query={**_token.query},
                 ),
                 "method": "GET",
@@ -255,7 +255,7 @@ def build_stac_collections(
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac2_collections",
+                    "stac_collections",
                     query={**_token.query},
                 ),
             },
@@ -264,7 +264,7 @@ def build_stac_collections(
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac2_root",
+                    "stac_root",
                     query={**_token.query},
                 ),
             },
@@ -330,7 +330,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac2_collection",
+                    "stac_collection",
                     path=dict(collection_id=category.id),
                     query={**_token.query},
                 ),
@@ -340,7 +340,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac2_root",
+                    "stac_root",
                     query={**_token.query},
                 ),
             },
@@ -349,7 +349,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac2_root",
+                    "stac_root",
                     query={**_token.query},
                 ),
             },
@@ -358,7 +358,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
                 "type": "application/geo+json",
                 "href": url_for(
                     _request,
-                    "stac2_collection_items",
+                    "stac_collection_items",
                     path=dict(collection_id=category.id),
                     query={**_token.query},
                 ),
@@ -387,7 +387,7 @@ def build_features_collection(
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac2_collection",
+                    "stac_collection",
                     path=dict(collection_id=category.id),
                     query={**_token.query},
                 ),
@@ -458,7 +458,7 @@ def build_features_collection(
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac2_root",
+                    "stac_root",
                     query={**_token.query},
                 ),
             },
@@ -781,7 +781,7 @@ def get_stac_item_default_values(
             "type": "application/geo+json",
             "href": url_for(
                 _request,
-                "stac2_collection_feature",
+                "stac_collection_feature",
                 path=dict(
                     collection_id=project.category.id,
                     feature_id=project.path,
@@ -794,7 +794,7 @@ def get_stac_item_default_values(
             "type": "application/json",
             "href": url_for(
                 _request,
-                "stac2_collection",
+                "stac_collection",
                 path=dict(collection_id=project.category.id),
                 query={**_token.query},
             ),
@@ -804,7 +804,7 @@ def get_stac_item_default_values(
             "type": "application/json",
             "href": url_for(
                 _request,
-                "stac2_root",
+                "stac_root",
                 query={**_token.query},
             ),
         },
@@ -818,7 +818,7 @@ def get_stac_item_default_values(
                 "type": "application/json",
                 "href": url_for(
                     _request,
-                    "stac2_collection",
+                    "stac_collection",
                     path=dict(collection_id=project.category.id),
                     query={**_token.query},
                 ),
@@ -1060,7 +1060,7 @@ def _parse_resource_link(
         path = parse.urlparse(link).path.removeprefix("/")
         link = url_for(
             _request,
-            "stac2_collection_feature",
+            "stac_collection_feature",
             path=dict(
                 collection_id=key,
                 feature_id=path,
