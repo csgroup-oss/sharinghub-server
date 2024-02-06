@@ -124,6 +124,7 @@ config: |-
           - ai-model
           - dataset
           - processor
+          - challenge
         keywords:
           - "Image qualification"
           - "Object detection"
