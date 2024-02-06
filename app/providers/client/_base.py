@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Protocol, TypedDict
 
+from fastapi import Request
 from fastapi.responses import StreamingResponse
 
 from ..schemas import Project, Release, Topic
@@ -43,11 +44,16 @@ class ProviderClient(Protocol):
         ...
 
     async def download_file(
-        self, project_path: str, ref: str, file_path: str
+        self,
+        project_path: str,
+        ref: str,
+        file_path: str,
+        file_cache: int,
+        request: Request,
     ) -> StreamingResponse:
         ...
 
     async def download_archive(
-        self, project_path: str, ref: str, format: str
+        self, project_path: str, ref: str, format: str, request: Request
     ) -> StreamingResponse:
         ...

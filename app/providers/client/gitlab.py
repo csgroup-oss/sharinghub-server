@@ -523,7 +523,12 @@ class GitlabClient(ProviderClient):
             raise http_exc
 
     async def download_file(
-        self, project_path: str, ref: str, file_path: str, request: Request
+        self,
+        project_path: str,
+        ref: str,
+        file_path: str,
+        file_cache: int,
+        request: Request,
     ) -> StreamingResponse:
         path = urlsafe_path(project_path.strip("/"))
         fpath = urlsafe_path(file_path)
@@ -531,7 +536,10 @@ class GitlabClient(ProviderClient):
             f"/projects/{path}/repository/files/{fpath}/raw?ref={ref}&lfs=true"
         )
         return await self._request_streaming(
-            url, filename=os.path.basename(file_path), request=request
+            url,
+            filename=os.path.basename(file_path),
+            file_cache=file_cache,
+            request=request,
         )
 
     async def download_archive(
@@ -567,7 +575,11 @@ class GitlabClient(ProviderClient):
                 return await response.text()
 
     async def _request_streaming(
-        self, url: str, filename: str | None = None, request: Request | None = None
+        self,
+        url: str,
+        filename: str | None = None,
+        file_cache: int | None = None,
+        request: Request | None = None,
     ) -> StreamingResponse:
         response = await self._send_request(url, request=request)
         response_headers = dict(response.headers)
@@ -597,6 +609,9 @@ class GitlabClient(ProviderClient):
             else:
                 content_disposition = default_content_disposition
             response_headers["Content-Disposition"] = "; ".join(content_disposition)
+
+            if file_cache:
+                response_headers["Cache-Control"] = f"private, max-age={file_cache}"
 
         return StreamingResponse(
             response.content.iter_any(),

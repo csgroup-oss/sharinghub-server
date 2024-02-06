@@ -17,8 +17,9 @@ async def download_gitlab_file(
     request: Request,
     token: GitlabTokenDep,
     project_path: str,
-    ref: str,
     file_path: str,
+    ref: str,
+    cache: int = 0,
 ):
     """Download proxy for a GitLab project repository file."""
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
@@ -26,6 +27,7 @@ async def download_gitlab_file(
         project_path=project_path,
         ref=ref,
         file_path=file_path,
+        file_cache=cache,
         request=request,
     )
 

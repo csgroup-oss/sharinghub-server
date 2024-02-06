@@ -27,6 +27,7 @@ from app.utils import geo
 from app.utils import markdown as md
 from app.utils.http import is_local, url_for
 
+from ..settings import STAC_PROJECTS_CACHE_TIMEOUT
 from .category import Category, FeatureVal, get_category
 
 logger = logging.getLogger("app")
@@ -833,7 +834,11 @@ def get_stac_item_default_values(
                 project_path=project.path,
                 file_path=preview,
             ),
-            query={"ref": project.default_branch, **_token.rc_query},
+            query={
+                "ref": project.default_branch,
+                "cache": int(STAC_PROJECTS_CACHE_TIMEOUT),
+                **_token.rc_query,
+            },
         )
     if preview:
         assets["preview"] = {
@@ -949,7 +954,11 @@ def _resolve_images(
                     project_path=project.path,
                     file_path=path,
                 ),
-                query={"ref": project.default_branch, **_token.rc_query},
+                query={
+                    "ref": project.default_branch,
+                    "cache": int(STAC_PROJECTS_CACHE_TIMEOUT),
+                    **_token.rc_query,
+                },
             )
         return f'src="{url}"'
 
@@ -965,7 +974,11 @@ def _resolve_images(
                     project_path=project.path,
                     file_path=path,
                 ),
-                query={"ref": project.default_branch, **_token.rc_query},
+                query={
+                    "ref": project.default_branch,
+                    "cache": int(STAC_PROJECTS_CACHE_TIMEOUT),
+                    **_token.rc_query,
+                },
             )
         return f"![{image['alt']}]({url})"
 
