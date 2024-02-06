@@ -264,12 +264,14 @@ class GitlabClient(ProviderClient):
                 _projects_cur = [_pc for _pc in _projects_cur if temporal_check(_pc[1])]
 
             if bbox:
+                search_polygon = geo.bbox2polygon(bbox)
 
                 def spatial_check(project_data: GitlabGraphQL_Project) -> bool:
                     if project_data["description"]:
                         project_bbox = geo.read_bbox(project_data["description"])
                         if project_bbox:
-                            return geo.intersect(bbox, project_bbox)
+                            project_polygon = geo.bbox2polygon(project_bbox)
+                            return search_polygon.intersects(project_polygon)
                     return False
 
                 _projects_cur = [_pc for _pc in _projects_cur if spatial_check(_pc[1])]
