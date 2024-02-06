@@ -1,3 +1,4 @@
+aiocache[memcached]
 aiohttp
 authlib
 boto3
