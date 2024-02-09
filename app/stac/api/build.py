@@ -473,17 +473,18 @@ def build_stac_item_preview(
     readme: str,
     **context: Unpack[STACContext],
 ) -> dict:
-    readme_doc, readme_metadata = md.parse(readme)
+    readme_doc, metadata = md.parse(readme)
 
-    # STAC data
+    # Metadata parsing
+
     description = _get_preview_description(project, readme_doc)
     keywords = _get_tags(project)
-    preview, preview_media_type = _get_preview(readme_metadata, readme_doc)
-    spatial_extent, temporal_extent = get_extent(project, readme_metadata)
+    preview = _retrieve_preview(readme_doc, metadata)
+    spatial_extent, temporal_extent = _retrieve_extent(project, metadata)
 
     # STAC generation
-    default_fields, default_links, default_assets = get_stac_item_default_values(
-        project, preview, preview_media_type, **context
+    default_fields, default_links, default_assets = _build_stac_item_default_values(
+        project, preview, **context
     )
     return {
         "stac_version": "1.0.0",
@@ -513,9 +514,7 @@ def build_stac_item_preview(
         "properties": {
             "title": project.name,
             "description": description,
-            "datetime": project.last_update,
-            "start_datetime": temporal_extent[0],
-            "end_datetime": temporal_extent[1],
+            "datetime": temporal_extent[1],
             "created": temporal_extent[0],
             "updated": temporal_extent[1],
             "keywords": keywords,
@@ -539,55 +538,45 @@ def build_stac_item(
     _request = context["request"]
     _token = context["token"]
 
-    readme_doc, readme_metadata = md.parse(readme)
-    assets_mapping = _get_assets_mapping(assets_rules, readme_metadata)
+    readme_doc, metadata = md.parse(readme)
 
-    # STAC data
+    # Metadata parsing
 
     description = _get_description(project, readme_doc, **context)
     keywords = _get_tags(project)
-    preview, preview_media_type = _get_preview(readme_metadata, readme_doc)
-    license, license_url = _get_license(project, readme_metadata)
-    producer, producer_url = _get_producer(project, readme_metadata)
-    spatial_extent, temporal_extent = get_extent(project, readme_metadata)
-    files_assets = _get_files_assets(files, assets_mapping)
-    resources_links = _get_resources_links(readme_metadata, **context)
+    preview = _retrieve_preview(readme_doc, metadata)
+    license_id, license_url = _retrieve_license(
+        project, metadata
+    )  # "license" property can be mapped transparently
+    spatial_extent, temporal_extent = _retrieve_extent(project, metadata)
+    providers = _retrieve_providers(project, metadata)
+    files_assets = _retrieve_files_assets(files, metadata, assets_rules)
+    related_links = _retrieve_related_links(metadata)
+    raw_links = metadata.pop("links", [])
 
-    # _ Extensions
-
-    # __ sharing hub extensions
-    sharinghub_properties = _get_sharinghub_properties(project, files, readme_metadata)
-
-    # __ Scientific Citation extension (https://github.com/stac-extensions/scientific)
-    doi, doi_publications = _get_scientific_citations(readme_metadata, readme_doc)
-    doi_link, doi_citation = doi
-
-    # __ ML Model Extension Specification (https://github.com/stac-extensions/ml-model)
-    ml_properties, ml_assets, ml_links = _get_machine_learning(
-        readme_metadata, resources_links
-    )
+    sharinghub_properties = _retrieve_sharinghub_properties(project, files, metadata)
 
     # STAC generation
 
-    stac_extensions = []
+    stac_extensions, extensions = _retrieve_extensions(readme_doc, metadata, **context)
 
-    fields = {}
-    assets = {}
-    links = []
+    stac_properties = {}
+    stac_assets = {}
+    stac_links = [*raw_links]
 
+    if license_id:
+        stac_properties["license"] = license_id
     if license_url:
-        links.append(
+        stac_links.append(
             {
                 "rel": "license",
                 "href": license_url,
             }
         )
-    if license:
-        fields["license"] = license
 
     for file_path, file_media_type in files_assets.items():
-        asset_id = _get_file_asset_id(file_path)
-        assets[asset_id] = {
+        asset_id = f"{FILE_ASSET_PREFIX}{file_path}"
+        stac_assets[asset_id] = {
             "href": url_for(
                 _request,
                 "download_gitlab_file",
@@ -601,7 +590,26 @@ def build_stac_item(
             "roles": ["data"],
         }
         if file_media_type:
-            assets[asset_id]["type"] = file_media_type
+            stac_assets[asset_id]["type"] = file_media_type
+
+    for category_id, related_project_url in related_links:
+        _path = parse.urlparse(related_project_url).path.removeprefix("/")
+        stac_links.append(
+            {
+                "rel": "derived_from",
+                "type": "application/geo+json",
+                "title": f"{category_id}: {_path}",
+                "href": url_for(
+                    _request,
+                    "stac_collection_feature",
+                    path=dict(
+                        collection_id=category_id,
+                        feature_id=_path,
+                    ),
+                    query={**_token.query},
+                ),
+            }
+        )
 
     if release:
         archive_url = url_for(
@@ -614,85 +622,28 @@ def build_stac_item(
             query={"ref": release.tag, **_token.rc_query},
         )
         media_type, _ = mimetypes.guess_type(f"archive.{release_source_format}")
-        assets["release"] = {
+        stac_assets["release"] = {
             "href": archive_url,
             "title": f"Release {release.tag}: {release.name}",
             "roles": ["source"],
         }
         if release.description:
-            assets["release"]["description"] = release.description
+            stac_assets["release"]["description"] = release.description
         if media_type:
-            assets["release"]["type"] = media_type
+            stac_assets["release"]["type"] = media_type
 
-    if any((doi_link, doi_citation, doi_publications)):
-        stac_extensions.append(
-            "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
-        )
-    if doi_link:
-        fields["sci:doi"] = parse.urlparse(doi_link).path.removeprefix("/")
-        links.append(
-            {
-                "rel": "cite-as",
-                "href": doi_link,
-            }
-        )
-    if doi_citation:
-        fields["sci:citation"] = doi_citation
-    if doi_publications:
-        fields["sci:publications"] = [
-            {
-                "doi": parse.urlparse(_pub_doi_link).path.removeprefix("/"),
-                "citation": _pub_citation,
-            }
-            for _pub_doi_link, _pub_citation in doi_publications
-        ]
+    stac_properties |= metadata
 
-    if ml_properties:
-        stac_extensions.append(
-            "https://stac-extensions.github.io/ml-model/v1.0.0/schema.json"
-        )
-
-        for prop, val in ml_properties.items():
-            fields[f"ml-model:{prop}"] = val
-
-        for ml_asset_role, patterns in ml_assets.items():
-            _patterns = (
-                patterns
-                if patterns is not Ellipsis
-                else [ML_ASSETS_DEFAULT_GLOBS.get(ml_asset_role)]
-            )
-            if _patterns:
-                for _pattern in _patterns:
-                    for asset_id in assets:
-                        fpath = Path(asset_id.removeprefix(FILE_ASSET_PREFIX))
-                        if asset_id.startswith(FILE_ASSET_PREFIX) and fpath.match(
-                            _pattern
-                        ):
-                            assets[asset_id]["roles"].append(
-                                f"ml-model:{ml_asset_role}"
-                            )
-
-        for relation_type, (media_type, values) in ml_links.items():
-            hrefs = [href for _, href in values]
-            for link in links:
-                if link["href"] in hrefs:
-                    links.remove(link)
-            for link_title, link_href in values:
-                _link = {
-                    "rel": f"ml-model:{relation_type}",
-                    "href": link_href,
-                    "title": link_title,
-                }
-                if media_type:
-                    _link["type"] = media_type
-                links.append(_link)
+    for ext_name, ext_properties in extensions.items():
+        for property, val in ext_properties.items():
+            stac_properties[f"{ext_name}:{property}"] = val
 
     if sharinghub_properties:
         for prop, val in sharinghub_properties.items():
-            fields[f"sharinghub:{prop}"] = val
+            stac_properties[f"sharinghub:{prop}"] = val
 
-    default_fields, default_links, default_assets = get_stac_item_default_values(
-        project, preview, preview_media_type, **context
+    default_fields, default_links, default_assets = _build_stac_item_default_values(
+        project, preview, **context
     )
     return {
         "stac_version": "1.0.0",
@@ -728,19 +679,8 @@ def build_stac_item(
             "created": temporal_extent[0],
             "updated": temporal_extent[1],
             "keywords": keywords,
-            "providers": [
-                {
-                    "name": f"GitLab ({GITLAB_URL})",
-                    "roles": ["host"],
-                    "url": project.url,
-                },
-                {
-                    "name": producer,
-                    "roles": ["producer"],
-                    "url": producer_url,
-                },
-            ],
-            **fields,
+            "providers": providers,
+            **stac_properties,
         },
         "links": [
             *default_links,
@@ -750,25 +690,15 @@ def build_stac_item(
                 "href": project.issues_url,
                 "title": "Issues",
             },
-            *(
-                {
-                    "rel": "derived_from" if "stac" in _labels else "extras",
-                    "type": "application/json",
-                    "href": _href,
-                    "title": _title,
-                }
-                for _title, _href, _labels in resources_links
-            ),
-            *links,
+            *stac_links,
         ],
-        "assets": default_assets | assets,
+        "assets": default_assets | stac_assets,
     }
 
 
-def get_stac_item_default_values(
+def _build_stac_item_default_values(
     project: Project,
     preview: str | None,
-    preview_media_type: str | None,
     **context: Unpack[STACContext],
 ) -> tuple[dict[str, str], list[dict], dict[str, dict]]:
     _request = context["request"]
@@ -846,8 +776,10 @@ def get_stac_item_default_values(
             "title": "Preview",
             "roles": ["thumbnail"],
         }
-        if preview_media_type:
-            assets["preview"]["type"] = preview_media_type
+        _preview_path = parse.urlparse(preview).path
+        _media_type, _ = mimetypes.guess_type(_preview_path)
+        if _media_type:
+            assets["preview"]["type"] = _media_type
         links.append(
             {
                 "rel": "preview",
@@ -881,63 +813,12 @@ def _get_description(
     project: Project, md_content: str, **context: Unpack[STACContext]
 ) -> str:
     description = md.increase_headings(md_content, 3)
-    description = _resolve_images(description, project, **context)
+    description = __resolve_links(description, project, **context)
     description = md.clean_new_lines(description)
     return description
 
 
-def _get_tags(project: Project) -> list[str]:
-    project_topics = list(project.topics)
-    project_topics.remove(project.category.gitlab_topic)
-    return project_topics
-
-
-def _get_preview(
-    metadata: dict,
-    md_content: str,
-) -> tuple[str | None, str | None]:
-    preview = metadata.get("preview")
-    preview = metadata.get("thumbnail", preview)
-    for link_alt, link_img in md.get_images(md_content):
-        if link_alt.lower().strip() in ["preview", "thumbnail"]:
-            preview = link_img
-    media_type, _ = mimetypes.guess_type(preview) if preview else (None, None)
-    return preview, media_type
-
-
-def get_extent(
-    project: Project, metadata: dict
-) -> tuple[list[float], list[str | None]]:
-    extent = metadata.get("extent", {})
-
-    if project.description:
-        bbox = geo.read_bbox(project.description)
-    else:
-        bbox = None
-
-    spatial_extent = bbox if bbox else extent.get("bbox")
-    temporal_extent = extent.get("temporal", [project.created_at, project.last_update])
-    return spatial_extent, temporal_extent
-
-
-def _get_assets_mapping(
-    assets_rules: list[str], metadata: dict
-) -> dict[str, str | None]:
-    assets_mapping = {}
-    for asset_rule in (*assets_rules, *metadata.get("assets", [])):
-        eq_match = asset_rule.split("=")
-        glob_match = asset_rule.split("://")
-        if len(eq_match) == 2:
-            file_ext_glob = f"*.{eq_match[0].lstrip('.')}"
-            assets_mapping[file_ext_glob] = MEDIA_TYPES.get(eq_match[1])
-        elif len(glob_match) == 2:
-            assets_mapping[glob_match[1]] = MEDIA_TYPES.get(glob_match[0])
-        else:
-            assets_mapping[asset_rule] = None
-    return assets_mapping
-
-
-def _resolve_images(
+def __resolve_links(
     md_content: str, project: Project, **context: Unpack[STACContext]
 ) -> str:
     _request = context["request"]
@@ -988,31 +869,106 @@ def _resolve_images(
     return md_patched
 
 
-def _get_license(project: Project, metadata: dict) -> tuple[str | None, str | None]:
-    if "license" in metadata:
-        # Must be SPDX identifier: https://spdx.org/licenses/
-        license = metadata["license"]
-        license_url = None
-    elif project.license_id:
-        license = project.license_id
-        license_url = project.license_url if project.license_url else None
+def _get_tags(project: Project) -> list[str]:
+    project_topics = list(project.topics)
+    project_topics.remove(project.category.gitlab_topic)
+    return project_topics
+
+
+def _retrieve_preview(md_content: str, metadata: dict) -> str | None:
+    preview = metadata.pop("preview", None)
+    for link_alt, link_img in md.get_images(md_content):
+        if link_alt.lower().strip() == "preview":
+            preview = link_img
+    return preview
+
+
+def _retrieve_license(
+    project: Project, metadata: dict
+) -> tuple[str | None, str | None]:
+    license_id = metadata.pop("license", project.license_id)
+    license_url = metadata.pop("license-url", project.license_url)
+    return license_id, license_url
+
+
+def _retrieve_extent(
+    project: Project, metadata: dict
+) -> tuple[list[float], list[str | None]]:
+    extent = metadata.pop("extent", {})
+
+    if project.description:
+        bbox = geo.read_bbox(project.description)
     else:
-        # Private
-        license = None
-        license_url = None
-    return license, license_url
+        bbox = None
+
+    spatial_extent = bbox if bbox else extent.get("bbox")
+    temporal_extent = extent.get("temporal", [project.created_at, project.last_update])
+    return spatial_extent, temporal_extent
 
 
-def _get_producer(project: Project, metadata: dict) -> tuple[str, str]:
-    producer = project.full_name.split("/")[0].rstrip()
-    producer = metadata.get("producer", producer)
-    _producer_path = project.path.split("/")[0]
-    producer_url = f"{GITLAB_URL}/{_producer_path}"
-    producer_url = metadata.get("producer_url", producer_url)
-    return producer, producer_url
+def _retrieve_providers(project: Project, metadata: dict) -> list[dict]:
+    providers = metadata.pop("providers", [])
+
+    has_producer = True
+    has_host = False
+    for provider in providers:
+        _roles = provider.get("roles", [])
+        if "host" in _roles:
+            has_host = True
+        if "producer" in _roles:
+            has_producer = True
+
+    if not has_host:
+        providers.append(
+            {
+                "name": f"GitLab ({GITLAB_URL})",
+                "roles": ["host"],
+                "url": project.url,
+            }
+        )
+    if not has_producer:
+        producer = project.full_name.split("/")[0].rstrip()
+        _producer_path = project.path.split("/")[0]
+        producer_url = f"{GITLAB_URL}/{_producer_path}"
+        provider.append(
+            {
+                "name": producer,
+                "roles": ["producer"],
+                "url": producer_url,
+            }
+        )
+
+    return providers
 
 
-def _get_files_assets(
+def _retrieve_files_assets(
+    files: list[str],
+    metadata: str,
+    assets_rules: list[str],
+) -> dict[str, str | None]:
+    assets_mapping = __retrieve_assets_mapping(metadata, assets_rules)
+    return __get_files_assets(files, assets_mapping)
+
+
+def __retrieve_assets_mapping(
+    metadata: dict,
+    assets_rules: list[str],
+) -> dict[str, str | None]:
+    assets_mapping = {}
+    for asset_rule in (*assets_rules, *metadata.pop("assets", [])):
+        eq_match = asset_rule.split("=")
+        glob_match = asset_rule.split("://")
+        if len(eq_match) == 2:
+            file_ext_glob = f"*.{eq_match[0].lstrip('.')}"
+            assets_mapping[file_ext_glob] = MEDIA_TYPES.get(eq_match[1])
+        elif len(glob_match) == 2:
+            assets_mapping[glob_match[1]] = MEDIA_TYPES.get(glob_match[0])
+        else:
+            assets_mapping[asset_rule] = None
+    return assets_mapping
+
+
+def __get_files_assets(
     files: list[str], assets_mapping: dict[str, str | None]
 ) -> dict[str, str | None]:
     assets = {}
@@ -1029,66 +985,20 @@ def _get_files_assets(
     return assets
 
 
-def _get_resources_links(
-    metadata: dict, **context: Unpack[STACContext]
-) -> list[tuple[str, str]]:
-    _metadata_resources = metadata.get("resources", {})
-    return _retrieve_resources_links(_metadata_resources, **context)
-
-
-def _retrieve_resources_links(
-    mapping: dict, labels: list | None = None, **context: Unpack[STACContext]
-) -> list[tuple[str, str]]:
+def _retrieve_related_links(metadata: dict) -> list[tuple[str, str]]:
     links = []
-    labels = labels if labels is not None else []
-
-    for key, val in mapping.items():
-        if isinstance(val, dict):
-            links.extend(_retrieve_resources_links(val, [key, *labels], **context))
+    related = metadata.pop("related", {})
+    for category_id, val in related.items():
+        if isinstance(val, str):
+            links.append((category_id, val))
         elif isinstance(val, list):
-            for raw_link in val:
-                links.append(_parse_resource_link(raw_link, key, labels, **context))
-        elif isinstance(val, str):
-            links.append(_parse_resource_link(val, key, labels, **context))
+            for v in val:
+                if isinstance(v, str):
+                    links.append((category_id, v))
     return links
 
 
-def _parse_resource_link(
-    raw_link: str, key: str, labels: list, **context: Unpack[STACContext]
-) -> tuple[str, str, list[str]]:
-    _request = context["request"]
-    _token = context["token"]
-
-    split_link = raw_link.split("::")
-    if len(split_link) >= 2:
-        link_labels = split_link[0].split(",")
-        link = split_link[1]
-    else:
-        link_labels = []
-        link = split_link[0]
-
-    _labels = [*labels, *link_labels]
-
-    if "stac" in _labels:
-        path = parse.urlparse(link).path.removeprefix("/")
-        link = url_for(
-            _request,
-            "stac_collection_feature",
-            path=dict(
-                collection_id=key,
-                feature_id=path,
-            ),
-            query={**_token.query},
-        )
-        _labels.append(key)
-        title = f"{key}: {path}"
-    else:
-        title = key
-
-    return title, link, _labels
-
-
-def _get_sharinghub_properties(
+def _retrieve_sharinghub_properties(
     project: Project, files: list[str], metadata: dict
 ) -> dict:
     features = project.category.features
@@ -1101,120 +1011,52 @@ def _get_sharinghub_properties(
         "stars": project.star_count,
         "category": project.category.id,
         **features,
-        **metadata.get("sharinghub", {}),
+        **metadata.pop("sharinghub", {}),
     }
 
 
-def _get_scientific_citations(
-    metadata: dict, md_content: str
-) -> tuple[tuple[str | None, str | None], list[tuple[str | None, str | None]]]:
+def _retrieve_extensions(
+    readme: str, metadata: dict, **context: Unpack[STACContext]
+) -> tuple[list[str], dict]:
+    extensions_mapped = {
+        "eo": "https://github.com/stac-extensions/eo",
+        "label": "https://github.com/stac-extensions/label",
+        "sci": "https://github.com/stac-extensions/scientific",
+        "ml-model": "https://github.com/stac-extensions/ml-model",
+    }
+    extensions_enabled = set()
+    extensions = {}
+
+    for ext_name in extensions_mapped:
+        if ext := metadata.pop(ext_name, None):
+            extensions_enabled.add(extensions_mapped[ext_name])
+            extensions[ext_name] = ext
+
+    doi, publications = __parse_scientific_citations(readme)
+    if any((doi, publications)):
+        extensions_enabled.add(extensions_mapped["sci"])
+        extensions["sci"] = {}
+        if doi:
+            extensions["sci"]["doi"], extensions["sci"]["citation"] = doi
+        if publications:
+            extensions["sci"]["publications"] = publications
+
+    return list(extensions_enabled), extensions
+
+
+def __parse_scientific_citations(
+    md_content: str,
+) -> tuple[tuple[str, str] | None, list[tuple[str, str]]]:
     DOI_PREFIX = "DOI:"
 
-    doi_link = None
-    doi_citation = None
-    doi_publications = []
-
-    if "doi" in metadata:
-        doi = metadata["doi"]
-        if isinstance(doi, str):
-            doi_link = doi
-        elif isinstance(doi, dict):
-            doi_link = doi.get("link")
-            doi_citation = doi.get("citation")
+    doi = None
+    publications = []
 
     for link_text, link_href in md.get_links(md_content):
         if link_href.startswith("https://doi.org"):
             if link_text.startswith(DOI_PREFIX):
-                doi_link = link_href
-                doi_citation = link_text.removeprefix(DOI_PREFIX).lstrip()
+                doi = (link_href, link_text.removeprefix(DOI_PREFIX).lstrip())
             else:
-                doi_publications.append((link_href, link_text))
+                publications.append((link_href, link_text))
 
-    if "publications" in metadata:
-        for _doi_publication in metadata["publications"]:
-            doi_publications.append(
-                (_doi_publication.get("link"), _doi_publication.get("citation"))
-            )
-
-    return (doi_link, doi_citation), doi_publications
-
-
-def _get_machine_learning(
-    metadata: dict, resources_links: list[tuple[str, str, list[str]]]
-) -> tuple[
-    dict[str, str],
-    dict[str, list[str] | EllipsisType],
-    dict[str, tuple[str, list[tuple[str, str]]]],
-]:
-    ml_metadata = metadata.get("ml", {})
-
-    ml_properties = {}
-    ml_assets = {}
-    ml_links = {
-        "inferencing-image": ("docker-image", []),
-        "training-image": ("docker-image", []),
-        "train-data": ("application/json", []),
-        "test-data": ("application/json", []),
-    }
-
-    properties = [
-        "learning_approach",
-        "prediction_type",
-        "architecture",
-    ]
-    training_properties = [
-        "os",
-        "processor-type",
-    ]
-    for prop in properties:
-        if val := ml_metadata.get(prop.replace("_", "-")):
-            ml_properties[prop] = val
-    for prop in training_properties:
-        if val := ml_metadata.get("training", {}).get(prop):
-            ml_properties[f"training-{prop}"] = val
-
-    if ml_properties:
-        ml_properties["type"] = "ml-model"
-
-    inference = ml_metadata.get("inference", {})
-    training = ml_metadata.get("training", {})
-
-    inference_images = inference.get("images", {})
-    training_images = training.get("images", {})
-    for image_title, image in inference_images.items():
-        ml_links["inferencing-image"][1].append((f"{image_title}: {image}", image))
-    for image_title, image in training_images.items():
-        ml_links["training-image"][1].append((f"{image_title}: {image}", image))
-
-    for rc_title, rc_link, rc_labels in resources_links:
-        if "stac" in rc_labels:
-            if "ml-train" in rc_labels:
-                ml_links["train-data"][1].append((rc_title, rc_link))
-            if "ml-test" in rc_labels:
-                ml_links["test-data"][1].append((rc_title, rc_link))
-
-    ml_assets["checkpoint"] = _retrieve_elements(
-        ml_metadata, "checkpoint", "checkpoints"
-    )
-    ml_assets["inference-runtime"] = _retrieve_elements(
-        inference, "runtime", "runtimes"
-    )
-    ml_assets["training-runtime"] = _retrieve_elements(training, "runtime", "runtimes")
-
-    return ml_properties, ml_assets, ml_links
-
-
-def _retrieve_elements(mapping: dict, singular: str, plural: str) -> list:
-    element = mapping.get(singular, ...)
-    elements = mapping.get(plural, ...)
-    if isinstance(elements, list):
-        return elements
-    elif isinstance(element, str):
-        return [element]
-    elif all((element, elements)):
-        return ...
-    return []
-
-
-def _get_file_asset_id(file_path: str) -> str:
-    return f"{FILE_ASSET_PREFIX}{file_path}"
+    return doi, publications
