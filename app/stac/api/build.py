@@ -555,7 +555,7 @@ def build_stac_item(
 
     stac_properties = {}
     stac_assets = {}
-    stac_links = [*raw_links]
+    stac_links = []
 
     if license_id:
         stac_properties["license"] = license_id
@@ -625,6 +625,20 @@ def build_stac_item(
         if media_type:
             stac_assets["release"]["type"] = media_type
 
+    for link in raw_links:
+        if collection_id := link.pop("collection", None):
+            _path = str(parse.urlparse(link["href"]).path).removeprefix("/")
+            link["href"] = url_for(
+                _request,
+                "stac_collection_feature",
+                path=dict(
+                    collection_id=collection_id,
+                    feature_id=_path,
+                ),
+                query={**_token.query},
+            )
+
+    stac_links.extend(raw_links)
     stac_properties |= metadata
 
     for ext_name, ext_properties in extensions.items():
