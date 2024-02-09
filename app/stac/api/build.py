@@ -1,11 +1,9 @@
 import logging
-import math
 import mimetypes
 import os
 import re
 from datetime import datetime as dt
 from pathlib import Path
-from types import EllipsisType
 from typing import Annotated, TypedDict, Unpack
 from urllib import parse
 
@@ -45,12 +43,7 @@ MEDIA_TYPES = {
     "notebook": "application/x-ipynb+json",
 }
 
-ML_ASSETS_DEFAULT_GLOBS = {
-    "inference-runtime": "inferencing.yml",
-    "training-runtime": "training.yml",
-    "checkpoint": "*.pt",
-}
-
+DOI_URL = "https://doi.org/"
 FILE_ASSET_PREFIX = "file://"
 
 
@@ -638,6 +631,9 @@ def build_stac_item(
         for property, val in ext_properties.items():
             stac_properties[f"{ext_name}:{property}"] = val
 
+    if doi := stac_properties.get("sci:doi"):
+        stac_links.append({"rel": "cite-as", "href": f"{DOI_URL}{doi}"})
+
     if sharinghub_properties:
         for prop, val in sharinghub_properties.items():
             stac_properties[f"sharinghub:{prop}"] = val
@@ -1053,10 +1049,11 @@ def __parse_scientific_citations(
     publications = []
 
     for link_text, link_href in md.get_links(md_content):
-        if link_href.startswith("https://doi.org"):
+        if link_href.startswith(DOI_URL):
+            _doi = link_href.removeprefix(DOI_URL)
             if link_text.startswith(DOI_PREFIX):
-                doi = (link_href, link_text.removeprefix(DOI_PREFIX).lstrip())
+                doi = (_doi, link_text.removeprefix(DOI_PREFIX).lstrip())
             else:
-                publications.append((link_href, link_text))
+                publications.append((_doi, link_text))
 
     return doi, publications
