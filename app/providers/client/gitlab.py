@@ -709,12 +709,16 @@ class GitlabClient(ProviderClient):
 
 def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     category = get_category_from_topics(project_data["topics"])
-    readme_path = None
+
+    readme_map = {}
     if project_data["repository"]["tree"]:
         for file in project_data["repository"]["tree"]["blobs"]["nodes"]:
             fpath = Path(file["path"])
             if fpath.stem.lower() == "readme":
-                readme_path = str(fpath)
+                readme_map[fpath.suffix] = str(fpath)
+    readme_path = readme_map.pop(".md", None)
+    if not readme_path:
+        _, readme_path = readme_map.popitem()
 
     return Project(
         id=int(project_data["id"].split("/")[-1]),
