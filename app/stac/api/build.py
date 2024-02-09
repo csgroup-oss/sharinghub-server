@@ -1028,6 +1028,9 @@ def _retrieve_extensions(
             extensions_enabled.add(extensions_mapped[ext_name])
             extensions[ext_name] = ext
 
+    if "ml-model" in extensions:
+        extensions["ml-model"]["type"] = "ml-model"
+
     doi, publications = __parse_scientific_citations(readme)
     if any((doi, publications)):
         extensions_enabled.add(extensions_mapped["sci"])
