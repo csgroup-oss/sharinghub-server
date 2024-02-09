@@ -10,7 +10,6 @@ LINK_PATTERN = re.compile(r"(?<!\!)\[(?P<text>[^\]]*)\]\((?P<href>http[s]?://[^)
 EMPTY_LINES_PATTERN = re.compile(r"(\n){3,}")
 
 
-@cache
 def parse(markdown_content: str) -> tuple[str, dict]:
     try:
         md = markdown.Markdown(extensions=["full_yaml_metadata"])
