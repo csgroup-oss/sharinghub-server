@@ -1015,10 +1015,10 @@ def _retrieve_extensions(
     readme: str, metadata: dict, **context: Unpack[STACContext]
 ) -> tuple[list[str], dict]:
     extensions_mapped = {
-        "eo": "https://github.com/stac-extensions/eo",
-        "label": "https://github.com/stac-extensions/label",
-        "sci": "https://github.com/stac-extensions/scientific",
-        "ml-model": "https://github.com/stac-extensions/ml-model",
+        "eo": "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
+        "label": "https://stac-extensions.github.io/label/v1.0.1/schema.json",
+        "sci": "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
+        "ml-model": "https://stac-extensions.github.io/ml-model/v1.0.0/schema.json",
     }
     extensions_enabled = set()
     extensions = {}
