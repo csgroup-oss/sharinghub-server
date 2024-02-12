@@ -44,7 +44,6 @@ MEDIA_TYPES = {
 }
 
 DOI_URL = "https://doi.org/"
-FILE_ASSET_PREFIX = "file://"
 
 
 class STACSearchQuery(BaseModel):
@@ -545,17 +544,24 @@ def build_stac_item(
     providers = _retrieve_providers(project, metadata)
     files_assets = _retrieve_files_assets(files, metadata, assets_rules)
     related_links = _retrieve_related_links(metadata)
-    raw_links = metadata.pop("links", [])
 
     sharinghub_properties = _retrieve_sharinghub_properties(project, files, metadata)
+
+    raw_links = metadata.pop("links", [])
+    raw_assets = metadata.pop("assets", {})
+
+    if not isinstance(raw_links, list):
+        raw_links = []
+    if not isinstance(raw_assets, dict):
+        raw_assets = {}
 
     # STAC generation
 
     stac_extensions, extensions = _retrieve_extensions(readme_doc, metadata, **context)
 
-    stac_properties = {}
-    stac_assets = {}
-    stac_links = []
+    stac_properties = {**metadata}
+    stac_assets = {**raw_assets}
+    stac_links = [*raw_links]
 
     if license_id:
         stac_properties["license"] = license_id
@@ -568,22 +574,13 @@ def build_stac_item(
         )
 
     for file_path, file_media_type in files_assets.items():
-        asset_id = f"{FILE_ASSET_PREFIX}{file_path}"
-        stac_assets[asset_id] = {
-            "href": url_for(
-                _request,
-                "download_gitlab_file",
-                path=dict(
-                    project_path=project.path,
-                    file_path=file_path,
-                ),
-                query={"ref": project.default_branch, **_token.rc_query},
-            ),
+        stac_assets[file_path] = {
+            "href": file_path,
             "title": file_path,
             "roles": ["data"],
         }
         if file_media_type:
-            stac_assets[asset_id]["type"] = file_media_type
+            stac_assets[file_path]["type"] = file_media_type
 
     for category_id, related_project_url in related_links:
         _path = parse.urlparse(related_project_url).path.removeprefix("/")
@@ -625,22 +622,6 @@ def build_stac_item(
         if media_type:
             stac_assets["release"]["type"] = media_type
 
-    for link in raw_links:
-        if collection_id := link.pop("collection", None):
-            _path = str(parse.urlparse(link["href"]).path).removeprefix("/")
-            link["href"] = url_for(
-                _request,
-                "stac_collection_feature",
-                path=dict(
-                    collection_id=collection_id,
-                    feature_id=_path,
-                ),
-                query={**_token.query},
-            )
-
-    stac_links.extend(raw_links)
-    stac_properties |= metadata
-
     for ext_name, ext_properties in extensions.items():
         for property, val in ext_properties.items():
             stac_properties[f"{ext_name}:{property}"] = val
@@ -651,6 +632,12 @@ def build_stac_item(
     if sharinghub_properties:
         for prop, val in sharinghub_properties.items():
             stac_properties[f"sharinghub:{prop}"] = val
+
+    for link in stac_links:
+        link["href"] = _resolve_href(link["href"], project, **context)
+
+    for asset in stac_assets.values():
+        asset["href"] = _resolve_href(asset["href"], project, **context)
 
     default_fields, default_links, default_assets = _build_stac_item_default_values(
         project, preview, **context
@@ -766,23 +753,11 @@ def _build_stac_item_default_values(
             }
         )
 
-    if is_local(preview):
-        preview = url_for(
-            _request,
-            "download_gitlab_file",
-            path=dict(
-                project_path=project.path,
-                file_path=preview,
-            ),
-            query={
-                "ref": project.default_branch,
-                "cache": int(STAC_PROJECTS_CACHE_TIMEOUT),
-                **_token.rc_query,
-            },
-        )
     if preview:
         assets["preview"] = {
-            "href": preview,
+            "href": _resolve_href(
+                preview, project, {"cache": int(STAC_PROJECTS_CACHE_TIMEOUT)}, **context
+            ),
             "title": "Preview",
             "roles": ["thumbnail"],
         }
@@ -835,43 +810,19 @@ def __resolve_links(
     _token = context["token"]
 
     def _resolve_src(match: re.Match):
-        url = match.groupdict()["src"]
-        if is_local(url) and not os.path.isabs(url):
-            path = os.path.relpath(url)
-            url = url_for(
-                _request,
-                "download_gitlab_file",
-                path=dict(
-                    project_path=project.path,
-                    file_path=path,
-                ),
-                query={
-                    "ref": project.default_branch,
-                    "cache": int(STAC_PROJECTS_CACHE_TIMEOUT),
-                    **_token.rc_query,
-                },
-            )
-        return f'src="{url}"'
+        href = match.groupdict()["src"]
+        href = _resolve_href(
+            href, project, {"cache": int(STAC_PROJECTS_CACHE_TIMEOUT)}, **context
+        )
+        return f'src="{href}"'
 
     def __resolve_md(match: re.Match):
         image = match.groupdict()
-        url = image["src"]
-        if is_local(url) and not os.path.isabs(url):
-            path = os.path.relpath(url)
-            url = url_for(
-                _request,
-                "download_gitlab_file",
-                path=dict(
-                    project_path=project.path,
-                    file_path=path,
-                ),
-                query={
-                    "ref": project.default_branch,
-                    "cache": int(STAC_PROJECTS_CACHE_TIMEOUT),
-                    **_token.rc_query,
-                },
-            )
-        return f"![{image['alt']}]({url})"
+        href = image["src"]
+        href = _resolve_href(
+            href, project, {"cache": int(STAC_PROJECTS_CACHE_TIMEOUT)}, **context
+        )
+        return f"![{image['alt']}]({href})"
 
     md_patched = md_content
     md_patched = re.sub(r"src=(\"|')(?P<src>.*?)(\"|')", _resolve_src, md_patched)
@@ -898,6 +849,8 @@ def _retrieve_license(
 ) -> tuple[str | None, str | None]:
     license_id = metadata.pop("license", project.license_id)
     license_url = metadata.pop("license-url", project.license_url)
+    if license_url:
+        license_url = str(license_url)
     return license_id, license_url
 
 
@@ -965,7 +918,7 @@ def __retrieve_assets_mapping(
     assets_rules: list[str],
 ) -> dict[str, str | None]:
     assets_mapping = {}
-    for asset_rule in (*assets_rules, *metadata.pop("assets", [])):
+    for asset_rule in (*assets_rules, *metadata.pop("files", [])):
         eq_match = asset_rule.split("=")
         glob_match = asset_rule.split("://")
         if len(eq_match) == 2:
@@ -1074,3 +1027,47 @@ def __parse_scientific_citations(
                 publications.append((_doi, link_text))
 
     return doi, publications
+
+
+def _resolve_href(
+    href: str,
+    project: Project,
+    query: dict | None = None,
+    **context: Unpack[STACContext],
+) -> str:
+    _request = context["request"]
+    _token = context["token"]
+
+    if is_local(href):
+        path = os.path.relpath(href, start="/" if os.path.isabs(href) else None)
+        href_query = {"ref": project.default_branch}
+        if query:
+            href_query |= query
+        href = url_for(
+            _request,
+            "download_gitlab_file",
+            path=dict(
+                project_path=project.path,
+                file_path=path,
+            ),
+            query={**href_query, **_token.rc_query},
+        )
+    elif match := re.search(
+        r"(?P<collection>[a-z\-]+)\+(?P<href>http[s]?://[^)]+)", href
+    ):
+        _map = match.groupdict()
+        collection = _map["collection"]
+        href_parsed = parse.urlparse(_map["href"])
+        href_query = dict(parse.parse_qsl(href_parsed.query))
+        if query:
+            href_query |= query
+        href = url_for(
+            _request,
+            "stac_collection_feature",
+            path=dict(
+                collection_id=collection,
+                feature_id=href_parsed.path.removeprefix("/"),
+            ),
+            query={**href_query, **_token.query},
+        )
+    return href
