@@ -1013,7 +1013,7 @@ def _retrieve_extensions(
 
 def __parse_scientific_citations(
     md_content: str,
-) -> tuple[tuple[str, str] | None, list[tuple[str, str]]]:
+) -> tuple[tuple[str, str] | None, list[dict[str, str]]]:
     DOI_PREFIX = "DOI:"
 
     doi = None
@@ -1025,7 +1025,7 @@ def __parse_scientific_citations(
             if link_text.startswith(DOI_PREFIX):
                 doi = (_doi, link_text.removeprefix(DOI_PREFIX).lstrip())
             else:
-                publications.append((_doi, link_text))
+                publications.append({"doi": _doi, "citation": link_text})
 
     return doi, publications
 
