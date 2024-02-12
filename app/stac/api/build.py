@@ -574,11 +574,13 @@ def build_stac_item(
         )
 
     for file_path, file_media_type in files_assets.items():
-        stac_assets[file_path] = {
-            "href": file_path,
-            "title": file_path,
-            "roles": ["data"],
-        }
+        if file_path not in stac_assets:
+            stac_assets[file_path] = {}
+        stac_assets[file_path]["href"] = stac_assets[file_path].get("href", file_path)
+        stac_assets[file_path]["title"] = stac_assets[file_path].get("title", file_path)
+        stac_assets[file_path]["roles"] = stac_assets[file_path].get("roles", [])
+        if "data" not in stac_assets[file_path]["roles"]:
+            stac_assets[file_path]["roles"].append("data")
         if file_media_type:
             stac_assets[file_path]["type"] = file_media_type
 
