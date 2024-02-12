@@ -754,10 +754,11 @@ def _build_stac_item_default_values(
         )
 
     if preview:
+        preview_href = _resolve_href(
+            preview, project, {"cache": int(STAC_PROJECTS_CACHE_TIMEOUT)}, **context
+        )
         assets["preview"] = {
-            "href": _resolve_href(
-                preview, project, {"cache": int(STAC_PROJECTS_CACHE_TIMEOUT)}, **context
-            ),
+            "href": preview_href,
             "title": "Preview",
             "roles": ["thumbnail"],
         }
@@ -768,7 +769,7 @@ def _build_stac_item_default_values(
         links.append(
             {
                 "rel": "preview",
-                "href": preview,
+                "href": preview_href,
             }
         )
     return fields, links, assets
