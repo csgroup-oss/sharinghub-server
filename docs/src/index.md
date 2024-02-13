@@ -1,3 +1,8 @@
+---
+hide:
+  - navigation
+---
+
 # Welcome to SharingHub
 
 <figure markdown>

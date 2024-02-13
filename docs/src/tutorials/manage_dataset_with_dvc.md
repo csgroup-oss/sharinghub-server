@@ -39,7 +39,7 @@ git push --set-upstream origin main
 
 You can now retrieve the project's unique identifier (`<project_id>`) by connecting to the Gitlab interface via the URL `https://gitlab.si.c-s.fr/<project_path>`.
 
-![gitlab_project_id.png](gitlab_project_id.png)
+![gitlab_project_id.png](../assets/img/gitlab_project_id.png)
 
 This id is necessary to identify the storage path for DVC, so you can continue the configuration.
 

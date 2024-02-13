@@ -12,6 +12,7 @@ theme:
   features:
     - content.code.copy
     - content.tooltips
+    - navigation.expand
     - navigation.footer
     - navigation.indexes
     - navigation.sections
@@ -81,14 +82,38 @@ plugins:
 
 # Page tree
 nav:
-  - index.md
+  - Home: index.md
+  - Explore:
+      - explore/overview.md
+      - Features:
+          - explore/auth.md
+          - Navigation:
+              - explore/categories.md
+              - explore/search.md
+          - explore/project-view.md
+          - explore/stac-api.md
+  - Share:
+      - share/overview.md
+      - Metadata:
+          - share/metadata/index.md
+          - share/metadata/stac-concepts.md
+          - Project:
+              - share/metadata/project/common.md
+              - share/metadata/project/model-case.md
+              - share/metadata/project/dataset-case.md
+      - Data:
+          - share/data/index.md
+          - share/data/git-lfs.md
+          - share/data/dvc.md
   - Tutorials:
       - tutorials/manage_dataset_with_dvc.md
       - tutorials/manage_dataset_with_shell.md
+  - Resources:
+      - resources/overview.md
+      - resources/ogc.md
+      - resources/stac.md
   - Legal Notice:
-      - legal/terms-of-service.md
       - legal/privacy.md
-      - legal/about-us.md
 
 # Footer links
 extra:
