@@ -109,7 +109,7 @@ nav:
       - tutorials/manage_dataset_with_dvc.md
       - tutorials/manage_dataset_with_shell.md
   - Resources:
-      - resources/overview.md
+      - resources/index.md
       - resources/ogc.md
       - resources/stac.md
   - Legal Notice:
