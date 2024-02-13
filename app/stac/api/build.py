@@ -875,8 +875,8 @@ def _retrieve_extent(
 def _retrieve_providers(project: Project, metadata: dict) -> list[dict]:
     providers = metadata.pop("providers", [])
 
-    has_producer = True
     has_host = False
+    has_producer = False
     for provider in providers:
         _roles = provider.get("roles", [])
         if "host" in _roles:
@@ -896,7 +896,7 @@ def _retrieve_providers(project: Project, metadata: dict) -> list[dict]:
         producer = project.full_name.split("/")[0].rstrip()
         _producer_path = project.path.split("/")[0]
         producer_url = f"{GITLAB_URL}/{_producer_path}"
-        provider.append(
+        providers.append(
             {
                 "name": producer,
                 "roles": ["producer"],
