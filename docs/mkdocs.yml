@@ -52,6 +52,9 @@ markdown_extensions:
   - pymdownx.betterem
   - pymdownx.caret
   - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
@@ -103,8 +106,8 @@ nav:
               - share/metadata/project/dataset-case.md
       - Data:
           - share/data/index.md
-          - share/data/git-lfs.md
-          - share/data/dvc.md
+          - Git LFS: share/data/git-lfs.md
+          - DVC: share/data/dvc.md
   - Tutorials:
       - tutorials/manage_dataset_with_dvc.md
       - tutorials/manage_dataset_with_shell.md
