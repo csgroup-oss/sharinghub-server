@@ -12,11 +12,11 @@ config: |-
       cache-timeout: 20
     root:
       id: root
-      title: PLUTO by SharingHUB
+      title: PLUTO by SharingHub
       description: PLUTO is your new CNES catalog of libraries and datasets. This catalog references libraries developed in-house and hosted on the [GitLab](https://gitlab.cnes.fr), as well as the main (Open-Source) libraries used in the field of earth observation.
       locales:
         fr:
-          title: PLUTO by SharingHUB
+          title: PLUTO by SharingHub
           description: PLUTO est votre nouveau catalogue de valorisation des librairies et dataset au CNES. Ce catalogue référence les librairies développée en interne et hébergées sur le [GitLab](https://gitlab.cnes.fr), ainsi que les principales librairies (Open-Source) utilisées dans le domaine de l'observation de la terre.
     categories:
       definitions:

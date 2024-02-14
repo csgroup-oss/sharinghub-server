@@ -126,7 +126,7 @@ def build_stac_root(
     title = root_config.get("title", "GitLab STAC")
     description = root_config.get(
         "description",
-        f"Catalog generated from your [Gitlab]({GITLAB_URL}) repositories with SharingHUB.",
+        f"Catalog generated from your [Gitlab]({GITLAB_URL}) repositories with SharingHub.",
     )
     logo = root_config.get("logo")
 
@@ -280,7 +280,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
     description = (
         category.description
         if category.description
-        else f"STAC {title} generated from your [Gitlab]({GITLAB_URL}) repositories with SharingHUB.",
+        else f"STAC {title} generated from your [Gitlab]({GITLAB_URL}) repositories with SharingHub.",
     )
     logo = category.logo
 

@@ -1,6 +1,6 @@
 # Configuration
 
-You can can configure the SharingHUB server through multiple sources:
+You can can configure the SharingHub server through multiple sources:
 
 - YAML file
 - Environment variables
@@ -615,7 +615,7 @@ Content:
       timeout: 3 # days unit
       type: info # color of alert | possibility (info, danger, success, warning,primary, dark, secondary)
       url: /login # no required if want redirect to others service
-      title: "Welcome to new SharingHUB "
+      title: "Welcome to new SharingHub"
       message: "To see all projects and unlock all features, please login.."
       locales:
         fr:

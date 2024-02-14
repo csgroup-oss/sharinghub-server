@@ -18,7 +18,7 @@ COPY web-ui/package*.json ./
 RUN npm install
 
 COPY web-ui/ ./
-RUN npm run build:minimal -- --catalogTitle="SharingHUB" --historyMode="hash" --pathPrefix="/ui"
+RUN npm run build:minimal -- --catalogTitle="SharingHub" --historyMode="hash" --pathPrefix="/ui"
 
 FROM amd64/python:3.11-alpine as build
 

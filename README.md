@@ -55,7 +55,7 @@ pip install -r requirements.txt
 # Build Web UI static files
 cd web-ui
 npm install
-npm run build:minimal -- --catalogTitle="SharingHUB" --historyMode="hash" --pathPrefix="/ui"
+npm run build:minimal -- --catalogTitle="SharingHub" --historyMode="hash" --pathPrefix="/ui"
 
 # Build docs (reuse previous virtualenv)
 pip install -r requirements-docs.txt
@@ -138,7 +138,7 @@ kubectl create namespace sharinghub
 kubectl create secret docker-registry regcred --docker-username='robot$space_applications+p2.gitlab2stac' --docker-password='<password>' --docker-server='643vlk6z.gra7.container-registry.ovh.net' --namespace sharinghub
 ```
 
-Deploy CS SharingHUB
+Deploy CS SharingHub
 
 ```bash
 # Install

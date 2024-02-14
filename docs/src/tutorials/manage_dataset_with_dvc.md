@@ -5,7 +5,7 @@
 The management of large amounts of data is achieved through integration with DVC.
 Data Version Control (DVC) lets you capture the versions of your data and models in Git commits, while storing them on-premises or in cloud storage. The result is a single history for data, code, and ML models that you can traverse — a proper journal of your work!
 
-The DVC integration offered by SharingHUB enables protected, high-performance access to data, while respecting the management of data access rights carried out on Gitlab, making it the central point for information management.
+The DVC integration offered by SharingHub enables protected, high-performance access to data, while respecting the management of data access rights carried out on Gitlab, making it the central point for information management.
 
 ## Get Started with DVC
 
@@ -24,7 +24,7 @@ git remote add origin https://a:<your_personal_gitlab_token>@gitlab.si.c-s.fr/<p
 
     You don't have to initially create your project in Gitlab before executing these commands; these commands and next bellow will do it for you.
 
-### Initializing DVC with SharingHUB
+### Initializing DVC with SharingHub
 
 Inside your chosen directory, we will use our current working directory as a DVC project. Let's initialize it by running dvc init inside a Git project:
 
@@ -33,7 +33,7 @@ dvc init
 git commit -m "Initialize DVC"
 ```
 
-The following command will push the modifications into Gitlab, create the project if necessary, and initialize rights management in SharingHUB.
+The following command will push the modifications into Gitlab, create the project if necessary, and initialize rights management in SharingHub.
 
 ```bash
 git push --set-upstream origin main

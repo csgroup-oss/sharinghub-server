@@ -11,4 +11,4 @@ COPY --chown=node:node web-ui .
 
 EXPOSE 8080
 
-CMD ["npm", "start", "--", "--catalogTitle=\"SharingHUB\"", "--historyMode=\"hash\"", "--pathPrefix=\"/ui\"" ]
+CMD ["npm", "start", "--", "--catalogTitle=\"SharingHub\"", "--historyMode=\"hash\"", "--pathPrefix=\"/ui\"" ]

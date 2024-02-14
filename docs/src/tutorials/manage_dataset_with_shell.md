@@ -2,8 +2,8 @@
 
 ## Introduction
 
-You can upload project-related data directly to SharingHUB without going through Git.
-This can be used to manage large volumes of data, or to benefit from faster data access thanks to SharingHUB.
+You can upload project-related data directly to SharingHub without going through Git.
+This can be used to manage large volumes of data, or to benefit from faster data access thanks to SharingHub.
 The advantage of using SharingHub over an external storage system is that the access rights of the GIT project to which the GIT project is linked are preserved. It is therefore impossible for a third-party user who does not have access to the Git project to gain access to this data.
 
 ## Using `curl`
@@ -38,7 +38,7 @@ curl -L -H 'X-Gitlab-Token:toto' http://localhost:19422/store/1243/README.md
 
 ## Using `upload_to_sharinghub.sh`
 
-To facilitate the upload of complex tree structures, the "upload_to_sharinghub.sh" script has been created. It makes it very easy to upload a directory and its sub-folders to SharingHUB.
+To facilitate the upload of complex tree structures, the "upload_to_sharinghub.sh" script has been created. It makes it very easy to upload a directory and its sub-folders to SharingHub.
 
 ```shell
 upload_to_sharinghub.sh <dir_path_to_upload> <project_id>

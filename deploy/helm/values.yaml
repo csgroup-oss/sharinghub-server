@@ -32,11 +32,11 @@ config: |-
     timeout: 3
     type: info
     url: /login
-    title: "Welcome to SharingHUB"
+    title: "Welcome to SharingHub"
     message: "To see all projects and unlock all features, please login..."
     locales:
       fr:
-        title: "Bienvenue sur le SharingHUB"
+        title: "Bienvenue sur le SharingHub"
         message: "Pour voir tous les projets et débloquer toutes les fonctionnalités, veuillez vous connecter..."
 
   stac:
@@ -46,11 +46,11 @@ config: |-
       cache-timeout: 20
     root:
       id: gitlab-cs
-      title: SharingHUB brings your data and models closer.
+      title: SharingHub brings your data and models closer.
       description: Your platform for collaborating on ML and NLP projects store in [GitLab](https://gitlab.si.c-s.fr) instance STAC catalog.
       locales:
         fr:
-          title: SharingHUB rapproche vos données et vos modèles.
+          title: SharingHub rapproche vos données et vos modèles.
           description: Votre plateforme de collaboration sur les projets ML et NLP stockés dans le catalogue STAC de l'instance [GitLab](https://gitlab.si.c-s.fr).
     categories:
       definitions:

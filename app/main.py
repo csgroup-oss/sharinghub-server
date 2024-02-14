@@ -40,8 +40,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     debug=DEBUG,
-    title="SharingHUB API",
-    description="The SharingHUB server serves STAC resources generated from Gitlab repositories.",
+    title="SharingHub API",
+    description="The SharingHub server serves STAC resources generated from Gitlab repositories.",
     version="0.1.0",
     root_path=API_PREFIX,
     docs_url="/api/docs",
