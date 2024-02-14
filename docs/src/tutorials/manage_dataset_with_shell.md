@@ -13,7 +13,7 @@ A Gitlab token is required, as well as a project number to which the data can be
 
 To upload a file with curl.
 
-Using PUT :
+Using PUT:
 
 ```shell
 curl -L -d @<file_to_upload> -X PUT -H 'Content-Type:application/octet-stream' -H 'X-Gitlab-Token:<your_gitlab_token>' https://sharinghub.p2.csgroup.space/store/<project_id>/<complete_file_path>
@@ -23,14 +23,14 @@ curl -L -d @<file_to_upload> -X PUT -H 'Content-Type:application/octet-stream' -
 curl -L -T <file_to_upload> -X PUT -H 'Content-Type:application/octet-stream' -H 'X-Gitlab-Token:<your_gitlab_token>' https://sharinghub.p2.csgroup.space/store/<project_id>/<complete_file_path>
 ```
 
-Using POST :
+Using POST:
 > Please note that the PUT function can be several times faster than the POST method.
 
 ```shell
 curl -d @<file_to_upload> -H 'X-Gitlab-Token:<your_gitlab_token>' https://sharinghub.p2.csgroup.space/store/<project_id>/
 ```
 
-To access the data :
+To access the data:
 
 ```shell
 curl -L -H 'X-Gitlab-Token:toto' http://localhost:19422/store/1243/README.md

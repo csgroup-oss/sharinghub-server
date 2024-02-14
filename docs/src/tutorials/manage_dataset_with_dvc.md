@@ -11,7 +11,7 @@ The DVC integration offered by SharingHUB enables protected, high-performance ac
 
 ### Prerequisites
 
-As a prerequisite for using DVC, you must have a Git repository initialized :
+As a prerequisite for using DVC, you must have a Git repository initialized:
 
 ```bash
 mkdir example-dvc
@@ -20,7 +20,9 @@ git init
 git remote add origin https://a:<your_personal_gitlab_token>@gitlab.si.c-s.fr/<project_path>
 ```
 
-Note : You don't have to initially create your project in Gitlab before executing these commands; these commands and next bellow will do it for you.
+!!! note
+
+    You don't have to initially create your project in Gitlab before executing these commands; these commands and next bellow will do it for you.
 
 ### Initializing DVC with SharingHUB
 
@@ -85,7 +87,7 @@ dvc push
 git push
 ```
 
-You can also directly add a complete directory :
+You can also directly add a complete directory:
 
 ```bash
 git add data/directory
