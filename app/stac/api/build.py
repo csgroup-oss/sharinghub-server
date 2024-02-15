@@ -809,9 +809,6 @@ def _get_description(
 def __resolve_links(
     md_content: str, project: Project, **context: Unpack[STACContext]
 ) -> str:
-    _request = context["request"]
-    _token = context["token"]
-
     def _resolve_src(match: re.Match):
         href = match.groupdict()["src"]
         href = _resolve_href(
@@ -854,6 +851,8 @@ def _retrieve_license(
     license_url = metadata.pop("license-url", project.license_url)
     if license_url:
         license_url = str(license_url)
+    elif license_id:
+        license_url = f"https://spdx.org/licenses/{license_id}.html"
     return license_id, license_url
 
 
