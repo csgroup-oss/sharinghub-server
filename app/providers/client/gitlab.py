@@ -355,11 +355,11 @@ class GitlabClient(ProviderClient):
         graphql_query = f"""
         query searchProjects({_params_definition}) {{
             search: projects({_params}) {{
-                nodes {{
-                    ...projectFields
-                }}
                 edges {{
                     cursor
+                    node {{
+                        ...projectFields
+                    }}
                 }}
                 pageInfo {{
                     hasPreviousPage
@@ -383,8 +383,7 @@ class GitlabClient(ProviderClient):
             end=page_info["endCursor"] if page_info["hasNextPage"] else None,
         )
         projects_cur: list[tuple[str, GitlabGraphQL_Project]] = [
-            (data["edges"][i]["cursor"], project_data)
-            for i, project_data in enumerate(data["nodes"])
+            (e["cursor"], e["node"]) for e in data["edges"]
         ]
         return projects_cur, pagination
 
