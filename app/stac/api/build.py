@@ -4,7 +4,7 @@ import os
 import re
 from datetime import datetime as dt
 from pathlib import Path
-from typing import Annotated, TypedDict, Unpack
+from typing import Annotated, Any, TypedDict, Unpack
 from urllib import parse
 
 from fastapi import Request
@@ -25,7 +25,7 @@ from app.utils import geo
 from app.utils import markdown as md
 from app.utils.http import is_local, url_for
 
-from ..settings import STAC_PROJECTS_CACHE_TIMEOUT
+from ..settings import STAC_EXTENSIONS, STAC_PROJECTS_CACHE_TIMEOUT
 from .category import Category, FeatureVal, get_category
 
 logger = logging.getLogger("app")
@@ -545,8 +545,6 @@ def build_stac_item(
     files_assets = _retrieve_files_assets(files, metadata, assets_rules)
     related_links = _retrieve_related_links(metadata)
 
-    sharinghub_properties = _retrieve_sharinghub_properties(project, files, metadata)
-
     raw_links = metadata.pop("links", [])
     raw_assets = metadata.pop("assets", {})
 
@@ -557,9 +555,10 @@ def build_stac_item(
 
     # STAC generation
 
-    stac_extensions, extensions = _retrieve_extensions(readme_doc, metadata, **context)
+    sharinghub_properties = _retrieve_sharinghub_properties(project, files, metadata)
+    stac_extensions, extensions_properties = _retrieve_extensions(readme_doc, metadata)
 
-    stac_properties = {**metadata}
+    stac_properties = {**metadata, **extensions_properties, **sharinghub_properties}
     stac_assets = {**raw_assets}
     stac_links = [*raw_links]
 
@@ -624,16 +623,8 @@ def build_stac_item(
         if media_type:
             stac_assets["release"]["type"] = media_type
 
-    for ext_name, ext_properties in extensions.items():
-        for property, val in ext_properties.items():
-            stac_properties[f"{ext_name}:{property}"] = val
-
     if doi := stac_properties.get("sci:doi"):
         stac_links.append({"rel": "cite-as", "href": f"{DOI_URL}{doi}"})
-
-    if sharinghub_properties:
-        for prop, val in sharinghub_properties.items():
-            stac_properties[f"sharinghub:{prop}"] = val
 
     for link in stac_links:
         link["href"] = _resolve_href(link["href"], project, **context)
@@ -969,7 +960,7 @@ def _retrieve_sharinghub_properties(
     features = project.category.features
     if not [fpath for fpath in files if fpath.startswith(".dvc/")]:
         features["store-s3"] = FeatureVal.DISABLE
-    return {
+    props = {
         "id": project.id,
         "name": project.full_name,
         "path": project.path,
@@ -978,38 +969,33 @@ def _retrieve_sharinghub_properties(
         **features,
         **metadata.pop("sharinghub", {}),
     }
+    return {f"sharinghub:{prop}": val for prop, val in props.items()}
 
 
 def _retrieve_extensions(
-    readme: str, metadata: dict, **context: Unpack[STACContext]
-) -> tuple[list[str], dict]:
-    extensions_mapped = {
-        "eo": "https://stac-extensions.github.io/eo/v1.1.0/schema.json",
-        "label": "https://stac-extensions.github.io/label/v1.0.1/schema.json",
-        "sci": "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
-        "ml-model": "https://stac-extensions.github.io/ml-model/v1.0.0/schema.json",
-    }
-    extensions_enabled = set()
-    extensions = {}
+    readme: str, metadata: dict
+) -> tuple[list[str], dict[str, Any]]:
+    extensions = set()
+    properties = {}
 
-    for ext_name in extensions_mapped:
-        if ext := metadata.pop(ext_name, None):
-            extensions_enabled.add(extensions_mapped[ext_name])
-            extensions[ext_name] = ext
-
-    if "ml-model" in extensions:
-        extensions["ml-model"]["type"] = "ml-model"
+    _extensions: dict[str, str] = metadata.get("extensions", {}) | STAC_EXTENSIONS
+    for ext_prefix, ext_schema in _extensions.items():
+        if ext := metadata.get(ext_prefix):
+            extensions.add(ext_schema)
+            for prop, val in ext.items():
+                properties[f"{ext_prefix}:{prop}"] = val
 
     doi, publications = __parse_scientific_citations(readme)
     if any((doi, publications)):
-        extensions_enabled.add(extensions_mapped["sci"])
-        extensions["sci"] = {}
+        extensions.add(
+            "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
+        )
         if doi:
-            extensions["sci"]["doi"], extensions["sci"]["citation"] = doi
+            properties["sci:doi"], properties["sci:citation"] = doi
         if publications:
-            extensions["sci"]["publications"] = publications
+            properties["sci:publications"] = publications
 
-    return list(extensions_enabled), extensions
+    return list(extensions), properties
 
 
 def __parse_scientific_citations(

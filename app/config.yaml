@@ -5,6 +5,11 @@ jupyterlab:
   url: https://nb.p2.csgroup.space
 
 stac:
+  extensions:
+    eo: https://stac-extensions.github.io/eo/v1.1.0/schema.json
+    label: https://stac-extensions.github.io/label/v1.0.1/schema.json
+    sci: https://stac-extensions.github.io/scientific/v1.0.0/schema.json
+    ml-model: https://stac-extensions.github.io/ml-model/v1.0.0/schema.json
   root:
     id: gitlab-cs
     title: GitLab - CS Group

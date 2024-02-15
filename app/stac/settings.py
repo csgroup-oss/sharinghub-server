@@ -43,3 +43,6 @@ STAC_SEARCH_CACHE_TIMEOUT: float = conf(
     default=60.0 * 3,
     cast=float,
 )
+
+# Extensions
+STAC_EXTENSIONS = conf("stac.extensions", default={}, cast=dict)
