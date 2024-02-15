@@ -58,11 +58,15 @@ license: <license name>
 
     Only a [SPDX License Identifier](https://spdx.org/licenses/) is allowed.
 
-In addition, STAC requires an URL for the license. While it is automatically set to the URL of the project LICENSE file, you can also change it:
+In addition, you can set an URL for the license. While it is automatically set to the URL of the project LICENSE file, or determined from the license given, you can also change it:
 
 ```yaml title="Metadata"
 license-url: <license url>
 ```
+
+!!! warning
+
+    The STAC Item specification indicates that the URL of the license **SHOULD** be defined.
 
 ### Extent
 
@@ -217,6 +221,45 @@ It is important to note that you can override `href`, `title` and `type`, but th
 !!! tip
 
     Check [Helpers](#helpers) to learn some extra features for the asset's `href`.
+
+### Extensions
+
+We rely on STAC Extensions to enrich our metadata. You can use about every STAC extension you want like this:
+
+```yaml title="Metadata"
+extensions:
+  <extension prefix>: <extension schema>
+
+<extension prefix>:
+  <prop>: <val>
+```
+
+A concrete example for the Scientific Citation Extension:
+
+```yaml title="Metadata example"
+extensions:
+  sci: https://stac-extensions.github.io/scientific/v1.0.0/schema.json
+
+sci:
+  doi: 10.XXXX/XXXXX
+  citation: Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+```
+
+You may have noticed that in STAC Extensions the properties are used like "sci:doi", "sci:citation", and you are right, but the syntax above help to avoid having to type multiple times the prefix of the extension.
+
+!!! note
+
+    Your SharingHub instance may have some STAC Extensions pre-configured, with no need to specify them in `extensions` metadata.
+
+#### Scientific Citation
+
+This extension is built-in in STAC Browser with an interesting parsing capability. You can define their values like in the example above, or write them in your README directly.
+
+```md title="README.md"
+[DOI: Lorem ipsum dolor sit amet, consectetur adipiscing elit.](https://doi.org/10.XXXX/XXXXX)
+```
+
+If a markdown link href starts with `https://doi.org`, it will be retrieved as the DOI. If more than one link matches this condition, the first is still the project DOI, and the remaining DOIs will be added as publications, following the extension.
 
 ### Remaining properties
 
