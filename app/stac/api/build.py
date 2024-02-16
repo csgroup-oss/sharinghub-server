@@ -543,13 +543,9 @@ def build_stac_item(
     spatial_extent, temporal_extent = _retrieve_extent(project, metadata)
     providers = _retrieve_providers(project, metadata)
     files_assets = _retrieve_files_assets(files, metadata, assets_rules)
-    related_links = _retrieve_related_links(metadata)
 
-    raw_links = metadata.pop("links", [])
     raw_assets = metadata.pop("assets", {})
 
-    if not isinstance(raw_links, list):
-        raw_links = []
     if not isinstance(raw_assets, dict):
         raw_assets = {}
 
@@ -560,7 +556,7 @@ def build_stac_item(
 
     stac_properties = {**metadata, **extensions_properties, **sharinghub_properties}
     stac_assets = {**raw_assets}
-    stac_links = [*raw_links]
+    stac_links = _retrieve_links(project, metadata, **context)
 
     if license_id:
         stac_properties["license"] = license_id
@@ -582,25 +578,6 @@ def build_stac_item(
             stac_assets[file_path]["roles"].append("data")
         if file_media_type:
             stac_assets[file_path]["type"] = file_media_type
-
-    for category_id, related_project_url in related_links:
-        _path = parse.urlparse(related_project_url).path.removeprefix("/")
-        stac_links.append(
-            {
-                "rel": "derived_from",
-                "type": "application/geo+json",
-                "title": f"{category_id}: {_path}",
-                "href": url_for(
-                    _request,
-                    "stac_collection_feature",
-                    path=dict(
-                        collection_id=category_id,
-                        feature_id=_path,
-                    ),
-                    query={**_token.query},
-                ),
-            }
-        )
 
     if release:
         archive_url = url_for(
@@ -625,9 +602,6 @@ def build_stac_item(
 
     if doi := stac_properties.get("sci:doi"):
         stac_links.append({"rel": "cite-as", "href": f"{DOI_URL}{doi}"})
-
-    for link in stac_links:
-        link["href"] = _resolve_href(link["href"], project, **context)
 
     for asset in stac_assets.values():
         asset["href"] = _resolve_href(asset["href"], project, **context)
@@ -941,16 +915,44 @@ def __get_files_assets(
     return assets
 
 
-def _retrieve_related_links(metadata: dict) -> list[tuple[str, str]]:
-    links = []
-    related = metadata.pop("related", {})
-    for category_id, val in related.items():
+def _retrieve_links(
+    project: Project, metadata: dict, **context: Unpack[STACContext]
+) -> list[tuple[str, str]]:
+    _request = context["request"]
+    _token = context["token"]
+
+    links = metadata.pop("links", [])
+    if not isinstance(links, list):
+        links = []
+
+    for link in links:
+        link["href"] = _resolve_href(link["href"], project, **context)
+
+    def _resolve_related_link(collection_id: str, project_url: str) -> dict[str, str]:
+        _path = parse.urlparse(project_url).path.removeprefix("/")
+        return {
+            "rel": "derived_from",
+            "type": "application/geo+json",
+            "title": f"{collection_id}: {_path}",
+            "href": url_for(
+                _request,
+                "stac_collection_feature",
+                path=dict(
+                    collection_id=collection_id,
+                    feature_id=_path,
+                ),
+                query={**_token.query},
+            ),
+        }
+
+    for category_id, val in metadata.pop("related", {}).items():
         if isinstance(val, str):
-            links.append((category_id, val))
+            links.append(_resolve_related_link(category_id, val))
         elif isinstance(val, list):
             for v in val:
                 if isinstance(v, str):
-                    links.append((category_id, v))
+                    links.append(_resolve_related_link(category_id, v))
+
     return links
 
 
