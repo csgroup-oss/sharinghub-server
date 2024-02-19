@@ -25,7 +25,11 @@ from app.utils import geo
 from app.utils import markdown as md
 from app.utils.http import is_local, url_for
 
-from ..settings import STAC_EXTENSIONS, STAC_PROJECTS_CACHE_TIMEOUT
+from ..settings import (
+    STAC_EXTENSIONS,
+    STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT,
+    STAC_PROJECTS_CACHE_TIMEOUT,
+)
 from .category import Category, FeatureVal, get_category
 
 logger = logging.getLogger("app")
@@ -522,14 +526,9 @@ def build_stac_item(
     project: Project,
     readme: str,
     files: list[str],
-    assets_rules: list[str],
     release: Release | None,
-    release_source_format: str,
     **context: Unpack[STACContext],
 ) -> dict:
-    _request = context["request"]
-    _token = context["token"]
-
     readme_doc, metadata = md.parse(readme)
 
     # Metadata parsing
@@ -542,12 +541,6 @@ def build_stac_item(
     )  # "license" property can be mapped transparently
     spatial_extent, temporal_extent = _retrieve_extent(project, metadata)
     providers = _retrieve_providers(project, metadata)
-    files_assets = _retrieve_files_assets(files, metadata, assets_rules)
-
-    raw_assets = metadata.pop("assets", {})
-
-    if not isinstance(raw_assets, dict):
-        raw_assets = {}
 
     # STAC generation
 
@@ -555,8 +548,8 @@ def build_stac_item(
     stac_extensions, extensions_properties = _retrieve_extensions(readme_doc, metadata)
 
     stac_properties = {**metadata, **extensions_properties, **sharinghub_properties}
-    stac_assets = {**raw_assets}
     stac_links = _retrieve_links(project, metadata, **context)
+    stac_assets = _retrieve_assets(project, metadata, files, release, **context)
 
     if license_id:
         stac_properties["license"] = license_id
@@ -568,43 +561,8 @@ def build_stac_item(
             }
         )
 
-    for file_path, file_media_type in files_assets.items():
-        if file_path not in stac_assets:
-            stac_assets[file_path] = {}
-        stac_assets[file_path]["href"] = stac_assets[file_path].get("href", file_path)
-        stac_assets[file_path]["title"] = stac_assets[file_path].get("title", file_path)
-        stac_assets[file_path]["roles"] = stac_assets[file_path].get("roles", [])
-        if "data" not in stac_assets[file_path]["roles"]:
-            stac_assets[file_path]["roles"].append("data")
-        if file_media_type:
-            stac_assets[file_path]["type"] = file_media_type
-
-    if release:
-        archive_url = url_for(
-            _request,
-            "download_gitlab_archive",
-            path=dict(
-                project_path=project.path,
-                format=release_source_format,
-            ),
-            query={"ref": release.tag, **_token.rc_query},
-        )
-        media_type, _ = mimetypes.guess_type(f"archive.{release_source_format}")
-        stac_assets["release"] = {
-            "href": archive_url,
-            "title": f"Release {release.tag}: {release.name}",
-            "roles": ["source"],
-        }
-        if release.description:
-            stac_assets["release"]["description"] = release.description
-        if media_type:
-            stac_assets["release"]["type"] = media_type
-
-    if doi := stac_properties.get("sci:doi"):
+    if doi := extensions_properties.get("sci:doi"):
         stac_links.append({"rel": "cite-as", "href": f"{DOI_URL}{doi}"})
-
-    for asset in stac_assets.values():
-        asset["href"] = _resolve_href(asset["href"], project, **context)
 
     default_fields, default_links, default_assets = _build_stac_item_default_values(
         project, preview, **context
@@ -871,50 +829,6 @@ def _retrieve_providers(project: Project, metadata: dict) -> list[dict]:
     return providers
 
 
-def _retrieve_files_assets(
-    files: list[str],
-    metadata: str,
-    assets_rules: list[str],
-) -> dict[str, str | None]:
-    assets_mapping = __retrieve_assets_mapping(metadata, assets_rules)
-    return __get_files_assets(files, assets_mapping)
-
-
-def __retrieve_assets_mapping(
-    metadata: dict,
-    assets_rules: list[str],
-) -> dict[str, str | None]:
-    assets_mapping = {}
-    for asset_rule in (*assets_rules, *metadata.pop("files", [])):
-        eq_match = asset_rule.split("=")
-        glob_match = asset_rule.split("://")
-        if len(eq_match) == 2:
-            file_ext_glob = f"*.{eq_match[0].lstrip('.')}"
-            assets_mapping[file_ext_glob] = MEDIA_TYPES.get(eq_match[1])
-        elif len(glob_match) == 2:
-            assets_mapping[glob_match[1]] = MEDIA_TYPES.get(glob_match[0])
-        else:
-            assets_mapping[asset_rule] = None
-    return assets_mapping
-
-
-def __get_files_assets(
-    files: list[str], assets_mapping: dict[str, str | None]
-) -> dict[str, str | None]:
-    assets = {}
-    for file in files:
-        fpath = Path(file)
-        for glob in assets_mapping:
-            if fpath.match(glob):
-                if assets_mapping[glob]:
-                    media_type = assets_mapping[glob]
-                else:
-                    media_type, _ = mimetypes.guess_type(fpath)
-                if media_type or not assets.get(file):
-                    assets[file] = media_type
-    return assets
-
-
 def _retrieve_links(
     project: Project, metadata: dict, **context: Unpack[STACContext]
 ) -> list[tuple[str, str]]:
@@ -954,6 +868,130 @@ def _retrieve_links(
                     links.append(_resolve_related_link(category_id, v))
 
     return links
+
+
+def _retrieve_assets(
+    project: Project,
+    metadata: dict,
+    files: list[str],
+    release: Release | None,
+    **context: Unpack[STACContext],
+) -> dict[str, dict[str, Any]]:
+    assets = {}
+
+    if assets_rules := __retrieve_assets_rules(metadata):
+        assets |= __create_assets(project, files, assets_rules, **context)
+
+    if release:
+        assets["release"] = __create_release_asset(project, release, **context)
+
+    return assets
+
+
+def __retrieve_assets_rules(metadata: dict) -> list[dict[str, Any]]:
+    assets_rules = []
+
+    metadata_assets = metadata.pop("assets", [])
+    if not isinstance(metadata_assets, list):
+        metadata_assets = []
+
+    for ma in metadata_assets:
+        if isinstance(ma, str):
+            assets_rules.append({"glob": ma})
+        elif isinstance(ma, dict):
+            assets_rules.append(ma)
+
+    return assets_rules
+
+
+def __create_assets(
+    project: Project,
+    files: list[str],
+    assets_rules: list[dict[str, Any]],
+    **context: Unpack[STACContext],
+) -> dict[str, dict[str, Any]]:
+    assets = {}
+
+    _files = [Path(file) for file in files]
+    for ar in assets_rules:
+        glob = ar.pop("glob", ar.pop("path", None))
+        if glob:
+            for fpath in _files:
+                if fpath.match(glob):
+                    a = __prepare_asset(
+                        project,
+                        {
+                            **ar,
+                            "key": ar.pop("key", None),
+                            "href": str(fpath),
+                            "path": str(fpath),
+                        },
+                        **context,
+                    )
+                    if a:
+                        assets[a[0]] = a[1]
+        elif a := __prepare_asset(project, ar, **context):
+            assets[a[0]] = a[1]
+    return assets
+
+
+def __prepare_asset(
+    project: Project, asset_def: dict[str, Any], **context: Unpack[STACContext]
+) -> tuple[str, dict[str, Any]] | None:
+    href = asset_def.get("href")
+    path = asset_def.get("path", "")
+    key = asset_def.get("key")
+    key = key if key else path
+    if key and href:
+        key = key.replace("{path}", path)
+        asset = {
+            "href": _resolve_href(href, project, **context),
+            "roles": asset_def.get("roles", ["data"]),
+        }
+        if _title := asset_def.get("title"):
+            asset["title"] = _title.replace("{key}", key).replace("{path}", path)
+        if _desc := asset_def.get("description"):
+            asset["description"] = _desc.replace("{key}", key).replace("{path}", path)
+        if _type := MEDIA_TYPES.get(asset_def.get("type-as"), asset_def.get("type")):
+            asset["type"] = _type
+        else:
+            href_parsed = parse.urlparse(href)
+            media_type, _ = mimetypes.guess_type(href_parsed.path)
+            if media_type:
+                asset["type"] = media_type
+        return key, asset
+    return None
+
+
+def __create_release_asset(
+    project: Project, release: Release, **context: Unpack[STACContext]
+) -> dict[str, Any]:
+    _request = context["request"]
+    _token = context["token"]
+
+    archive_url = url_for(
+        _request,
+        "download_gitlab_archive",
+        path=dict(
+            project_path=project.path,
+            format=STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT,
+        ),
+        query={"ref": release.tag, **_token.rc_query},
+    )
+    media_type, _ = mimetypes.guess_type(
+        f"archive.{STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT}"
+    )
+
+    release_asset = {
+        "href": archive_url,
+        "title": f"Release {release.tag}: {release.name}",
+        "roles": ["source"],
+    }
+    if release.description:
+        release_asset["description"] = release.description
+    if media_type:
+        release_asset["type"] = media_type
+    return release_asset
 
 
 def _retrieve_sharinghub_properties(

@@ -24,8 +24,6 @@ from .api.build import (
 from .api.search import search_projects
 from .settings import (
     STAC_CATEGORIES_PAGE_DEFAULT_SIZE,
-    STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT,
-    STAC_PROJECTS_ASSETS_RULES,
     STAC_PROJECTS_CACHE_TIMEOUT,
     STAC_ROOT_CONF,
     STAC_SEARCH_CACHE_TIMEOUT,
@@ -169,9 +167,7 @@ async def stac_collection_feature(
             project=project,
             readme=readme,
             files=files,
-            assets_rules=STAC_PROJECTS_ASSETS_RULES,
             release=release,
-            release_source_format=STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT,
             request=request,
             token=token,
         )
