@@ -1,10 +1,12 @@
-# Common Metadata
+# Reference
 
-We rely on user-defined metadata to pass information to SharingHub. The metadata are always handled the same way, regardless of the project's category, although some of them are more suited for specific categories.
+This page references all of our [Metadata](./index.md)-related available features.
+
+<!-- --8<-- [start:metadata-syntax] -->
 
 ## Syntax
 
-The metadata of a project are defined in its README file. Markdown allows a syntax for metadata, as YAML:
+The metadata of a project are defined in its `README.md` file. Markdown allows a syntax for metadata, as YAML:
 
 ```md title="README.md" hl_lines="1-3"
 ---
@@ -19,6 +21,11 @@ Morbi commodo metus est, id aliquet odio cursus id. Ut non sagittis metus.
 ```
 
 By using a `---` delimited section at the start of your `README.md`, you can write metadata that will not be rendered in the project description on SharingHub. The informations here will be parsed and used to process the STAC Item of the project.
+
+!!! warning
+    We always require a `README.md` file, with the uppercase file name, and in [CommonMark](https://commonmark.org/) (Markdown) format.
+
+<!-- --8<-- [end:metadata-syntax] -->
 
 ## Rendering
 
@@ -81,11 +88,12 @@ extent:
 
     Datetime should be UTC.
 
-As for spatial extent, the current way of defining it with search capabilities is in the project description in the General Settings.
+As for spatial extent, we only work with bbox for now, but the usage of complex geometries with WKT is planned.
 
-![Project description](../../../assets/img/gitlab-project-description-bbox.png)
-
-We only work with bbox for now, but the usage of complex geometries with WKT is planned.
+```yaml title="Metadata example" hl_lines="2"
+extent:
+  bbox: [-66.5902, 17.9823, -66.6407, 18.0299]
+```
 
 ### Providers
 
@@ -248,22 +256,24 @@ extensions:
   <prop>: <val>
 ```
 
+Some STAC Extensions are pre-configured, with no need to specify them in `extensions` metadata. List of extensions pre-configured:
+
+| Name | Source | Prefix |
+|---|---|---|
+| Electro-Optical | https://github.com/stac-extensions/eo | `eo`. |
+| Label | https://github.com/stac-extensions/label | `label` |
+| ML Model | https://github.com/stac-extensions/ml-model | `ml-model` |
+| Scientific Citation | https://github.com/stac-extensions/scientific | `sci` |
+
 A concrete example for the Scientific Citation Extension:
 
 ```yaml title="Metadata example"
-extensions:
-  sci: https://stac-extensions.github.io/scientific/v1.0.0/schema.json
-
 sci:
   doi: 10.XXXX/XXXXX
   citation: Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 ```
 
 You may have noticed that in STAC Extensions the properties are used like "sci:doi", "sci:citation", and you are right, but the syntax above help to avoid having to type multiple times the prefix of the extension.
-
-!!! note
-
-    Your SharingHub instance may have some STAC Extensions pre-configured, with no need to specify them in `extensions` metadata.
 
 #### Scientific Citation
 

@@ -99,11 +99,12 @@ nav:
       - share/overview.md
       - Metadata:
           - share/metadata/index.md
+          - share/metadata/configuration.md
+          - share/metadata/reference.md
+          - Examples:
+              - share/metadata/model-case.md
+              - share/metadata/dataset-case.md
           - share/metadata/stac-concepts.md
-          - Project:
-              - share/metadata/project/common.md
-              - share/metadata/project/model-case.md
-              - share/metadata/project/dataset-case.md
       - Data:
           - share/data/index.md
           - Git LFS: share/data/git-lfs.md
