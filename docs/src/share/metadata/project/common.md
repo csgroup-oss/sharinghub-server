@@ -162,6 +162,9 @@ assets:
 
 All matching files will be added.
 
+!!! note
+    Your SharingHub instance can have some assets rules pre-configured, this is why you may find your project having assets without any configured.
+
 #### Advanced usage
 
 There is an advanced, more powerful syntax available to define your assets. This feature will be very useful for some use-case.
