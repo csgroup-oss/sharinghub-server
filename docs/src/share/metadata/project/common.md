@@ -138,89 +138,100 @@ links:
 ```
 
 !!! tip
-
     Check [Helpers](#helpers) to learn some extra features for the link's `href`.
 
 ### Assets
 
-#### Files
+#### Basic usage
 
-The most basic asset you will want to share is a file of your gitlab repository. Files can be selected to be assets in SharingHub.
+You will want to share files from your GitLab repository with SharingHub. Only the files defined in the `assets` metadata will be shared, to avoid bloating.
 
-```yaml title="Metadata"
-files:
-- <pattern>
-```
-
-We work with a system of rules, with patterns using the same syntax as most unix systems. Path are relative to the project root. You may add a file by writing him plainly
+You can share a file:
 
 ```yaml title="Metadata example"
-files:
-- myfile.txt
-```
-
-Or use glob syntax
-
-```yaml title="Metadata example"
-files:
-- "*.txt"
-```
-
-The above solution will include all files ending with ".txt".
-
-There's also a more custom rule syntax that you may use. It is possible to "cast" files for other media types than the one detected with the file extension.
-
-Declare a PyTorch weight file as a zip for example:
-
-```yaml title="Metadata example"
-files:
-- zip://*.pt
-```
-
-It can be read `<cast>://<pattern>`. Casts available: text, json, xml, yaml, zip, geotiff, cog, geojson, compose, notebook.
-
-You can also cast by file extension:
-
-```yaml title="Metadata example"
-files:
-- tiff=geotiff
-```
-
-The above rule is equals to `geotiff://*.tiff`.
-
-!!! note
-
-    You may have no rule defined for your files and still see them in SharingHub, this is because there are default rules configured on your SharingHub instance.
-
-#### Raw assets
-
-In addition to these assets, you may want to declare assets with, again, a low-level control to use the full capabilities of STAC. You can do it with the `assets` metadata. As described in [STAC Concepts](../stac-concepts.md#assets) it is, unlike links, a mapping.
-
-```yaml title="Metadata"
 assets:
-  <asset key>:
-    href: <asset url>
-    title: <asset title>
-    roles: [<asset role>, ...]
-    type: <asset media type>
+  - "requirements.txt"
 ```
 
-Because it's a mapping, it is important to note that you can alter an existing asset. The [files assets](#files) are generated, but you may want to modify them, most common case is changing the title, or add a role demanded by a STAC Extension. Files assets are defined with the file path as key, allowing you to do this:
+But sometimes, you will have the need to include multiple files, in this case you can use basic [glob](https://en.wikipedia.org/wiki/Glob_(programming)) syntax with wildcards.
 
 ```yaml title="Metadata example"
-files:
-- "*.txt"
 assets:
-  myfile.txt:
-    title: MyFile
-    roles: ["test"]
+  - "*.py"
 ```
 
-It is important to note that you can override `href`, `title` and `type`, but the `roles` are extended. The default role is "data", and the modification above will preserve it, with now `roles: ["data", "test"]`
+All matching files will be added.
+
+#### Advanced usage
+
+There is an advanced, more powerful syntax available to define your assets. This feature will be very useful for some use-case.
+
+##### Media type
+
+The STAC asset `type` is guessed from the file extension, but sometimes you will want to change this type. In the following example we will declare the media type of our COG `.tiff` files, because it is only detected as `image/tiff`.
+
+```yaml title="Metadata example"
+assets:
+  - glob: "*.tiff"
+    type: image/tiff; application=geotiff; profile=cloud-optimized
+```
+
+There is a shortcut feature available for some file extensions, `type-as`.
+
+```yaml title="Metadata example"
+assets:
+  - glob: "*.tiff"
+    type-as: cog
+```
+
+Available `type-as` values:
+
+| type-as    | type                                                       |
+|------------|------------------------------------------------------------|
+| `compose`  | `text/x-yaml; application=compose`                         |
+| `cog`      | `image/tiff; application=geotiff; profile=cloud-optimized` |
+| `geojson`  | `application/geo+json`                                     |
+| `geotiff`  | `image/tiff; application=geotiff`                          |
+| `json`     | `application/json`                                         |
+| `notebook` | `application/x-ipynb+json`                                 |
+| `text`     | `text/plain`                                               |
+| `xml`      | `application/xml`                                          |
+| `yaml`     | `text/x-yaml`                                              |
+| `zip`      | `application/zip`                                          |
+
+##### Custom assets
+
+There may be times where you will want to add a custom asset. When a `glob` or `path` field is provided, we will try to match it one of the project's files. In this case, we will loop over each match and create an asset with its `href` set to the file. But you can define assets that do not "match" the files. The thing is, we consider an asset valid if it has at least a `key` and a `href`. This let you add custom assets to reference external resources.
+
+As an example, we will add an asset from [this](https://github.com/radiantearth/stac-spec/blob/master/examples/simple-item.json) simple STAC Item example of the stac spec repository.
+
+```yaml title="Metadata example"
+assets:
+  - key: visual
+    href: https://storage.googleapis.com/open-cogs/stac-examples/20201211_223832_CS2.tif
+    type: image/tiff; application=geotiff; profile=cloud-optimized
+    title: 3-Band Visual
+    roles: [visual]
+```
+
+Notice that because our `assets` metadata is a list and not a mapping, we add the keyword `key` to define the asset key in the resulting asset mapping. Other than that, all [STAC asset fields](https://github.com/radiantearth/stac-spec/blob/master/item-spec/item-spec.md#asset-object) can always be set manually, `href`, `type`, `title`, `description`,  and `roles`.
 
 !!! tip
-
     Check [Helpers](#helpers) to learn some extra features for the asset's `href`.
+
+##### Alter files assets
+
+By default, an asset generated from a file only have an `href`, a `roles: [data]`, and a `type` if it was guessed. But, don't hesitate to improve your assets by adding a `title` an a `description`! We offer some utility features to alter your assets per match.
+
+```yaml title="Metadata example"
+assets:
+  - glob: "*.py"
+    key: "python://{path}"
+    title: "File '{path}'"
+    description: "Python file '{key}'"
+```
+
+A file asset key in the assets mapping is by default the path of the file, but you can change it. You can use `{path}` in `key`, `title`, `description` and `{key}` in `title`, `description`. This will let you interpolate the value for each match, and is really helpful here to change the asset key for each of the python files.
 
 ### Extensions
 
