@@ -1,6 +1,6 @@
 import logging
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, HTTPException
 from pydantic import AnyHttpUrl, BaseModel, Field
@@ -23,6 +23,7 @@ class Category(BaseModel):
     features: dict[str, FeatureVal] = Field(default_factory=dict)
     icon: AnyHttpUrl | None = Field(default=None)
     logo: AnyHttpUrl | None = Field(default=None)
+    assets: list[str | dict[str, Any]] = Field(default_factory=list)
 
 
 CategoryName = StrEnum("CategoryName", {k: k for k in STAC_CATEGORIES})

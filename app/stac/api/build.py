@@ -879,7 +879,7 @@ def _retrieve_assets(
 ) -> dict[str, dict[str, Any]]:
     assets = {}
 
-    if assets_rules := __retrieve_assets_rules(metadata):
+    if assets_rules := __retrieve_assets_rules(project, metadata):
         assets |= __create_assets(project, files, assets_rules, **context)
 
     if release:
@@ -888,19 +888,26 @@ def _retrieve_assets(
     return assets
 
 
-def __retrieve_assets_rules(metadata: dict) -> list[dict[str, Any]]:
+def __retrieve_assets_rules(project: Project, metadata: dict) -> list[dict[str, Any]]:
     assets_rules = []
 
     metadata_assets = metadata.pop("assets", [])
     if not isinstance(metadata_assets, list):
         metadata_assets = []
 
-    for ma in metadata_assets:
+    assets_rules.extend(__process_assets_rules(project.category.assets))
+    assets_rules.extend(__process_assets_rules(metadata_assets))
+
+    return assets_rules
+
+
+def __process_assets_rules(assets_rules_def: list[str | dict]) -> list[dict]:
+    assets_rules = []
+    for ma in assets_rules_def:
         if isinstance(ma, str):
             assets_rules.append({"glob": ma})
         elif isinstance(ma, dict):
             assets_rules.append(ma)
-
     return assets_rules
 
 
