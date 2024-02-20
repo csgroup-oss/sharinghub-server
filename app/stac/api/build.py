@@ -2,21 +2,11 @@ import logging
 import mimetypes
 import os
 import re
-from datetime import datetime as dt
 from pathlib import Path
-from typing import Annotated, Any, TypedDict, Unpack
+from typing import Any, TypedDict, Unpack
 from urllib import parse
 
 from fastapi import Request
-from pydantic import (
-    BaseModel,
-    Field,
-    Json,
-    SerializationInfo,
-    computed_field,
-    field_serializer,
-    field_validator,
-)
 
 from app.auth import GitlabToken
 from app.providers.schemas import Project, Release
@@ -31,6 +21,7 @@ from ..settings import (
     STAC_PROJECTS_CACHE_TIMEOUT,
 )
 from .category import Category, FeatureVal, get_category
+from .search import STACPagination, STACSearchQuery
 
 logger = logging.getLogger("app")
 
@@ -48,53 +39,6 @@ MEDIA_TYPES = {
 }
 
 DOI_URL = "https://doi.org/"
-
-
-class STACSearchQuery(BaseModel):
-    limit: Annotated[int, Field(strict=True, gt=0)] = 10
-    sortby: str | None = Field(default=None)
-    bbox: list[float] = Field(default_factory=list)
-    datetime: str | None = Field(default=None)
-    intersects: Json = Field(default=None)
-    ids: list[str] = Field(default_factory=list)
-    collections: list[str] = Field(default_factory=list)
-    q: list[str] = Field(default_factory=list)
-
-    @field_validator("datetime")
-    @classmethod
-    def validate_datetime(cls, d: str) -> str:
-        if d:
-            d1, *do = d.split("/")
-            dt.fromisoformat(d1)
-            if do:
-                d2 = do[0]
-                dt.fromisoformat(d2)
-        return d
-
-    @computed_field
-    def datetime_range(self) -> tuple[dt, dt] | None:
-        if self.datetime:
-            start_dt_str, *other_dts_str = self.datetime.split("/")
-            start_dt = dt.fromisoformat(start_dt_str)
-            if other_dts_str:
-                end_dt_str = other_dts_str[0]
-                end_dt = dt.fromisoformat(end_dt_str)
-            else:
-                end_dt = start_dt
-            return start_dt, end_dt
-        return None
-
-    @field_serializer("bbox", "ids", "collections", "q", when_used="unless-none")
-    def serialize_lists(self, v: list[str | float], _info: SerializationInfo) -> str:
-        return ",".join(str(e) for e in v)
-
-
-class STACPagination(TypedDict):
-    limit: int
-    matched: int
-    returned: int
-    next: str | None
-    prev: str | None
 
 
 class STACContext(TypedDict):
@@ -222,6 +166,16 @@ def build_stac_root(
                     query={**_token.query},
                 ),
                 "method": "GET",
+            },
+            {
+                "rel": "search",
+                "type": "application/geo+json",
+                "href": url_for(
+                    _request,
+                    "stac_search",
+                    query={**_token.query},
+                ),
+                "method": "POST",
             },
             *links,
         ],
@@ -367,6 +321,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
 
 def build_features_collection(
     features: list[dict],
+    state_query: dict[str, Any],
     pagination: STACPagination,
     route: str,
     category: Category | None,
@@ -391,7 +346,7 @@ def build_features_collection(
             }
         )
 
-    query_params = dict(_request.query_params)
+    query_params = state_query | dict(_request.query_params)
 
     if pagination["prev"]:
         prev_params = query_params.copy()

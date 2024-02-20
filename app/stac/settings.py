@@ -5,12 +5,6 @@ from app.utils.config import clist
 STAC_ROOT_CONF: dict = conf("stac.root", default={}, cast=dict)
 
 # Categories
-STAC_CATEGORIES_PAGE_DEFAULT_SIZE: int = conf(
-    "stac.categories.page-size",
-    "STAC_CATEGORIES_PAGE_DEFAULT_SIZE",
-    default=12,
-    cast=int,
-)
 STAC_CATEGORIES: dict = conf("stac.categories.definitions", default={}, cast=dict)
 
 # Projects
@@ -30,11 +24,19 @@ STAC_PROJECTS_CACHE_TIMEOUT: float = conf(
     default=60.0 * 5,
     cast=float,
 )
+
+# Search
 STAC_SEARCH_CACHE_TIMEOUT: float = conf(
     "stac.search.cache-timeout",
     "STAC_SEARCH_CACHE_TIMEOUT",
     default=60.0 * 3,
     cast=float,
+)
+STAC_SEARCH_PAGE_DEFAULT_SIZE: int = conf(
+    "stac.search.page-size",
+    "STAC_SEARCH_PAGE_DEFAULT_SIZE",
+    default=12,
+    cast=int,
 )
 
 # Extensions

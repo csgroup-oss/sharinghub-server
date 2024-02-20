@@ -38,12 +38,12 @@ Content:
   - [S3: presigned expiration](#s3-presigned-expiration)
   - [S3: upload chunk size](#s3-upload-chunk-size)
   - [STAC: root conf](#stac-root-conf)
-  - [STAC: categories page default size](#stac-categories-page-default-size)
   - [STAC: categories](#stac-categories)
   - [STAC: projects cache timeout](#stac-projects-cache-timeout)
   - [STAC: projects assets rules](#stac-projects-assets-rules)
   - [STAC: projects assets release source format](#stac-projects-assets-release-source-format)
-  - [STAC: projects cache timeout](#stac-projects-cache-timeout-1)
+  - [STAC: search cache timeout](#stac-search-cache-timeout)
+  - [STAC: search page default size](#stac-search-page-default-size)
   - [TAGS: sections](#tags-sections)
   - [FRONT-CONFIG: external urls](#front-config-external-urls)
   - [FRONT-CONFIG: visitor alert message](#front-config-visitor-alert-message)
@@ -448,22 +448,6 @@ Content:
         logo: URL
     ```
 
-### STAC: categories page default size
-
-- Type: integer number
-- Default: `12`
-- Environment variable:
-  - Name: `STAC_CATEGORIES_PAGE_DEFAULT_SIZE`
-  - Example value: `20`
-- YAML:
-  - Path: `stac.categories.cache-timeout`
-  - Example value:
-    ```yaml
-    stac:
-      categories:
-        page-size: 20
-    ```
-
 ### STAC: categories
 
 - Type: mapping
@@ -533,7 +517,7 @@ Content:
           release-source-format: tar.gz
     ```
 
-### STAC: projects cache timeout
+### STAC: search cache timeout
 
 - Type: floating number
 - Default: `180.0`
@@ -547,6 +531,22 @@ Content:
     stac:
       search:
         cache-timeout: 15.0
+    ```
+
+### STAC: search page default size
+
+- Type: integer number
+- Default: `12`
+- Environment variable:
+  - Name: `STAC_SEARCH_PAGE_DEFAULT_SIZE`
+  - Example value: `20`
+- YAML:
+  - Path: `stac.search.page-size`
+  - Example value:
+    ```yaml
+    stac:
+      search:
+        page-size: 20
     ```
 
 ### TAGS: sections

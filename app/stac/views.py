@@ -13,7 +13,6 @@ from app.stac.api.category import Category, CategoryFromCollectionIdDep, get_cat
 from app.utils.cache import cache
 
 from .api.build import (
-    STACSearchQuery,
     build_features_collection,
     build_stac_collection,
     build_stac_collections,
@@ -21,12 +20,12 @@ from .api.build import (
     build_stac_item_preview,
     build_stac_root,
 )
-from .api.search import search_projects
+from .api.search import STACSearchQuery, get_state_query, search_projects
 from .settings import (
-    STAC_CATEGORIES_PAGE_DEFAULT_SIZE,
     STAC_PROJECTS_CACHE_TIMEOUT,
     STAC_ROOT_CONF,
     STAC_SEARCH_CACHE_TIMEOUT,
+    STAC_SEARCH_PAGE_DEFAULT_SIZE,
 )
 
 logger = logging.getLogger("app")
@@ -88,21 +87,17 @@ async def stac_collection_items(
     request: Request,
     token: GitlabTokenDep,
     category: CategoryFromCollectionIdDep,
-    limit: int = STAC_CATEGORIES_PAGE_DEFAULT_SIZE,
-    sortby: str | None = None,
     prev: str | None = None,
     next: str | None = None,
-    q: str = "",
+    limit: int = STAC_SEARCH_PAGE_DEFAULT_SIZE,
     bbox: str = "",
     datetime: str = "",
 ):
     search_query = STACSearchQuery(
         limit=limit,
-        sortby=sortby,
         bbox=[float(p) for p in bbox.split(",")] if bbox else [],
         datetime=datetime if datetime else None,
         collections=[category.id],
-        q=q.split(",") if q else [],
     )
     return await _stac_search(
         request=request,
@@ -122,6 +117,9 @@ async def stac_collection_feature(
     category: CategoryFromCollectionIdDep,
     feature_id: str,
 ):
+    if not feature_id:
+        raise HTTPException(status_code=400, detail=f"No feature ID given")
+
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     project = await gitlab_client.get_project(path=feature_id)
 
@@ -192,10 +190,10 @@ async def stac_collection_feature(
 async def stac_search(
     request: Request,
     token: GitlabTokenDep,
-    limit: int = STAC_CATEGORIES_PAGE_DEFAULT_SIZE,
-    sortby: str | None = None,
     prev: str | None = None,
     next: str | None = None,
+    limit: int = STAC_SEARCH_PAGE_DEFAULT_SIZE,
+    sortby: str | None = None,
     q: str = "",
     bbox: str = "",
     datetime: str = "",
@@ -213,6 +211,25 @@ async def stac_search(
         collections=collections.split(",") if collections else [],
         q=q.split(",") if q else [],
     )
+    return await _stac_search(
+        request=request,
+        token=token,
+        route="stac_search",
+        search_query=search_query,
+        category=None,
+        prev=prev,
+        next=next,
+    )
+
+
+@router.post("/search")
+async def stac_search(
+    request: Request,
+    token: GitlabTokenDep,
+    search_query: STACSearchQuery,
+    prev: str | None = None,
+    next: str | None = None,
+):
     return await _stac_search(
         request=request,
         token=token,
@@ -250,6 +267,10 @@ async def _stac_search(
             )
             for i, p in enumerate(projects)
         ],
+        state_query=get_state_query(
+            search_query,
+            exclude=["collections"] if route == "stac_collection_items" else None,
+        ),
         pagination=pagination,
         route=route,
         category=category,
