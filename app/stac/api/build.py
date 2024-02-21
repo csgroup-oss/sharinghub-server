@@ -547,9 +547,9 @@ def build_stac_item(
     sharinghub_properties = _retrieve_sharinghub_properties(project, files, metadata)
     stac_extensions, extensions_properties = _retrieve_extensions(readme_doc, metadata)
 
-    stac_properties = {**metadata, **extensions_properties, **sharinghub_properties}
     stac_links = _retrieve_links(project, metadata, **context)
     stac_assets = _retrieve_assets(project, metadata, files, release, **context)
+    stac_properties = {**metadata, **extensions_properties, **sharinghub_properties}
 
     if license_id:
         stac_properties["license"] = license_id
@@ -1025,9 +1025,9 @@ def _retrieve_extensions(
     extensions = set()
     properties = {}
 
-    _extensions: dict[str, str] = metadata.get("extensions", {}) | STAC_EXTENSIONS
+    _extensions: dict[str, str] = metadata.pop("extensions", {}) | STAC_EXTENSIONS
     for ext_prefix, ext_schema in _extensions.items():
-        if ext := metadata.get(ext_prefix):
+        if ext := metadata.pop(ext_prefix, None):
             extensions.add(ext_schema)
             for prop, val in ext.items():
                 properties[f"{ext_prefix}:{prop}"] = val
