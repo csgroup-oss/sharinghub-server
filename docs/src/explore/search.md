@@ -2,37 +2,34 @@
 
 SharingHub is a platform packed with AI models, Datasets, Libraries and tools, Challenges.
 
-Everything you need for your machine learning projects.
+Everything you need for your Machine Learning projects is accessible through SharingHub which provides several search features.
 
 ![item views](figures/search/item_views.png)
 
 ## Tag search tab
 
 In the category view, it's possible to search for projects by specific tag to target your search.
-There are two types of tags: **common tags**, which refer to the most commonly used tags in the field, and **other tags**, which refer to tags associated with projects in the gitlab connected to SharingHub.
+There are two types of tags: **common tags**, which refers to the most commonly used tags in the field, and **other tags**, which refers to tags associated with projects in the GitLab connected to SharingHub.
 
-<figure style="float:left;width:50%; height:400px"  markdown>
-![common_tag section](figures/search/tab-filter-1.png)
-</figure>
-<figure style="float:right;width:50%;height:400px"   markdown>
-![other_tag section](figures/search/tab-filter-2.png)
-</figure>
+| Common | Other |
+|---|---|
+| ![common_tag section](figures/search/tab-filter-1.png) | ![other_tag section](figures/search/tab-filter-2.png) |
 
 ## Filter by title
 
-Search by title allows you to search in the category where you are a project by project name.
+The search by title field allows you to dynamically filter projects in the current category page.
 
 ![filter by title](figures/search/filter_by_title.png)
 
-## Filter by starred project
+## Filter by starred projects
 
-As the categories shown are projects stored on gitlab, you can display only the projects you like using the button below.
+A a category page, the star button allows to filter only projects you have starred. Projects of any categories can be starred independently on SharingHub or GitLab and this status will be automatically synchronized between both.
 
 ![filter by star ](figures/search/filter_by_stars.png)
 
-If you wish to remove this filtering, click on the button again to deactivate the filtering.
+Click on the button again to deactivate this filtering.
 
-## Sort Item
+## Sort items
 
 In addition to filtering, it is also possible to sort results to optimize visualization. The following criteria are available for filtering:
 

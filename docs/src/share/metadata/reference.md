@@ -62,7 +62,6 @@ license: <license name>
 ```
 
 !!! warning
-
     Only a [SPDX License Identifier](https://spdx.org/licenses/) is allowed.
 
 In addition, you can set an URL for the license. While it is automatically set to the URL of the project LICENSE file, or determined from the license given, you can also change it:
@@ -72,7 +71,6 @@ license-url: <license url>
 ```
 
 !!! warning
-
     The STAC Item specification indicates that the URL of the license **SHOULD** be defined.
 
 ### Extent
@@ -85,8 +83,7 @@ extent:
 ```
 
 !!! info
-
-    Datetime should be UTC.
+    Datetime should be expressed in UTC.
 
 As for spatial extent, we only work with bbox for now, but the usage of complex geometries with WKT is planned.
 
@@ -99,7 +96,7 @@ extent:
 
 The provider concept in STAC help to inform about the organizations capturing, producing, processing, hosting or publishing the data of the project.
 
-By default, the "host" provider is set to the project GitLab URL, and the "producer" provider is set to the gitlab repository user or first-level group.
+By default, the "host" provider is set to the project GitLab URL, and the "producer" provider is set to the GitLab repository user or first-level group.
 
 Example: for `https://gitlab.example.com/A/repo-b` with the user "A" having a repository "repo-b", the host is `https://gitlab.example.com/A/repo-b`, and the producer is `https://gitlab.example.com/A`.
 
@@ -119,7 +116,7 @@ providers:
 
 #### Related projects
 
-You may want to add links to your projects. A common use-case would be linking an AI model to a dataset. You can link projects between them with the `related` metadata, but beware, in SharingHub projects are categorized, and you will need to use that information. SharingHub categories are STAC collections, you will have to use the collection id (example: ai-model, dataset).
+You may want to add links to your projects. A common use-case would be linking an AI model to a dataset. You can link projects between them with the `related` metadata, but beware, in SharingHub, projects are categorized, and you will need to use that information. SharingHub categories are STAC collections, you will have to use the collection id (example: ai-model, dataset).
 
 ```yaml title="Metadata"
 related:
@@ -175,7 +172,7 @@ All matching files will be added.
 
 #### Advanced usage
 
-There is an advanced, more powerful syntax available to define your assets. This feature will be very useful for some use-case.
+There is an advanced, more powerful syntax available to define your assets. This feature will be very useful for some use-cases.
 
 ##### Media type
 
@@ -212,7 +209,7 @@ Available `type-as` values:
 
 ##### Custom assets
 
-There may be times where you will want to add a custom asset. When a `glob` or `path` field is provided, we will try to match it one of the project's files. In this case, we will loop over each match and create an asset with its `href` set to the file. But you can define assets that do not "match" the files. The thing is, we consider an asset valid if it has at least a `key` and a `href`. This let you add custom assets to reference external resources.
+There may be times where you will want to add a custom asset. When a `glob` or `path` field is provided, we will try to match it with one of the project's files. In this case, we will loop over each match and create an asset with its `href` set to the file. But you can define assets that do not "match" the files. The thing is, we consider an asset valid if it has at least a `key` and a `href`. This let you add custom assets to reference external resources.
 
 As an example, we will add an asset from [this](https://github.com/radiantearth/stac-spec/blob/master/examples/simple-item.json) simple STAC Item example of the stac spec repository.
 
@@ -260,10 +257,10 @@ Some STAC Extensions are pre-configured, with no need to specify them in `extens
 
 | Name | Source | Prefix |
 |---|---|---|
-| Electro-Optical | https://github.com/stac-extensions/eo | `eo`. |
-| Label | https://github.com/stac-extensions/label | `label` |
-| ML Model | https://github.com/stac-extensions/ml-model | `ml-model` |
-| Scientific Citation | https://github.com/stac-extensions/scientific | `sci` |
+| Electro-Optical | <https://github.com/stac-extensions/eo> | `eo` |
+| Label | <https://github.com/stac-extensions/label> | `label` |
+| ML Model | <https://github.com/stac-extensions/ml-model> | `ml-model` |
+| Scientific Citation | <https://github.com/stac-extensions/scientific> | `sci` |
 
 A concrete example for the Scientific Citation Extension:
 
@@ -323,7 +320,7 @@ If an href is detected to be a "local path", like "./myfile.txt" or "files/myfil
 
 The `href` should never be a hard link to a SharingHub instance, and you may not want to use the [`related`](#related-projects) metadata in some cases. You can still generate an URL to the STAC Item of another project without hard linking the SharingHub instance.
 
-Because a project's STAC Item is always in a collection (our [categories](../../../explore/categories.md)), you will need the "collection id" / category of the target project, and you can use the following syntax:
+Because a project's STAC Item is always in a collection (our [categories](../../explore/categories.md)), you will need the "collection id" / category of the target project, and you can use the following syntax:
 
 ```yaml title="Metadata"
 href: <collection id>+<gitlab project url>

@@ -9,7 +9,7 @@ The advantage of using SharingHub over an external storage system is that the ac
 ## Using `curl`
 
 Curl can be a simple, all-purpose solution for managing the data lifecycle.
-A Gitlab token is required, as well as a project number to which the data can be assigned.
+A GitLab token is required, as well as a project number to which the data can be assigned.
 
 To upload a file with curl.
 
@@ -75,7 +75,7 @@ fi
 
 if [ -z "$GITLAB_TOKEN" ]
 then
-  echo "The environment variable GITLAB_TOKEN must be set with a valid Gitlab token."
+  echo "The environment variable GITLAB_TOKEN must be set with a valid GitLab token."
   exit 1
 fi
 

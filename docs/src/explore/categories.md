@@ -2,44 +2,43 @@
 
 The SharingHub is an online platform dedicated to sharing resources and tools in the field of artificial intelligence (AI). It offers users the possibility of sharing and accessing projects from several categories, including:
 
-- AI model
-- Dataset
+- AI models
+- Datasets
 - Tools and libraries
-- Challenge
+- Challenges
 
 ## AI Models
 
-All projects related to the AI models category are served by the SharingHub in the AI models section, with collection_id: **ai-model** for STAC API.
+All projects related to the AI models category are served by the SharingHub in the AI models section, using STAC API `collection_id: ai-model` metadata.
 
 ![category section](figures/categories/ai-models.png)
 
-Example get projects from AI model categories using the STAC API:
+An example getting projects from AI models category using the STAC API:
 
 ```bash
-#!/bin/bash
 curl https://sharinghub.p2.csgroup.space/stac/search?collections=ai-model&limit=100
 ```
 
 ## Datasets
 
-Datasets are projects in the dataset category, generally repositories where large volumes of data are stored for your AI model training. These data repositories are compatible with git LFS and DVC, which ensures a large storage volume.
+Datasets category groups repositories where large volumes of data are stored for your AI model training. These data repositories are compatible with Git LFS and DVC, which ensures a large storage volume.
 
-Datasets are served by the SharingHub in the Datasets section, with collection_id: **dataset** for STAC API.
+Datasets are served by the SharingHub in the Datasets section using STAC API `collection_id: dataset` metadata.
 
 ![dataset category](figures/categories/datasets.png)
 
 ## Tools and Librairies
 
-Tools and libraries are projects in the processor category, generally containing external or internal libraries that you have written to improve the handling of your datasets, or to enhance the learning of your AI models.
+Tools and libraries are projects generally containing external or internal libraries that you have written to improve the handling of your datasets, or to enhance the learning of your AI models.
 
-All Tools and librairies are served by SharingHub in Tools and librairies section,  with collection_id: **processor** for STAC API.
+All Tools and librairies are served by SharingHub in Tools and librairies section using STAC API `collection_id: processor` metadata.
 
 ![Tools and libairies category](figures/categories/processor.png)
 
-## Challenge
+## Challenges
 
-Challenges are projects dealing with an issue that is constantly evolving. This enables developers and scientists to make multiple contributions.
+The Challenges category is used to define a contest in the field of Machine Learning where researchers and data-scientists participate in order to solve specific problems, improve algorithms or achieve better performances on benchmark datasets. That category is used to provide ressources required to participate to the competition.
 
-All challenges are served by SharingHub in Challenges section,  with collection_id: **challenge** for STAC API.
+All challenges are served by SharingHub in Challenges section using STAC API `collection_id: challenge` metadata.
 
 ![Challenge category](figures/categories/challenge.png)
