@@ -1,8 +1,8 @@
+import asyncio
 import json
 import logging
 import os
 from datetime import datetime
-from pathlib import Path
 from typing import Any, NotRequired, TypedDict
 
 import aiohttp
@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 
 from app.stac.api.category import get_category_from_topics
 from app.utils import geo
+from app.utils import markdown as md
 from app.utils.http import (
     AiohttpClient,
     HttpMethod,
@@ -20,26 +21,34 @@ from app.utils.http import (
     urlsafe_path,
 )
 
-from ..schemas import License, Project, Release, ReleaseAsset, Topic
+from ..schemas import (
+    License,
+    LicenseIdentifier,
+    Project,
+    ProjectPreview,
+    ProjectReference,
+    Release,
+    Topic,
+)
 from ._base import CursorPagination, ProviderClient
 
 logger = logging.getLogger("app")
 
 
 GITLAB_LICENSES_SPDX_MAPPING = {
-    "agpl-3.0": License.AGPL_3_0,
-    "apache-2.0": License.APACHE_2_0,
-    "bsd-2-clause": License.BSD_2_CLAUSE,
-    "bsd-3-clause": License.BSD_3_CLAUSE,
-    "bsl-1.0": License.BSL_1_0,
-    "cc0-1.0": License.CC0_1_0,
-    "epl-2.0": License.EPL_2_0,
-    "gpl-2.0": License.GPL_2_0,
-    "gpl-3.0": License.GPL_3_0,
-    "lgpl-2.1": License.LGPL_2_1,
-    "mit": License.MIT,
-    "mpl-2.0": License.MPL_2_0,
-    "unlicense": License.UNLICENSE,
+    "agpl-3.0": LicenseIdentifier.AGPL_3_0,
+    "apache-2.0": LicenseIdentifier.APACHE_2_0,
+    "bsd-2-clause": LicenseIdentifier.BSD_2_CLAUSE,
+    "bsd-3-clause": LicenseIdentifier.BSD_3_CLAUSE,
+    "bsl-1.0": LicenseIdentifier.BSL_1_0,
+    "cc0-1.0": LicenseIdentifier.CC0_1_0,
+    "epl-2.0": LicenseIdentifier.EPL_2_0,
+    "gpl-2.0": LicenseIdentifier.GPL_2_0,
+    "gpl-3.0": LicenseIdentifier.GPL_3_0,
+    "lgpl-2.1": LicenseIdentifier.LGPL_2_1,
+    "mit": LicenseIdentifier.MIT,
+    "mpl-2.0": LicenseIdentifier.MPL_2_0,
+    "unlicense": LicenseIdentifier.UNLICENSE,
 }
 
 
@@ -101,27 +110,47 @@ class GitlabREST_Topic(TypedDict):
     avatar_url: str | None
 
 
-class GitlabGraphQL_Project(TypedDict):
+class GitlabGraphQL_ProjectReference(TypedDict):
     id: str
     name: str
-    nameWithNamespace: str
     fullPath: str
+    topics: list[str]
+
+
+class GitlabGraphQL_ProjectPreview(GitlabGraphQL_ProjectReference):
     description: str | None
-    webUrl: str
     createdAt: str
     lastActivityAt: str
     starCount: int
-    topics: list[str]
-    repository: "_GitlabGraphQL_Repository"
+    repository: "_GitlabGraphQL_Repository1"
+
+
+class GitlabGraphQL_Project(GitlabGraphQL_ProjectPreview):
+    nameWithNamespace: str
+    webUrl: str
+    repository: "_GitlabGraphQL_Repository2"
+    releases: "_GitlabGraphQL_Releases"
+
+
+class _GitlabGraphQL_Repository1(TypedDict):
+    rootRef: str | None
+    blobs: "_GitlabGraphQL_RepositoryBlobs"
+
+
+class _GitlabGraphQL_RepositoryBlobs(TypedDict):
+    nodes: list["_GitlabGraphQL_RepositoryBlobNode"]
+
+
+class _GitlabGraphQL_RepositoryBlobNode(TypedDict):
+    rawBlob: str
+
+
+class _GitlabGraphQL_Repository2(_GitlabGraphQL_Repository1):
+    tree: "_GitlabGraphQL_Tree"
 
 
 class _GitlabGraphQL_Tree(TypedDict):
     blobs: "_GitlabGraphQL_TreeBlobs"
-
-
-class _GitlabGraphQL_Repository(TypedDict):
-    rootRef: str | None
-    tree: _GitlabGraphQL_Tree | None
 
 
 class _GitlabGraphQL_TreeBlobs(TypedDict):
@@ -132,6 +161,21 @@ class _GitlabGraphQL_TreeBlobNode(TypedDict):
     path: str
 
 
+class _GitlabGraphQL_Releases(TypedDict):
+    nodes: list["_GitlabGraphQL_Release"]
+
+
+class _GitlabGraphQL_Release(TypedDict):
+    name: str
+    tagName: str
+    description: str
+    commit: "_GitlabGraphQL_ReleaseCommit"
+
+
+class _GitlabGraphQL_ReleaseCommit(TypedDict):
+    sha: str
+
+
 GITLAB_GRAPHQL_SORTS = ["id", "name", "created", "updated", "stars"]
 GITLAB_GRAPHQL_SORTS_ALIASES = {
     "title": "name",
@@ -140,28 +184,73 @@ GITLAB_GRAPHQL_SORTS_ALIASES = {
     "end_datetime": "updated",
 }
 GITLAB_GRAPHQL_REQUEST_MAX_SIZE = 100
+
+
+GITLAB_GRAPHQL_PROJECT_REFERENCE_FRAGMENT = """
+fragment projectFields on Project {
+  id
+  name
+  fullPath
+  topics
+}
+"""
+GITLAB_GRAPHQL_PROJECT_PREVIEW_FRAGMENT = """
+fragment projectFields on Project {
+  id
+  name
+  fullPath
+  description
+  createdAt
+  lastActivityAt
+  starCount
+  topics
+  repository {
+    rootRef
+    blobs(paths: ["README.md"]) {
+      nodes {
+        rawBlob
+      }
+    }
+  }
+}
+"""
 GITLAB_GRAPHQL_PROJECT_FRAGMENT = """
 fragment projectFields on Project {
-    id
-    name
-    nameWithNamespace
-    fullPath
-    description
-    webUrl
-    createdAt
-    lastActivityAt
-    starCount
-    topics
-    repository {
-        rootRef
-        tree {
-            blobs {
-                nodes {
-                    path
-                }
-            }
-        }
+  id
+  name
+  nameWithNamespace
+  fullPath
+  description
+  webUrl
+  createdAt
+  lastActivityAt
+  starCount
+  topics
+  repository {
+    rootRef
+    blobs(paths: ["README.md"]) {
+      nodes {
+        rawBlob
+      }
     }
+    tree(path: "/", recursive: true) {
+      blobs {
+        nodes {
+          path
+        }
+      }
+    }
+  }
+  releases(first: 1) {
+    nodes {
+      name
+      tagName
+      description
+      commit {
+        sha
+      }
+    }
+  }
 }
 """
 
@@ -193,18 +282,126 @@ class GitlabClient(ProviderClient):
         )
         return [Topic(**t) for t in _topics]
 
+    async def get_project_from_id(self, id: int) -> Project:
+        rest_project_data = await self._get_project_rest(str(id))
+        project_path = rest_project_data["path_with_namespace"]
+        return await self.get_project(project_path)
+
+    async def get_project(self, path: str) -> Project:
+        path = path.strip("/")
+        graphql_query = f"""
+        query getProject {{
+            project(fullPath: "{path}") {{
+                ...projectFields
+            }}
+        }}
+        {GITLAB_GRAPHQL_PROJECT_FRAGMENT}
+        """
+        graphql_project_req = await self._graphql(graphql_query)
+        graphql_project_data = graphql_project_req["data"]["project"]
+        project = _adapt_graphql_project(graphql_project_data)
+
+        return project
+
+    async def get_license(self, project: ProjectReference) -> License | None:
+        rest_project_data = await self._get_project_rest(project.path)
+        if gitlab_license := rest_project_data["license"]:
+            license_id = GITLAB_LICENSES_SPDX_MAPPING.get(gitlab_license["key"])
+            return License(id=license_id, url=rest_project_data["license_url"])
+        return None
+
+    async def _get_project_rest(self, path_or_id: str) -> GitlabREST_Project:
+        path_or_id = urlsafe_path(path_or_id.strip("/"))
+        url = self._rest_api(f"/projects/{path_or_id}?license=true")
+        return await self._request(url)
+
+    async def search_references(
+        self,
+        query: str | None,
+        topics: list[str],
+        flags: list[str],
+        limit: int,
+    ) -> tuple[list[ProjectReference], CursorPagination]:
+        _projects, pagination = await self._search(
+            project_fragment=GITLAB_GRAPHQL_PROJECT_REFERENCE_FRAGMENT,
+            query=query,
+            topics=topics,
+            flags=flags,
+            bbox=None,
+            datetime_range=None,
+            limit=limit,
+            sort=None,
+            prev=None,
+            next=None,
+        )
+        projects = [_adapt_graphql_project_reference(p) for p in _projects]
+        return projects, pagination
+
+    async def search_previews(
+        self,
+        query: str | None,
+        topics: list[str],
+        flags: list[str],
+        limit: int,
+        sort: str | None,
+        prev: str | None,
+        next: str | None,
+    ) -> tuple[list[ProjectPreview], CursorPagination]:
+        _projects, pagination = await self._search(
+            project_fragment=GITLAB_GRAPHQL_PROJECT_PREVIEW_FRAGMENT,
+            query=query,
+            topics=topics,
+            flags=flags,
+            bbox=None,
+            datetime_range=None,
+            limit=limit,
+            sort=sort,
+            prev=prev,
+            next=next,
+        )
+        projects = [_adapt_graphql_project_preview(p) for p in _projects]
+        return projects, pagination
+
     async def search(
         self,
         query: str | None,
         topics: list[str],
         flags: list[str],
-        bbox: list[float],
+        bbox: list[float] | None,
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: str | None,
         prev: str | None,
         next: str | None,
     ) -> tuple[list[Project], CursorPagination]:
+        _projects, pagination = await self._search(
+            project_fragment=GITLAB_GRAPHQL_PROJECT_FRAGMENT,
+            query=query,
+            topics=topics,
+            flags=flags,
+            bbox=bbox,
+            datetime_range=datetime_range,
+            limit=limit,
+            sort=sort,
+            prev=prev,
+            next=next,
+        )
+        projects = [_adapt_graphql_project(p) for p in _projects]
+        return projects, pagination
+
+    async def _search(
+        self,
+        project_fragment: str,
+        query: str | None,
+        topics: list[str],
+        flags: list[str],
+        bbox: list[float] | None,
+        datetime_range: tuple[datetime, datetime] | None,
+        limit: int,
+        sort: str | None,
+        prev: str | None,
+        next: str | None,
+    ) -> tuple[list[dict[str, Any]], CursorPagination]:
         if prev:
             cursor = prev
             direction = -1
@@ -212,13 +409,10 @@ class GitlabClient(ProviderClient):
             cursor = next
             direction = 1
 
-        # Flags
-        starred = "starred" in flags
+        local_filtering = not any((bbox, datetime_range, flags))
+        search_size = limit if local_filtering else limit + 1
 
-        is_simple_search = not any((bbox, datetime_range, starred))
-        search_size = limit if is_simple_search else limit + 1
-
-        req_limit = limit if is_simple_search else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
+        req_limit = limit if local_filtering else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
         req_params = {
             "query": query,
             "topics": topics,
@@ -227,18 +421,21 @@ class GitlabClient(ProviderClient):
             "direction": direction,
         }
 
-        projects_cur: list[tuple[str, GitlabGraphQL_Project]] = []
+        # Flags
+        starred = "starred" in flags
+
+        projects_cur: list[tuple[str, dict[str, Any]]] = []
         paginations: list[CursorPagination] = []
 
         _stop = False
         while len(projects_cur) < search_size and not _stop:
             if not starred:
                 _projects_cur, _pagination = await self._search_projects(
-                    **req_params, cursor=cursor
+                    project_fragment, **req_params, cursor=cursor
                 )
             else:
                 _projects_cur, _pagination = await self._search_starred_projects(
-                    **req_params, cursor=cursor
+                    project_fragment, **req_params, cursor=cursor
                 )
 
                 # Filter by topics
@@ -267,9 +464,11 @@ class GitlabClient(ProviderClient):
                 search_polygon = geo.bbox2polygon(bbox)
 
                 def spatial_check(project_data: GitlabGraphQL_Project) -> bool:
-                    if project_data["description"]:
-                        project_bbox = geo.read_bbox(project_data["description"])
-                        if project_bbox:
+                    if project_data["repository"]["blobs"]["nodes"]:
+                        _, metadata = md.parse(
+                            project_data["repository"]["blobs"]["nodes"][0]["rawBlob"]
+                        )
+                        if project_bbox := metadata.get("extent", {}).get("bbox"):
                             project_polygon = geo.bbox2polygon(project_bbox)
                             return search_polygon.intersects(project_polygon)
                     return False
@@ -308,9 +507,9 @@ class GitlabClient(ProviderClient):
             start_cursor = None
             end_cursor = None
 
-        projects = [_adapt_graphql_project(p[1]) for p in projects_cur]
+        projects = [p[1] for p in projects_cur]
         pagination = CursorPagination(
-            total=paginations[0]["total"] if is_simple_search else None,
+            total=paginations[0]["total"] if local_filtering else None,
             start=start_cursor,
             end=end_cursor,
         )
@@ -318,13 +517,14 @@ class GitlabClient(ProviderClient):
 
     async def _search_projects(
         self,
+        project_fragment: str,
         query: str | None,
         topics: list[str],
         limit: int,
         sort: str | None,
         cursor: str | None,
         direction: int,
-    ) -> tuple[list[tuple[str, GitlabGraphQL_Project]], CursorPagination]:
+    ) -> tuple[list[tuple[str, dict[str, Any]]], CursorPagination]:
         limit_param, cursor_param = self._get_graphql_cursor_params(direction)
 
         graphql_sort = self._get_graphql_sort(sort)
@@ -370,7 +570,7 @@ class GitlabClient(ProviderClient):
                 count
             }}
         }}
-        {GITLAB_GRAPHQL_PROJECT_FRAGMENT}
+        {project_fragment}
         """
         logger.debug(f"GraphQL searchProjects: {graphql_variables}")
         result = await self._graphql(graphql_query, variables=graphql_variables)
@@ -389,12 +589,13 @@ class GitlabClient(ProviderClient):
 
     async def _search_starred_projects(
         self,
+        project_fragment: str,
         query: str | None,
         limit: int,
         cursor: str | None,
         direction: int,
         **kwargs: Any,
-    ) -> tuple[list[tuple[str, GitlabGraphQL_Project]], CursorPagination]:
+    ) -> tuple[list[tuple[str, dict[str, Any]]], CursorPagination]:
         limit_param, cursor_param = self._get_graphql_cursor_params(direction)
         graphql_variables: dict[str, Any] = {
             "limit": limit,
@@ -418,11 +619,11 @@ class GitlabClient(ProviderClient):
         query searchStarredProjects({_params_definition}) {{
             currentUser {{
                 starredProjects({_params}) {{
-                    nodes {{
-                        ...projectFields
-                    }}
                     edges {{
                         cursor
+                        node {{
+                            ...projectFields
+                        }}
                     }}
                     pageInfo {{
                         hasPreviousPage
@@ -434,7 +635,7 @@ class GitlabClient(ProviderClient):
                 }}
             }}
         }}
-        {GITLAB_GRAPHQL_PROJECT_FRAGMENT}
+        {project_fragment}
         """
         logger.debug(f"GraphQL searchStarredProjects: {graphql_variables}")
         result = await self._graphql(graphql_query, variables=graphql_variables)
@@ -447,8 +648,7 @@ class GitlabClient(ProviderClient):
             end=page_info["endCursor"] if page_info["hasNextPage"] else None,
         )
         projects_cur: list[tuple[str, GitlabGraphQL_Project]] = [
-            (data["edges"][i]["cursor"], project_data)
-            for i, project_data in enumerate(data["nodes"])
+            (e["cursor"], e["node"]) for e in data["edges"]
         ]
         return projects_cur, pagination
 
@@ -474,52 +674,6 @@ class GitlabClient(ProviderClient):
             sort_direction = "asc"
             sort_field = GITLAB_GRAPHQL_SORTS[0]
         return f"{sort_field}_{sort_direction}"
-
-    async def get_project(self, path: str) -> Project:
-        path = urlsafe_path(path.strip("/"))
-        url = self._rest_api(f"/projects/{path}?license=true")
-        gitlab_project: GitlabREST_Project = await self._request(url)
-        return _adapt_rest_project(gitlab_project)
-
-    async def get_readme(self, project: Project) -> str:
-        if project.readme:
-            url = self._project_rest_api(
-                project, f"/repository/files/{project.readme}/raw"
-            )
-            readme = await self._request(url, media_type="text")
-            if project.readme.suffix == ".rst":
-                readme = pypandoc.convert_text(readme, "md", format="rst")
-            return readme.strip()
-        return ""
-
-    async def get_files(self, project: Project) -> list[str]:
-        url = self._project_rest_api(project, "/repository/tree?recursive=true")
-        try:
-            files: list[GitlabREST_ProjectFile] = await self._rest_iterate(url)
-            return [f["path"] for f in files if f["type"] == "blob"]
-        except HTTPException as http_exc:
-            if http_exc.status_code != 404:
-                raise http_exc
-        return []
-
-    async def get_latest_release(self, project: Project) -> Release | None:
-        url = self._project_rest_api(project, "/releases/permalink/latest")
-        try:
-            _release: GitlabREST_ProjectRelease = await self._request(url)
-            return Release(
-                name=_release["name"],
-                tag=_release["tag_name"],
-                description=_release["description"],
-                commit=_release["commit_path"].split("/")[-1],
-                assets=[
-                    ReleaseAsset(url=a["url"], format=a["format"])
-                    for a in _release["assets"]["sources"]
-                ],
-            )
-        except HTTPException as http_exc:
-            if http_exc.status_code == 404:
-                return None
-            raise http_exc
 
     async def download_file(
         self,
@@ -706,18 +860,69 @@ class GitlabClient(ProviderClient):
         return response
 
 
-def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
-    category = get_category_from_topics(project_data["topics"])
+def _adapt_graphql_project_reference(
+    project_data: GitlabGraphQL_ProjectReference,
+) -> ProjectReference:
+    return ProjectReference(
+        id=int(project_data["id"].split("/")[-1]),
+        name=project_data["name"],
+        path=project_data["fullPath"],
+        topics=project_data["topics"],
+        category=get_category_from_topics(project_data["topics"]),
+    )
 
-    readme_map = {}
+
+def _adapt_graphql_project_preview(
+    project_data: GitlabGraphQL_ProjectPreview,
+) -> ProjectPreview:
+    if project_data["repository"]["blobs"]["nodes"]:
+        readme, metadata = md.parse(
+            project_data["repository"]["blobs"]["nodes"][0]["rawBlob"]
+        )
+    else:
+        readme, metadata = "", {}
+
+    return ProjectPreview(
+        id=int(project_data["id"].split("/")[-1]),
+        name=project_data["name"],
+        path=project_data["fullPath"],
+        description=project_data["description"],
+        topics=project_data["topics"],
+        category=get_category_from_topics(project_data["topics"]),
+        created_at=project_data["createdAt"],
+        last_update=project_data["lastActivityAt"],
+        star_count=project_data["starCount"],
+        default_branch=project_data["repository"]["rootRef"],
+        readme=readme,
+        metadata=metadata,
+    )
+
+
+def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
+    if project_data["repository"]["blobs"]["nodes"]:
+        readme, metadata = md.parse(
+            project_data["repository"]["blobs"]["nodes"][0]["rawBlob"]
+        )
+    else:
+        readme, metadata = "", {}
+
     if project_data["repository"]["tree"]:
-        for file in project_data["repository"]["tree"]["blobs"]["nodes"]:
-            fpath = Path(file["path"])
-            if fpath.stem.lower() == "readme":
-                readme_map[fpath.suffix] = str(fpath)
-    readme_path = readme_map.pop(".md", None)
-    if not readme_path:
-        _, readme_path = readme_map.popitem()
+        files = [
+            n["path"] for n in project_data["repository"]["tree"]["blobs"]["nodes"]
+        ]
+    else:
+        files = None
+
+    if project_data["releases"]["nodes"]:
+        _release = project_data["releases"]["nodes"][0]
+        release = Release(
+            name=_release["name"],
+            tag=_release["tagName"],
+            description=_release["description"],
+            commit=_release["commit"]["sha"],
+        )
+    else:
+        release = None
 
     return Project(
         id=int(project_data["id"].split("/")[-1]),
@@ -725,51 +930,17 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         full_name=project_data["nameWithNamespace"],
         path=project_data["fullPath"],
         description=project_data["description"],
+        topics=project_data["topics"],
         url=project_data["webUrl"],
-        issues_url=project_data["webUrl"] + "/issues",
+        bug_tracker=project_data["webUrl"] + "/issues",
+        category=get_category_from_topics(project_data["topics"]),
         created_at=project_data["createdAt"],
         last_update=project_data["lastActivityAt"],
         star_count=project_data["starCount"],
-        topics=project_data["topics"],
-        category=category,
         default_branch=project_data["repository"]["rootRef"],
-        readme=readme_path,
-        license_id=None,
-        license_url=None,
-    )
-
-
-def _adapt_rest_project(project_data: GitlabREST_Project) -> Project:
-    if project_data["readme_url"]:
-        readme_path = project_data["readme_url"].replace(
-            f"{project_data['web_url']}/-/blob/{project_data['default_branch']}/",
-            "",
-        )
-    else:
-        readme_path = None
-
-    if project_data.get("license"):
-        license_id = GITLAB_LICENSES_SPDX_MAPPING.get(project_data["license"]["key"])
-    else:
-        license_id = None
-
-    category = get_category_from_topics(project_data["topics"])
-
-    return Project(
-        id=project_data["id"],
-        name=project_data["name"],
-        full_name=project_data["name_with_namespace"],
-        path=project_data["path_with_namespace"],
-        description=project_data["description"],
-        url=project_data["web_url"],
-        issues_url=project_data["web_url"] + "/issues",
-        created_at=project_data["created_at"],
-        last_update=project_data["last_activity_at"],
-        star_count=project_data["star_count"],
-        topics=project_data["topics"],
-        category=category,
-        default_branch=project_data["default_branch"],
-        readme=readme_path,
-        license_id=license_id,
-        license_url=project_data.get("license_url"),
+        readme=readme,
+        metadata=metadata,
+        license=None,
+        files=files,
+        latest_release=release,
     )

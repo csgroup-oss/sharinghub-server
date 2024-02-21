@@ -4,7 +4,7 @@ from typing import Protocol, TypedDict
 from fastapi import Request
 from fastapi.responses import StreamingResponse
 
-from ..schemas import Project, Release, Topic
+from ..schemas import Project, ProjectPreview, ProjectReference, Release, Topic
 
 
 class CursorPagination(TypedDict):
@@ -17,30 +17,42 @@ class ProviderClient(Protocol):
     async def get_topics(self) -> list[Topic]:
         ...
 
+    async def get_project(self, path: str) -> Project:
+        ...
+
+    async def search_references(
+        self,
+        query: str | None,
+        topics: list[str],
+        flags: list[str],
+        limit: int,
+    ) -> tuple[list[ProjectReference], CursorPagination]:
+        ...
+
+    async def search_previews(
+        self,
+        query: str | None,
+        topics: list[str],
+        flags: list[str],
+        limit: int,
+        sort: str | None,
+        prev: str | None,
+        next: str | None,
+    ) -> tuple[list[ProjectPreview], CursorPagination]:
+        ...
+
     async def search(
         self,
         query: str | None,
         topics: list[str],
         flags: list[str],
-        bbox: list[float],
+        bbox: list[float] | None,
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: str | None,
         prev: str | None,
         next: str | None,
     ) -> tuple[list[Project], CursorPagination]:
-        ...
-
-    async def get_project(self, path: str) -> Project:
-        ...
-
-    async def get_readme(self, project: Project) -> str:
-        ...
-
-    async def get_files(self, project: Project) -> list[str]:
-        ...
-
-    async def get_latest_release(self, project: Project) -> Release | None:
         ...
 
     async def download_file(

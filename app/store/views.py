@@ -40,7 +40,7 @@ s3_client = boto3.client(
 async def check_access(token, project_id):
     """Checks the access permissions for a given Gitlab user token and project ID."""
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
-    project = await gitlab_client.get_project(project_id)
+    project = await gitlab_client.get_project_from_id(project_id)
     if (
         project.category.features.get(S3_FEATURE_NAME, FeatureVal.DISABLE)
         != FeatureVal.ENABLE

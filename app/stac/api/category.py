@@ -50,12 +50,12 @@ def get_category_from_collection_id(collection_id: CategoryName) -> Category:
     return category
 
 
-def get_category_from_topics(topics: list[str]) -> Category | None:
+def get_category_from_topics(topics: list[str]) -> Category:
     categories = get_categories()
     for category in categories:
         if category.gitlab_topic in topics:
             return category
-    return None
+    raise HTTPException(status_code=500, detail=f"Category not found in {topics}")
 
 
 CategoryFromCollectionIdDep = Annotated[

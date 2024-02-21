@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import time
 
@@ -6,10 +5,14 @@ from fastapi import HTTPException, Request
 from fastapi.routing import APIRouter
 
 from app.auth import GitlabTokenDep
-from app.providers.client import GitlabClient
-from app.providers.schemas import Project
+from app.providers.client import CursorPagination, GitlabClient
 from app.settings import ENABLE_CACHE, GITLAB_URL
-from app.stac.api.category import Category, CategoryFromCollectionIdDep, get_categories
+from app.stac.api.category import (
+    Category,
+    CategoryFromCollectionIdDep,
+    get_categories,
+    get_category,
+)
 from app.utils.cache import cache
 
 from .api.build import (
@@ -18,13 +21,19 @@ from .api.build import (
     build_stac_collections,
     build_stac_item,
     build_stac_item_preview,
+    build_stac_item_reference,
     build_stac_root,
 )
-from .api.search import STACSearchQuery, get_state_query, search_projects
+from .api.search import (
+    SearchMode,
+    STACPagination,
+    STACSearchQuery,
+    get_state_query,
+    parse_stac_query,
+)
 from .settings import (
     STAC_PROJECTS_CACHE_TIMEOUT,
     STAC_ROOT_CONF,
-    STAC_SEARCH_CACHE_TIMEOUT,
     STAC_SEARCH_PAGE_DEFAULT_SIZE,
 )
 
@@ -87,6 +96,7 @@ async def stac_collection_items(
     request: Request,
     token: GitlabTokenDep,
     category: CategoryFromCollectionIdDep,
+    mode: SearchMode = "full",
     prev: str | None = None,
     next: str | None = None,
     limit: int = STAC_SEARCH_PAGE_DEFAULT_SIZE,
@@ -103,6 +113,7 @@ async def stac_collection_items(
         request=request,
         token=token,
         route="stac_collection_items",
+        mode=mode,
         search_query=search_query,
         category=category,
         prev=prev,
@@ -154,18 +165,12 @@ async def stac_collection_feature(
             await cache.set(cache_key, cache_val, namespace="project")
             return cache_val["stac"]
 
-    readme, files, release = await asyncio.gather(
-        gitlab_client.get_readme(project),
-        gitlab_client.get_files(project),
-        gitlab_client.get_latest_release(project),
-    )
+    if license := await gitlab_client.get_license(project):
+        project.license = license
 
     try:
         project_stac = build_stac_item(
             project=project,
-            readme=readme,
-            files=files,
-            release=release,
             request=request,
             token=token,
         )
@@ -200,6 +205,7 @@ async def stac_search(
     intersects: str = "null",
     ids: str = "",
     collections: str = "",
+    mode: SearchMode = "full",
 ):
     search_query = STACSearchQuery(
         limit=limit,
@@ -215,6 +221,7 @@ async def stac_search(
         request=request,
         token=token,
         route="stac_search",
+        mode=mode,
         search_query=search_query,
         category=None,
         prev=prev,
@@ -229,11 +236,13 @@ async def stac_search(
     search_query: STACSearchQuery,
     prev: str | None = None,
     next: str | None = None,
+    mode: SearchMode = "full",
 ):
     return await _stac_search(
         request=request,
         token=token,
         route="stac_search",
+        mode=mode,
         search_query=search_query,
         category=None,
         prev=prev,
@@ -245,28 +254,91 @@ async def _stac_search(
     request: Request,
     token: GitlabTokenDep,
     route: str,
+    mode: SearchMode,
     search_query: STACSearchQuery,
     category: Category | None,
     prev: str | None,
     next: str | None,
 ) -> dict:
+    if len(search_query.collections) != 1:
+        raise HTTPException(
+            status_code=422,
+            detail="Search is enabled only for one collection exactly, "
+            f"got {len(search_query.collections)} collections",
+        )
+
+    category = category if category else get_category(search_query.collections[0])
+
+    if not category:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Category not found for: {', '.join(search_query.collections)}",
+        )
+
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
-    projects, pagination = await search_projects(
-        gitlab_client, search_query, category, prev=prev, next=next
-    )
-    projects_readme = await asyncio.gather(
-        *(get_cached_readme(gitlab_client, p) for p in projects)
-    )
-    return build_features_collection(
-        features=[
-            build_stac_item_preview(
-                project=p,
-                readme=projects_readme[i],
-                request=request,
-                token=token,
+
+    query, topics, flags = parse_stac_query(" ".join(search_query.q))
+    topics.append(category.gitlab_topic)
+
+    sortby = search_query.sortby
+    if sortby:
+        sortby = sortby.replace("properties.", "")
+        sortby = sortby.replace("sharinghub:", "")
+
+    match mode:
+        case "reference":
+            projects, _pagination = await gitlab_client.search_references(
+                query=query,
+                topics=topics,
+                flags=flags,
+                limit=search_query.limit,
             )
-            for i, p in enumerate(projects)
-        ],
+            features = [
+                build_stac_item_reference(p, request=request, token=token)
+                for p in projects
+            ]
+            pagination = _create_stac_pagination(
+                _pagination, limit=search_query.limit, count=len(projects)
+            )
+            pagination["next"] = None
+        case "preview":
+            projects, _pagination = await gitlab_client.search_previews(
+                query=query,
+                topics=topics,
+                flags=flags,
+                limit=search_query.limit,
+                sort=sortby,
+                prev=prev,
+                next=next,
+            )
+            pagination = _create_stac_pagination(
+                _pagination, limit=search_query.limit, count=len(projects)
+            )
+            features = [
+                build_stac_item_preview(p, request=request, token=token)
+                for p in projects
+            ]
+        case "full":
+            projects, _pagination = await gitlab_client.search(
+                query=query,
+                topics=topics,
+                flags=flags,
+                bbox=search_query.bbox,
+                datetime_range=search_query.datetime_range,
+                limit=search_query.limit,
+                sort=sortby,
+                prev=prev,
+                next=next,
+            )
+            pagination = _create_stac_pagination(
+                _pagination, limit=search_query.limit, count=len(projects)
+            )
+            features = [
+                build_stac_item(p, request=request, token=token) for p in projects
+            ]
+
+    return build_features_collection(
+        features=features,
         state_query=get_state_query(
             search_query,
             exclude=["collections"] if route == "stac_collection_items" else None,
@@ -279,17 +351,13 @@ async def _stac_search(
     )
 
 
-async def get_cached_readme(client: GitlabClient, project: Project) -> str:
-    cache_key = project.path
-
-    cached_val = await cache.get(project.path, namespace="readme")
-    if cached_val and time.time() - cached_val["time"] < STAC_SEARCH_CACHE_TIMEOUT:
-        logger.debug(f"Read readme from cache for '{project.path}'")
-        return cached_val["content"]
-
-    readme = await client.get_readme(project)
-    if ENABLE_CACHE:
-        logger.debug(f"Write readme in cache for '{project.path}'")
-        cached_val = {"time": time.time(), "content": readme}
-        await cache.set(cache_key, cached_val, namespace="readme")
-    return readme
+def _create_stac_pagination(
+    cursor_pagination: CursorPagination, limit: int, count: int
+) -> STACPagination:
+    return STACPagination(
+        limit=limit,
+        matched=cursor_pagination["total"],
+        returned=count,
+        prev=cursor_pagination["start"],
+        next=cursor_pagination["end"],
+    )
