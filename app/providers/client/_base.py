@@ -4,7 +4,7 @@ from typing import Protocol, TypedDict
 from fastapi import Request
 from fastapi.responses import StreamingResponse
 
-from ..schemas import Project, ProjectPreview, ProjectReference, Release, Topic
+from ..schemas import Project, ProjectPreview, ProjectReference, Topic
 
 
 class CursorPagination(TypedDict):

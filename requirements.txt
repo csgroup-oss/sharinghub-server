@@ -5,7 +5,6 @@ boto3
 fastapi[all]
 markdown
 markdown-full-yaml-metadata
-pypandoc_binary
 python-dotenv
 pyyaml
 shapely

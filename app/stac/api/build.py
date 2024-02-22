@@ -9,15 +9,8 @@ from urllib import parse
 from fastapi import Request
 
 from app.auth import GitlabToken
-from app.providers.schemas import (
-    License,
-    Project,
-    ProjectPreview,
-    ProjectReference,
-    Release,
-)
+from app.providers.schemas import License, Project, ProjectPreview, ProjectReference
 from app.settings import GITLAB_URL
-from app.utils import geo
 from app.utils import markdown as md
 from app.utils.http import is_local, url_for
 
@@ -27,7 +20,7 @@ from ..settings import (
     STAC_PROJECTS_CACHE_TIMEOUT,
 )
 from .category import Category, FeatureVal, get_category
-from .search import STACPagination, STACSearchQuery
+from .search import STACPagination
 
 logger = logging.getLogger("app")
 

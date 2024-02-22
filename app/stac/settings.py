@@ -1,5 +1,4 @@
 from app.settings import conf
-from app.utils.config import clist
 
 # Root
 STAC_ROOT_CONF: dict = conf("stac.root", default={}, cast=dict)
