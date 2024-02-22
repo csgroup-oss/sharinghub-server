@@ -614,11 +614,10 @@ Content:
     alerts:
       timeout: 3 # days unit
       type: info # color of alert | possibility (info, danger, success, warning,primary, dark, secondary)
-      url: /login # no required if want redirect to others service
-      title: "Welcome to new SharingHub"
-      message: "To see all projects and unlock all features, please login.."
+      title: "Welcome to new SharingHub" 
+      message: "To see all projects and unlock all features, please login.." # Possible to render primitives html component in message ex: <a href='url'> text here <a/>
       locales:
         fr:
           title: "Bienvenue sur le nouveau sharing hub"
-          message: "Pour voir tous les projets et débloquer toutes les fonctionnalités, veuillez vous connecter..."
+          message: "Pour voir tous les projets et débloquer toutes les fonctionnalités, veuillez vous connecter..." # Possible to render primitives html component in message ex: <a href='url'> text here <a/>
   ```

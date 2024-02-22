@@ -144,7 +144,6 @@ external-urls:
 alerts:
   timeout: 3
   type: info
-  url: /login
   title: "Welcome to new SharingHub"
   message: "To see all projects and unlock all features, please login..."
   locales:
