@@ -61,6 +61,7 @@ class Project(ProjectPreview):
     url: AnyHttpUrl
     bug_tracker: AnyHttpUrl
     license: License | None
+    last_commit: str | None
     files: list[str] | None
     latest_release: Release | None
 

@@ -6,6 +6,7 @@ from fastapi.routing import APIRouter
 
 from app.auth import GitlabTokenDep
 from app.providers.client import CursorPagination, GitlabClient
+from app.providers.schemas import Project
 from app.settings import ENABLE_CACHE, GITLAB_URL
 from app.stac.api.category import (
     Category,
@@ -155,9 +156,7 @@ async def stac_collection_feature(
                 f"({elapsed_time:.3f}/{STAC_PROJECTS_CACHE_TIMEOUT} s)"
             )
             return cache_val["stac"]
-        elif cache_val["last_activity"] == project.last_update and set(
-            cache_val["topics"]
-        ) == set(project.topics):
+        elif cache_val["checksum"] == _get_project_checksum(project):
             logger.debug(
                 "Read project stac from cache" f"'{project.path}' (no changes detected)"
             )
@@ -182,13 +181,16 @@ async def stac_collection_feature(
         logger.debug(f"Write stac '{feature_id}' in cache")
         cache_val = {
             "time": time.time(),
-            "last_activity": project.last_update,
-            "topics": project.topics,
+            "checksum": _get_project_checksum(project),
             "stac": project_stac,
         }
         await cache.set(cache_key, cache_val, namespace="project")
 
     return project_stac
+
+
+def _get_project_checksum(project: Project) -> int:
+    return hash((project.last_commit, project.last_update, *project.topics))
 
 
 @router.get("/search")

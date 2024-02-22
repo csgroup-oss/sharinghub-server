@@ -150,7 +150,12 @@ class _GitlabGraphQL_Repository2(_GitlabGraphQL_Repository1):
 
 
 class _GitlabGraphQL_Tree(TypedDict):
+    lastCommit: "_GitlabGraphQL_Commit"
     blobs: "_GitlabGraphQL_TreeBlobs"
+
+
+class _GitlabGraphQL_Commit(TypedDict):
+    shortId: str
 
 
 class _GitlabGraphQL_TreeBlobs(TypedDict):
@@ -234,6 +239,9 @@ fragment projectFields on Project {
       }
     }
     tree(path: "/", recursive: true) {
+      lastCommit {
+        shortId
+      }
       blobs {
         nodes {
           path
@@ -907,10 +915,12 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         readme, metadata = "", {}
 
     if project_data["repository"]["tree"]:
+        last_commit = project_data["repository"]["tree"]["lastCommit"]["shortId"]
         files = [
             n["path"] for n in project_data["repository"]["tree"]["blobs"]["nodes"]
         ]
     else:
+        last_commit = None
         files = None
 
     if project_data["releases"]["nodes"]:
@@ -941,6 +951,7 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         readme=readme,
         metadata=metadata,
         license=None,
+        last_commit=last_commit,
         files=files,
         latest_release=release,
     )
