@@ -19,34 +19,26 @@ from app.utils.http import (
     urlsafe_path,
 )
 
-from ..schemas import (
-    License,
-    LicenseIdentifier,
-    Project,
-    ProjectPreview,
-    ProjectReference,
-    Release,
-    Topic,
-)
+from ..schemas import License, Project, ProjectPreview, ProjectReference, Release, Topic
 from ._base import CursorPagination, ProviderClient
 
 logger = logging.getLogger("app")
 
 
 GITLAB_LICENSES_SPDX_MAPPING = {
-    "agpl-3.0": LicenseIdentifier.AGPL_3_0,
-    "apache-2.0": LicenseIdentifier.APACHE_2_0,
-    "bsd-2-clause": LicenseIdentifier.BSD_2_CLAUSE,
-    "bsd-3-clause": LicenseIdentifier.BSD_3_CLAUSE,
-    "bsl-1.0": LicenseIdentifier.BSL_1_0,
-    "cc0-1.0": LicenseIdentifier.CC0_1_0,
-    "epl-2.0": LicenseIdentifier.EPL_2_0,
-    "gpl-2.0": LicenseIdentifier.GPL_2_0,
-    "gpl-3.0": LicenseIdentifier.GPL_3_0,
-    "lgpl-2.1": LicenseIdentifier.LGPL_2_1,
-    "mit": LicenseIdentifier.MIT,
-    "mpl-2.0": LicenseIdentifier.MPL_2_0,
-    "unlicense": LicenseIdentifier.UNLICENSE,
+    "agpl-3.0": "AGPL-3.0",
+    "apache-2.0": "Apache-2.0",
+    "bsd-2-clause": "BSD-2-Clause",
+    "bsd-3-clause": "BSD-3-Clause",
+    "bsl-1.0": "BSL-1.0",
+    "cc0-1.0": "CC0-1.0",
+    "epl-2.0": "EPL-2.0",
+    "gpl-2.0": "GPL-2.0",
+    "gpl-3.0": "GPL-3.0",
+    "lgpl-2.1": "LGPL-2.1",
+    "mit": "MIT",
+    "mpl-2.0": "MPL-2.0",
+    "unlicense": "Unlicense",
 }
 
 
@@ -311,9 +303,14 @@ class GitlabClient(ProviderClient):
 
     async def get_license(self, project: ProjectReference) -> License | None:
         rest_project_data = await self._get_project_rest(project.path)
-        if gitlab_license := rest_project_data["license"]:
-            license_id = GITLAB_LICENSES_SPDX_MAPPING.get(gitlab_license["key"])
-            return License(id=license_id, url=rest_project_data["license_url"])
+
+        _license_url = rest_project_data["license_url"]
+        _license = rest_project_data["license"]
+        if _license and _license_url:
+            license_id = GITLAB_LICENSES_SPDX_MAPPING.get(
+                _license["key"], _license["key"].upper()
+            )
+            return License(id=license_id, url=_license_url)
         return None
 
     async def _get_project_rest(self, path_or_id: str) -> GitlabREST_Project:
