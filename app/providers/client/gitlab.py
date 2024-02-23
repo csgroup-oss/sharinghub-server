@@ -113,6 +113,8 @@ class GitlabGraphQL_ProjectPreview(GitlabGraphQL_ProjectReference):
     lastActivityAt: str
     starCount: int
     repository: "_GitlabGraphQL_Repository1"
+    _metadata: NotRequired[dict[str, Any]]
+    _readme: NotRequired[str]
 
 
 class GitlabGraphQL_Project(GitlabGraphQL_ProjectPreview):
@@ -468,9 +470,7 @@ class GitlabClient(ProviderClient):
 
                 def spatial_check(project_data: GitlabGraphQL_Project) -> bool:
                     if project_data["repository"]["blobs"]["nodes"]:
-                        _, metadata = md.parse(
-                            project_data["repository"]["blobs"]["nodes"][0]["rawBlob"]
-                        )
+                        _, metadata = _project_readme_and_metadata(project_data)
                         if project_bbox := metadata.get("extent", {}).get("bbox"):
                             project_polygon = geo.bbox2polygon(project_bbox)
                             return search_polygon.intersects(project_polygon)
@@ -878,13 +878,7 @@ def _adapt_graphql_project_reference(
 def _adapt_graphql_project_preview(
     project_data: GitlabGraphQL_ProjectPreview,
 ) -> ProjectPreview:
-    if project_data["repository"]["blobs"]["nodes"]:
-        readme, metadata = md.parse(
-            project_data["repository"]["blobs"]["nodes"][0]["rawBlob"]
-        )
-    else:
-        readme, metadata = "", {}
-
+    readme, metadata = _project_readme_and_metadata(project_data, save=False)
     return ProjectPreview(
         id=int(project_data["id"].split("/")[-1]),
         name=project_data["name"],
@@ -902,12 +896,7 @@ def _adapt_graphql_project_preview(
 
 
 def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
-    if project_data["repository"]["blobs"]["nodes"]:
-        readme, metadata = md.parse(
-            project_data["repository"]["blobs"]["nodes"][0]["rawBlob"]
-        )
-    else:
-        readme, metadata = "", {}
+    readme, metadata = _project_readme_and_metadata(project_data, save=False)
 
     if project_data["repository"]["tree"]:
         last_commit = project_data["repository"]["tree"]["lastCommit"]["shortId"]
@@ -950,3 +939,20 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         files=files,
         latest_release=release,
     )
+
+
+def _project_readme_and_metadata(
+    project_data: GitlabGraphQL_ProjectPreview, save: bool = True
+) -> tuple[str, dict]:
+    if all(e in project_data for e in ["_readme", "_metadata"]):
+        readme, metadata = project_data["_readme"], project_data["_metadata"]
+    elif project_data["repository"]["blobs"]["nodes"]:
+        readme, metadata = md.parse(
+            project_data["repository"]["blobs"]["nodes"][0]["rawBlob"]
+        )
+        if save:
+            project_data["_readme"] = readme
+            project_data["_metadata"] = metadata
+    else:
+        readme, metadata = "", {}
+    return readme, metadata
