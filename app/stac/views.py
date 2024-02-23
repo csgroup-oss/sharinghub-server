@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 
@@ -14,6 +15,7 @@ from app.stac.api.category import (
     get_categories,
     get_category,
 )
+from app.utils import geo
 from app.utils.cache import cache
 
 from .api.build import (
@@ -214,7 +216,7 @@ async def stac_search(
         sortby=sortby,
         bbox=[float(p) for p in bbox.split(",")] if bbox else [],
         datetime=datetime if datetime else None,
-        intersects=intersects,
+        intersects=json.loads(intersects),
         ids=ids.split(",") if ids else [],
         collections=collections.split(",") if collections else [],
         q=q.split(",") if q else [],
@@ -300,6 +302,23 @@ async def _stac_search(
         sortby = sortby.replace("properties.", "")
         sortby = sortby.replace("sharinghub:", "")
 
+    if search_query.intersects:
+        extent = geo.geojson2geom(search_query.intersects)
+        if not extent:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Could not process 'intersects': {search_query.intersects}",
+            )
+    elif search_query.bbox:
+        extent = geo.bbox2geom(search_query.bbox)
+        if not extent:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Could not process 'bbox': {search_query.bbox}",
+            )
+    else:
+        extent = None
+
     match mode:
         case "reference":
             projects, _pagination = await gitlab_client.search_references(
@@ -322,7 +341,7 @@ async def _stac_search(
                 query=query,
                 topics=topics,
                 flags=flags,
-                bbox=search_query.bbox,
+                extent=extent,
                 datetime_range=search_query.datetime_range,
                 limit=search_query.limit,
                 sort=sortby,
@@ -339,7 +358,7 @@ async def _stac_search(
                 query=query,
                 topics=topics,
                 flags=flags,
-                bbox=search_query.bbox,
+                extent=extent,
                 datetime_range=search_query.datetime_range,
                 limit=search_query.limit,
                 sort=sortby,

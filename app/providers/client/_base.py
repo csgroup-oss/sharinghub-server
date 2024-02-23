@@ -3,6 +3,7 @@ from typing import Protocol, TypedDict
 
 from fastapi import Request
 from fastapi.responses import StreamingResponse
+from shapely.geometry.base import BaseGeometry
 
 from ..schemas import Project, ProjectPreview, ProjectReference, Topic
 
@@ -36,7 +37,7 @@ class ProviderClient(Protocol):
         query: str | None,
         topics: list[str],
         flags: list[str],
-        bbox: list[float] | None,
+        extent: BaseGeometry | None,
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: str | None,
@@ -50,7 +51,7 @@ class ProviderClient(Protocol):
         query: str | None,
         topics: list[str],
         flags: list[str],
-        bbox: list[float] | None,
+        extent: BaseGeometry | None,
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: str | None,

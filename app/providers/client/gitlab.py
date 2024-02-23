@@ -7,6 +7,7 @@ from typing import Any, NotRequired, TypedDict
 import aiohttp
 from fastapi import HTTPException, Request
 from fastapi.responses import StreamingResponse
+from shapely.geometry.base import BaseGeometry
 
 from app.stac.api.category import get_category_from_topics
 from app.utils import geo
@@ -337,7 +338,7 @@ class GitlabClient(ProviderClient):
             query=query,
             topics=topics,
             flags=flags,
-            bbox=None,
+            extent=None,
             datetime_range=None,
             limit=limit,
             sort=sort,
@@ -353,7 +354,7 @@ class GitlabClient(ProviderClient):
         query: str | None,
         topics: list[str],
         flags: list[str],
-        bbox: list[float] | None,
+        extent: BaseGeometry | None,
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: str | None,
@@ -366,7 +367,7 @@ class GitlabClient(ProviderClient):
             query=query,
             topics=topics,
             flags=flags,
-            bbox=bbox,
+            extent=extent,
             datetime_range=datetime_range,
             limit=limit,
             sort=sort,
@@ -382,7 +383,7 @@ class GitlabClient(ProviderClient):
         query: str | None,
         topics: list[str],
         flags: list[str],
-        bbox: list[float] | None,
+        extent: BaseGeometry | None,
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: str | None,
@@ -395,7 +396,7 @@ class GitlabClient(ProviderClient):
             query=query,
             topics=topics,
             flags=flags,
-            bbox=bbox,
+            extent=extent,
             datetime_range=datetime_range,
             limit=limit,
             sort=sort,
@@ -412,7 +413,7 @@ class GitlabClient(ProviderClient):
         query: str | None,
         topics: list[str],
         flags: list[str],
-        bbox: list[float] | None,
+        extent: BaseGeometry | None,
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: str | None,
@@ -436,7 +437,7 @@ class GitlabClient(ProviderClient):
             cursor = next
             direction = 1
 
-        local_filtering = any((bbox, datetime_range, flags))
+        local_filtering = any((extent, datetime_range, flags))
         search_size = limit if not local_filtering else limit + 1
 
         req_limit = limit if not local_filtering else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
@@ -487,15 +488,14 @@ class GitlabClient(ProviderClient):
 
                 _projects_cur = [_pc for _pc in _projects_cur if temporal_check(_pc[1])]
 
-            if bbox:
-                search_polygon = geo.bbox2polygon(bbox)
+            if extent:
 
                 def spatial_check(project_data: GitlabGraphQL_Project) -> bool:
                     if project_data["repository"]["blobs"]["nodes"]:
-                        _, metadata = _project_readme_and_metadata(project_data)
+                        _, metadata = _process_readme_and_metadata(project_data)
                         if project_bbox := metadata.get("extent", {}).get("bbox"):
-                            project_polygon = geo.bbox2polygon(project_bbox)
-                            return search_polygon.intersects(project_polygon)
+                            project_polygon = geo.bbox2geom(project_bbox)
+                            return extent.intersects(project_polygon)
                     return False
 
                 _projects_cur = [_pc for _pc in _projects_cur if spatial_check(_pc[1])]
@@ -524,10 +524,10 @@ class GitlabClient(ProviderClient):
                 start_cursor = projects_cur[0][0] if _left else paginations[-1]["start"]
                 end_cursor = projects_cur[-1][0] if paginations[0]["end"] else None
         else:
-            logger.error(
+            logger.debug(
                 f"Could not find any project {'after' if direction > 0 else 'before'}: "
                 f"{prev if prev else next} "
-                f"({query=}, {topics=}, {limit=}, {datetime_range=} {bbox=})"
+                f"({query=}, {topics=}, {limit=}, {datetime_range=} {extent=})"
             )
             start_cursor = None
             end_cursor = None
@@ -927,7 +927,7 @@ def _adapt_graphql_project_reference(
 def _adapt_graphql_project_preview(
     project_data: GitlabGraphQL_ProjectPreview,
 ) -> ProjectPreview:
-    readme, metadata = _project_readme_and_metadata(project_data, save=False)
+    readme, metadata = _process_readme_and_metadata(project_data, save=False)
     return ProjectPreview(
         id=int(project_data["id"].split("/")[-1]),
         name=project_data["name"],
@@ -945,7 +945,7 @@ def _adapt_graphql_project_preview(
 
 
 def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
-    readme, metadata = _project_readme_and_metadata(project_data, save=False)
+    readme, metadata = _process_readme_and_metadata(project_data, save=False)
 
     if project_data["repository"]["tree"]:
         last_commit = project_data["repository"]["tree"]["lastCommit"]["shortId"]
@@ -990,7 +990,7 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     )
 
 
-def _project_readme_and_metadata(
+def _process_readme_and_metadata(
     project_data: GitlabGraphQL_ProjectPreview, save: bool = True
 ) -> tuple[str, dict]:
     if all(e in project_data for e in ["_readme", "_metadata"]):

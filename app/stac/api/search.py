@@ -1,7 +1,7 @@
 import logging
 import re
 from datetime import datetime as dt
-from typing import Annotated, Literal, TypedDict
+from typing import Annotated, Any, Literal, TypedDict
 
 from pydantic import (
     BaseModel,
@@ -32,7 +32,7 @@ class STACSearchQuery(BaseModel):
     sortby: str | None = Field(default=None)
     bbox: list[float] | None = Field(default_factory=list)
     datetime: str | None = Field(default=None)
-    intersects: Json | None = Field(default=None)
+    intersects: dict[str, Any] | None = Field(default=None)
     ids: list[str] = Field(default_factory=list)
     collections: list[str] = Field(default_factory=list)
     q: list[str] | None = Field(default_factory=list)
