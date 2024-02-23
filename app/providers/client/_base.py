@@ -26,7 +26,7 @@ class ProviderClient(Protocol):
         topics: list[str],
         flags: list[str],
         limit: int,
-        sort: str | None,
+        sort: tuple[str, str] | None,
         prev: str | None,
         next: str | None,
     ) -> tuple[list[ProjectReference], CursorPagination]: ...
@@ -40,7 +40,7 @@ class ProviderClient(Protocol):
         extent: BaseGeometry | None,
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
-        sort: str | None,
+        sort: tuple[str, str] | None,
         prev: str | None,
         next: str | None,
     ) -> tuple[list[ProjectPreview], CursorPagination]: ...
@@ -54,7 +54,7 @@ class ProviderClient(Protocol):
         extent: BaseGeometry | None,
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
-        sort: str | None,
+        sort: tuple[str, str] | None,
         prev: str | None,
         next: str | None,
     ) -> tuple[list[Project], CursorPagination]: ...

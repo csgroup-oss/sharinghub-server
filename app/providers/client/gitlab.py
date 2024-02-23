@@ -328,7 +328,7 @@ class GitlabClient(ProviderClient):
         topics: list[str],
         flags: list[str],
         limit: int,
-        sort: str | None,
+        sort: tuple[str, str] | None,
         prev: str | None,
         next: str | None,
     ) -> tuple[list[ProjectReference], CursorPagination]:
@@ -357,7 +357,7 @@ class GitlabClient(ProviderClient):
         extent: BaseGeometry | None,
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
-        sort: str | None,
+        sort: tuple[str, str] | None,
         prev: str | None,
         next: str | None,
     ) -> tuple[list[ProjectPreview], CursorPagination]:
@@ -386,7 +386,7 @@ class GitlabClient(ProviderClient):
         extent: BaseGeometry | None,
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
-        sort: str | None,
+        sort: tuple[str, str] | None,
         prev: str | None,
         next: str | None,
     ) -> tuple[list[Project], CursorPagination]:
@@ -416,7 +416,7 @@ class GitlabClient(ProviderClient):
         extent: BaseGeometry | None,
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
-        sort: str | None,
+        sort: tuple[str, str] | None,
         prev: str | None,
         next: str | None,
     ) -> tuple[list[dict[str, Any]], CursorPagination]:
@@ -570,7 +570,7 @@ class GitlabClient(ProviderClient):
         query: str | None,
         topics: list[str],
         limit: int,
-        sort: str | None,
+        sort: tuple[str, str] | None,
         cursor: str | None,
         direction: int,
     ) -> tuple[list[tuple[str, dict[str, Any]]], CursorPagination]:
@@ -710,11 +710,9 @@ class GitlabClient(ProviderClient):
             cursor_param = "before"
         return limit_param, cursor_param
 
-    def _get_graphql_sort(self, sort: str | None) -> tuple[str, str]:
+    def _get_graphql_sort(self, sort: tuple[str, str] | None) -> tuple[str, str]:
         if sort:
-            sort_direction = "desc" if sort.startswith("-") else "asc"
-            sort_field = sort.lstrip("-+").strip()
-
+            sort_field, sort_direction = sort
             if sort_field not in GITLAB_GRAPHQL_SORTS:
                 sort_field = GITLAB_GRAPHQL_SORTS_ALIASES.get(
                     sort_field, GITLAB_GRAPHQL_SORTS[0]

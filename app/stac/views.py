@@ -297,10 +297,13 @@ async def _stac_search(
     query, topics, flags = parse_stac_query(" ".join(search_query.q))
     topics.append(category.gitlab_topic)
 
-    sortby = search_query.sortby
-    if sortby:
-        sortby = sortby.replace("properties.", "")
-        sortby = sortby.replace("sharinghub:", "")
+    if _sortby := search_query.sortby:
+        sort_direction = "desc" if _sortby.startswith("-") else "asc"
+        sort_field = _sortby.lstrip("-+").strip()
+        sort_field = sort_field.replace("properties.", "").replace("sharinghub:", "")
+        sortby = sort_field, sort_direction
+    else:
+        sortby = None
 
     if search_query.intersects:
         extent = geo.geojson2geom(search_query.intersects)
