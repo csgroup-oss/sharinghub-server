@@ -436,10 +436,10 @@ class GitlabClient(ProviderClient):
             cursor = next
             direction = 1
 
-        local_filtering = not any((bbox, datetime_range, flags))
-        search_size = limit if local_filtering else limit + 1
+        local_filtering = any((bbox, datetime_range, flags))
+        search_size = limit if not local_filtering else limit + 1
 
-        req_limit = limit if local_filtering else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
+        req_limit = limit if not local_filtering else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
         req_params = {
             "query": query,
             "topics": topics,
@@ -533,8 +533,18 @@ class GitlabClient(ProviderClient):
             end_cursor = None
 
         projects = [p[1] for p in projects_cur]
+        count_projects = len(projects)
         pagination = CursorPagination(
-            total=paginations[0]["total"] if local_filtering else None,
+            total=(
+                paginations[0]["total"]
+                if not local_filtering
+                else (
+                    count_projects
+                    if (count_projects < limit and not any((prev, next)))
+                    or (count_projects == limit and not end_cursor)
+                    else None
+                )
+            ),
             start=start_cursor,
             end=end_cursor,
         )
