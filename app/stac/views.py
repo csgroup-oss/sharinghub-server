@@ -294,15 +294,14 @@ async def _stac_search(
                 topics=topics,
                 flags=flags,
                 limit=search_query.limit,
+                sort=sortby,
+                prev=prev,
+                next=next,
             )
             features = [
                 build_stac_item_reference(p, request=request, token=token)
                 for p in projects
             ]
-            pagination = _create_stac_pagination(
-                _pagination, limit=search_query.limit, count=len(projects)
-            )
-            pagination["next"] = None
         case "preview":
             projects, _pagination = await gitlab_client.search_previews(
                 query=query,
@@ -312,9 +311,6 @@ async def _stac_search(
                 sort=sortby,
                 prev=prev,
                 next=next,
-            )
-            pagination = _create_stac_pagination(
-                _pagination, limit=search_query.limit, count=len(projects)
             )
             features = [
                 build_stac_item_preview(p, request=request, token=token)
@@ -332,13 +328,12 @@ async def _stac_search(
                 prev=prev,
                 next=next,
             )
-            pagination = _create_stac_pagination(
-                _pagination, limit=search_query.limit, count=len(projects)
-            )
             features = [
                 build_stac_item(p, request=request, token=token) for p in projects
             ]
-
+    pagination = _create_stac_pagination(
+        _pagination, limit=search_query.limit, count=len(projects)
+    )
     return build_features_collection(
         features=features,
         state_query=get_state_query(

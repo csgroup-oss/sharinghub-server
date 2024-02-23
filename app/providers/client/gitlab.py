@@ -326,6 +326,9 @@ class GitlabClient(ProviderClient):
         topics: list[str],
         flags: list[str],
         limit: int,
+        sort: str | None,
+        prev: str | None,
+        next: str | None,
     ) -> tuple[list[ProjectReference], CursorPagination]:
         _projects, pagination = await self._search(
             project_fragment=GITLAB_GRAPHQL_PROJECT_REFERENCE_FRAGMENT,
@@ -335,9 +338,9 @@ class GitlabClient(ProviderClient):
             bbox=None,
             datetime_range=None,
             limit=limit,
-            sort=None,
-            prev=None,
-            next=None,
+            sort=sort,
+            prev=prev,
+            next=next,
         )
         projects = [_adapt_graphql_project_reference(p) for p in _projects]
         return projects, pagination

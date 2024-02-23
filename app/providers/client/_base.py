@@ -26,6 +26,9 @@ class ProviderClient(Protocol):
         topics: list[str],
         flags: list[str],
         limit: int,
+        sort: str | None,
+        prev: str | None,
+        next: str | None,
     ) -> tuple[list[ProjectReference], CursorPagination]:
         ...
 
