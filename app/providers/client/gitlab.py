@@ -491,11 +491,8 @@ class GitlabClient(ProviderClient):
             if extent:
 
                 def spatial_check(project_data: GitlabGraphQL_Project) -> bool:
-                    if project_data["repository"]["blobs"]["nodes"]:
-                        _, metadata = _process_readme_and_metadata(project_data)
-                        if project_bbox := metadata.get("extent", {}).get("bbox"):
-                            project_polygon = geo.bbox2geom(project_bbox)
-                            return extent.intersects(project_polygon)
+                    if project_extent := _process_spatial_extent(project_data):
+                        return extent.intersects(project_extent)
                     return False
 
                 _projects_cur = [_pc for _pc in _projects_cur if spatial_check(_pc[1])]
@@ -928,6 +925,7 @@ def _adapt_graphql_project_preview(
     project_data: GitlabGraphQL_ProjectPreview,
 ) -> ProjectPreview:
     readme, metadata = _process_readme_and_metadata(project_data, save=False)
+    extent = _process_spatial_extent(project_data, save=False)
     return ProjectPreview(
         id=int(project_data["id"].split("/")[-1]),
         name=project_data["name"],
@@ -941,11 +939,13 @@ def _adapt_graphql_project_preview(
         default_branch=project_data["repository"]["rootRef"],
         readme=readme,
         metadata=metadata,
+        extent=extent,
     )
 
 
 def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     readme, metadata = _process_readme_and_metadata(project_data, save=False)
+    extent = _process_spatial_extent(project_data, save=False)
 
     if project_data["repository"]["tree"]:
         last_commit = project_data["repository"]["tree"]["lastCommit"]["shortId"]
@@ -983,6 +983,7 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         default_branch=project_data["repository"]["rootRef"],
         readme=readme,
         metadata=metadata,
+        extent=extent,
         license=None,
         last_commit=last_commit,
         files=files,
@@ -1005,3 +1006,24 @@ def _process_readme_and_metadata(
     else:
         readme, metadata = "", {}
     return readme, metadata
+
+
+def _process_spatial_extent(
+    project_data: GitlabGraphQL_ProjectPreview, save: bool = True
+) -> BaseGeometry | None:
+    if "_extent" in project_data:
+        return project_data["_extent"]
+
+    _, metadata = _process_readme_and_metadata(project_data, save=save)
+    if extent_src := metadata.get("extent", {}).get("spatial"):
+        if isinstance(extent_src, list) and len(extent_src) == 4:
+            extent = geo.bbox2geom(extent_src)
+        elif isinstance(extent_src, str):
+            extent = geo.wkt2geom(extent_src)
+        else:
+            extent = None
+
+        if extent and save:
+            project_data["_extent"] = extent
+        return extent
+    return None

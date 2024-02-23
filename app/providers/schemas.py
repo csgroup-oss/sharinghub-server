@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import AnyHttpUrl, BaseModel
+from shapely.geometry.base import BaseGeometry
 
 from app.stac.api.category import Category
 
@@ -37,6 +38,10 @@ class ProjectPreview(ProjectReference):
     default_branch: str | None
     readme: str
     metadata: dict[str, Any]
+    extent: BaseGeometry | None
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class Project(ProjectPreview):

@@ -7,10 +7,12 @@ from typing import Any, TypedDict, Unpack
 from urllib import parse
 
 from fastapi import Request
+from shapely.geometry.base import BaseGeometry
 
 from app.auth import GitlabToken
 from app.providers.schemas import License, Project, ProjectPreview, ProjectReference
 from app.settings import GITLAB_URL
+from app.utils import geo
 from app.utils import markdown as md
 from app.utils.http import is_local, url_for
 
@@ -516,19 +518,8 @@ def build_stac_item(
         "id": get_project_stac_id(project),
         **(
             {
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [
-                        [
-                            (spatial_extent[0], spatial_extent[1]),
-                            (spatial_extent[2], spatial_extent[1]),
-                            (spatial_extent[2], spatial_extent[3]),
-                            (spatial_extent[0], spatial_extent[3]),
-                            (spatial_extent[0], spatial_extent[1]),
-                        ]
-                    ],
-                },
-                "bbox": spatial_extent,
+                "geometry": geo.get_geojson_geometry(spatial_extent),
+                "bbox": spatial_extent.bounds,
             }
             if spatial_extent
             else {"geometry": None}
@@ -676,9 +667,9 @@ def _retrieve_preview(
 
 def _retrieve_extent(
     project: ProjectPreview, metadata: dict
-) -> tuple[list[float], list[str | None]]:
+) -> tuple[BaseGeometry | None, list[str | None]]:
     extent = metadata.pop("extent", {})
-    spatial_extent = extent.get("bbox")
+    spatial_extent = project.extent
     temporal_extent = extent.get("temporal", [project.created_at, project.last_update])
     return spatial_extent, temporal_extent
 
