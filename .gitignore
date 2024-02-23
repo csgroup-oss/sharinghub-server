@@ -9,3 +9,6 @@
 
 # Docs
 /docs/build
+
+# Jupyter notebook
+.ipynb_checkpoints
