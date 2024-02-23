@@ -45,20 +45,8 @@ class STACContext(TypedDict):
     token: GitlabToken
 
 
-def get_project_stac_id(project: Project) -> str:
-    return f"{project.category.id}-{project.id}"
-
-
-def parse_project_stac_id(stac_id: str) -> tuple[Category, int] | None:
-    try:
-        category_id, project_id_str = stac_id.rsplit("-", 1)
-        category = get_category(category_id)
-        project_id = int(project_id_str)
-        if category:
-            return category, project_id
-    except ValueError:
-        pass
-    return None
+def get_project_stac_id(project: ProjectReference) -> str:
+    return project.path
 
 
 def build_stac_root(

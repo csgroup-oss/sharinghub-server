@@ -22,6 +22,7 @@ class ProviderClient(Protocol):
 
     async def search_references(
         self,
+        ids: list[str],
         query: str | None,
         topics: list[str],
         flags: list[str],
@@ -34,6 +35,7 @@ class ProviderClient(Protocol):
 
     async def search_previews(
         self,
+        ids: list[str],
         query: str | None,
         topics: list[str],
         flags: list[str],
@@ -48,6 +50,7 @@ class ProviderClient(Protocol):
 
     async def search(
         self,
+        ids: list[str],
         query: str | None,
         topics: list[str],
         flags: list[str],

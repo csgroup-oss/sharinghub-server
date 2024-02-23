@@ -290,6 +290,7 @@ async def _stac_search(
     match mode:
         case "reference":
             projects, _pagination = await gitlab_client.search_references(
+                ids=search_query.ids,
                 query=query,
                 topics=topics,
                 flags=flags,
@@ -304,6 +305,7 @@ async def _stac_search(
             ]
         case "preview":
             projects, _pagination = await gitlab_client.search_previews(
+                ids=search_query.ids,
                 query=query,
                 topics=topics,
                 flags=flags,
@@ -320,6 +322,7 @@ async def _stac_search(
             ]
         case "full":
             projects, _pagination = await gitlab_client.search(
+                ids=search_query.ids,
                 query=query,
                 topics=topics,
                 flags=flags,

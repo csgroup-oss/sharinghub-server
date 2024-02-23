@@ -33,7 +33,7 @@ class STACSearchQuery(BaseModel):
     bbox: list[float] | None = Field(default_factory=list)
     datetime: str | None = Field(default=None)
     intersects: Json | None = Field(default=None)
-    ids: list[str] | None = Field(default_factory=list)
+    ids: list[str] = Field(default_factory=list)
     collections: list[str] = Field(default_factory=list)
     q: list[str] | None = Field(default_factory=list)
 

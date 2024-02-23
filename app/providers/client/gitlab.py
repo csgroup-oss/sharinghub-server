@@ -322,6 +322,7 @@ class GitlabClient(ProviderClient):
 
     async def search_references(
         self,
+        ids: list[str],
         query: str | None,
         topics: list[str],
         flags: list[str],
@@ -332,6 +333,7 @@ class GitlabClient(ProviderClient):
     ) -> tuple[list[ProjectReference], CursorPagination]:
         _projects, pagination = await self._search(
             project_fragment=GITLAB_GRAPHQL_PROJECT_REFERENCE_FRAGMENT,
+            ids=ids,
             query=query,
             topics=topics,
             flags=flags,
@@ -347,6 +349,7 @@ class GitlabClient(ProviderClient):
 
     async def search_previews(
         self,
+        ids: list[str],
         query: str | None,
         topics: list[str],
         flags: list[str],
@@ -359,6 +362,7 @@ class GitlabClient(ProviderClient):
     ) -> tuple[list[ProjectPreview], CursorPagination]:
         _projects, pagination = await self._search(
             project_fragment=GITLAB_GRAPHQL_PROJECT_PREVIEW_FRAGMENT,
+            ids=ids,
             query=query,
             topics=topics,
             flags=flags,
@@ -374,6 +378,7 @@ class GitlabClient(ProviderClient):
 
     async def search(
         self,
+        ids: list[str],
         query: str | None,
         topics: list[str],
         flags: list[str],
@@ -386,6 +391,7 @@ class GitlabClient(ProviderClient):
     ) -> tuple[list[Project], CursorPagination]:
         _projects, pagination = await self._search(
             project_fragment=GITLAB_GRAPHQL_PROJECT_FRAGMENT,
+            ids=ids,
             query=query,
             topics=topics,
             flags=flags,
@@ -402,6 +408,7 @@ class GitlabClient(ProviderClient):
     async def _search(
         self,
         project_fragment: str,
+        ids: list[str],
         query: str | None,
         topics: list[str],
         flags: list[str],
@@ -412,6 +419,16 @@ class GitlabClient(ProviderClient):
         prev: str | None,
         next: str | None,
     ) -> tuple[list[dict[str, Any]], CursorPagination]:
+        if ids:
+            projects = await self._search_projects_by_ids(project_fragment, ids)
+
+            # Filter by topics
+            _topics = set(topics)
+            projects = [p for p in projects if _topics.issubset(p["topics"])]
+
+            pagination = CursorPagination(total=len(ids), start=None, end=None)
+            return projects, pagination
+
         if prev:
             cursor = prev
             direction = -1
@@ -522,6 +539,23 @@ class GitlabClient(ProviderClient):
             end=end_cursor,
         )
         return projects, pagination
+
+    async def _search_projects_by_ids(
+        self, project_fragment: str, ids: list[str]
+    ) -> list[dict[str, Any]]:
+        graphql_query = "\n".join(
+            f'project{i}: project(fullPath: "{id_}") {{...projectFields }}'
+            for i, id_ in enumerate(ids)
+        )
+        graphql_query = f"""
+        query getProjectsByIds {{
+            {graphql_query}
+        }}
+        {project_fragment}
+        """
+        result = await self._graphql(graphql_query)
+        data = result["data"]
+        return [p for p in data.values()]
 
     async def _search_projects(
         self,
