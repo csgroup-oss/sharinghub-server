@@ -37,6 +37,8 @@ class ProviderClient(Protocol):
         query: str | None,
         topics: list[str],
         flags: list[str],
+        bbox: list[float] | None,
+        datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: str | None,
         prev: str | None,

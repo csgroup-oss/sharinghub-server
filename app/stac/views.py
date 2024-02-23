@@ -307,6 +307,8 @@ async def _stac_search(
                 query=query,
                 topics=topics,
                 flags=flags,
+                bbox=search_query.bbox,
+                datetime_range=search_query.datetime_range,
                 limit=search_query.limit,
                 sort=sortby,
                 prev=prev,
