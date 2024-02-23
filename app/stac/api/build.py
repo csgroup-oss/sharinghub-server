@@ -225,7 +225,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
     description = (
         category.description
         if category.description
-        else f"STAC {title} generated from your [Gitlab]({GITLAB_URL}) repositories with SharingHub.",
+        else f"STAC {title} generated from your [Gitlab]({GITLAB_URL}) repositories with SharingHub."
     )
     logo = category.logo
 

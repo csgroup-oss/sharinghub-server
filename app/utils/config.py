@@ -83,10 +83,8 @@ def cpath() -> Callable[[str | Path], Path]:
 
 
 def cdict(*, sep: str = ",") -> Callable[[str], dict]:
-    return (
-        lambda v: dict(e.split(":", 1) for e in v.split(sep))
-        if isinstance(v, str)
-        else v
+    return lambda v: (
+        dict(e.split(":", 1) for e in v.split(sep)) if isinstance(v, str) else v
     )
 
 

@@ -14,11 +14,9 @@ class CursorPagination(TypedDict):
 
 
 class ProviderClient(Protocol):
-    async def get_topics(self) -> list[Topic]:
-        ...
+    async def get_topics(self) -> list[Topic]: ...
 
-    async def get_project(self, path: str) -> Project:
-        ...
+    async def get_project(self, path: str) -> Project: ...
 
     async def search_references(
         self,
@@ -30,8 +28,7 @@ class ProviderClient(Protocol):
         sort: str | None,
         prev: str | None,
         next: str | None,
-    ) -> tuple[list[ProjectReference], CursorPagination]:
-        ...
+    ) -> tuple[list[ProjectReference], CursorPagination]: ...
 
     async def search_previews(
         self,
@@ -45,8 +42,7 @@ class ProviderClient(Protocol):
         sort: str | None,
         prev: str | None,
         next: str | None,
-    ) -> tuple[list[ProjectPreview], CursorPagination]:
-        ...
+    ) -> tuple[list[ProjectPreview], CursorPagination]: ...
 
     async def search(
         self,
@@ -60,8 +56,7 @@ class ProviderClient(Protocol):
         sort: str | None,
         prev: str | None,
         next: str | None,
-    ) -> tuple[list[Project], CursorPagination]:
-        ...
+    ) -> tuple[list[Project], CursorPagination]: ...
 
     async def download_file(
         self,
@@ -70,10 +65,8 @@ class ProviderClient(Protocol):
         file_path: str,
         file_cache: int,
         request: Request,
-    ) -> StreamingResponse:
-        ...
+    ) -> StreamingResponse: ...
 
     async def download_archive(
         self, project_path: str, ref: str, format: str, request: Request
-    ) -> StreamingResponse:
-        ...
+    ) -> StreamingResponse: ...
