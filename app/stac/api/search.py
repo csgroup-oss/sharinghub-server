@@ -1,17 +1,17 @@
 import logging
 import re
 from datetime import datetime as dt
-from typing import Annotated, Any, Literal, TypedDict
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
     Field,
-    Json,
     SerializationInfo,
     computed_field,
     field_serializer,
     field_validator,
 )
+from typing_extensions import TypedDict
 
 from app.stac.settings import STAC_SEARCH_PAGE_DEFAULT_SIZE
 
@@ -25,11 +25,16 @@ QUERY_CLEAN_PATTERN = re.compile(r"(\s){2,}")
 SearchMode = Literal["reference", "preview", "full"]
 
 
+class STACSearchSortBy(TypedDict):
+    field: str
+    direction: Literal["asc", "desc"]
+
+
 class STACSearchQuery(BaseModel):
     limit: Annotated[
         int, Field(default=STAC_SEARCH_PAGE_DEFAULT_SIZE, strict=True, gt=0)
     ]
-    sortby: str | None = Field(default=None)
+    sortby: str | list[STACSearchSortBy] | None = Field(default=None)
     bbox: list[float] | None = Field(default_factory=list)
     datetime: str | None = Field(default=None)
     intersects: dict[str, Any] | None = Field(default=None)

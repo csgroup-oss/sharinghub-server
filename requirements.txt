@@ -8,4 +8,5 @@ markdown-full-yaml-metadata
 python-dotenv
 pyyaml
 shapely
+typing-extensions
 uvicorn

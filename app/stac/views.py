@@ -298,10 +298,17 @@ async def _stac_search(
     topics.append(category.gitlab_topic)
 
     if _sortby := search_query.sortby:
-        sort_direction = "desc" if _sortby.startswith("-") else "asc"
-        sort_field = _sortby.lstrip("-+").strip()
-        sort_field = sort_field.replace("properties.", "").replace("sharinghub:", "")
-        sortby = sort_field, sort_direction
+        if isinstance(_sortby, str):
+            sort_direction = "desc" if _sortby.startswith("-") else "asc"
+            sort_field = _sortby.lstrip("-+").strip()
+            sort_field = sort_field.replace("properties.", "").replace(
+                "sharinghub:", ""
+            )
+            sortby = sort_field, sort_direction
+        elif len(_sortby) > 0:
+            sortby = _sortby[0]["field"], _sortby[0]["direction"]
+        else:
+            sortby = None
     else:
         sortby = None
 
