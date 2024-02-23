@@ -75,9 +75,11 @@ license-url: <license url>
 
 ### Extent
 
+#### Temporal
+
 By default, a project temporal extent starts at the creation date of the gitlab repository, and ends at the date of last activity in this repository. But we do have search capabilities on datetime range, so you may want sometime to correct your project temporal extent. Do so with:
 
-```yaml title="Metadata example" hl_lines="2"
+```yaml title="Metadata example"
 extent:
   temporal: ["2023-11-01T12:00:00.0", "2024-01-01T12:00:00.0"]
 ```
@@ -85,11 +87,22 @@ extent:
 !!! info
     Datetime should be expressed in UTC.
 
-As for spatial extent, we only work with bbox for now, but the usage of complex geometries with WKT is planned.
+#### Spatial
 
-```yaml title="Metadata example" hl_lines="2"
+You may define a spatial extent for your project.
+
+We support bbox:
+
+```yaml title="Metadata example"
 extent:
-  bbox: [-66.5902, 17.9823, -66.6407, 18.0299]
+  spatial: [-66.5902, 17.9823, -66.6407, 18.0299]
+```
+
+And WKT geometries:
+
+```yaml title="Metadata example"
+extent:
+  spatial: "POLYGON ((-66.6407 17.9823, -66.6407 18.0299, -66.5902 18.0299, -66.5902 17.9823, -66.6407 17.9823))"
 ```
 
 ### Providers
