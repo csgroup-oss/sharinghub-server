@@ -262,11 +262,24 @@ async def _stac_search(
     prev: str | None,
     next: str | None,
 ) -> dict:
-    if len(search_query.collections) != 1:
+    count_collections = len(search_query.collections)
+    if count_collections > 1:
         raise HTTPException(
             status_code=422,
-            detail="Search is enabled only for one collection exactly, "
-            f"got {len(search_query.collections)} collections",
+            detail="Search is enabled only for one collection, "
+            f"got {count_collections} collections",
+        )
+    elif count_collections == 0:
+        return build_features_collection(
+            features=[],
+            state_query={},
+            pagination=STACPagination(
+                limit=search_query.limit, matched=0, returned=0, next=None, prev=None
+            ),
+            route=route,
+            category=None,
+            request=request,
+            token=token,
         )
 
     category = category if category else get_category(search_query.collections[0])
