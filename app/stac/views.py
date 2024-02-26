@@ -61,7 +61,7 @@ CONFORMANCE = [
 ]
 
 
-@router.get("/")
+@router.get("")
 async def stac_root(request: Request, token: GitlabTokenDep):
     return build_stac_root(
         root_config=STAC_ROOT_CONF,
