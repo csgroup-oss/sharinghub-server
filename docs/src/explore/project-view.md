@@ -23,10 +23,38 @@ If the SharingHub is configured with a notebook service, this button will appear
 ![open in notebook](figures/project-view/category_overview_notebook.png)
 
 When you click the open button, the Jupyter environment is launched to open the target Notebook.
+Click on the "Launch Server" button.
+At next page, select "vreot-cloud" environment and click on "Start" button.
 
-![star vre](figures/project-view/category_overview_star_vre.png)
+![start vre](figures/project-view/category_overview_start_jupyter1.png)
+
+![start vre](figures/project-view/category_overview_start_jupyter2.png)
 
 ![vre launched with project](figures/project-view/category_overview_vre_launched.png)
+
+!!! info
+    **_Configure destination folder_**
+
+    The project is cloned by default in your Jupyter environment home folder.
+    If you prefer to customize that behaviour, it is required to set an environment variable into Jupyter.
+    To do so, you have to initialize a user Jupyter configuration file.
+    Into Jupyter, open a terminal and execute:
+
+    ```bash
+    jupyter notebook --generate-config
+    vim ~/.jupyter/jupyter_notebook_config.py
+    ```
+
+    and add into that file:
+
+    ```python
+    import os
+    os.environ["NBGITPULLER_PARENTPATH"] = "destination_folder"
+    ```
+
+    with "destination_folder" the relative path from your home folder where you want projects to be cloned.
+
+    Finally, restart Jupyter for that configuration to be applied.
 
 ### Display DVC information
 
