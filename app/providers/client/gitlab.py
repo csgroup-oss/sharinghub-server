@@ -268,18 +268,9 @@ class GitlabClient(ProviderClient):
         if headers:
             self.headers |= headers
 
-    def _rest_api(self, endpoint: str) -> str:
-        endpoint = endpoint.removeprefix("/")
-        return f"{self.rest_url}/{endpoint}"
-
-    def _project_rest_api(self, project: Project, endpoint: str) -> str:
-        path = urlsafe_path(project.path)
-        endpoint = endpoint.removeprefix("/")
-        return self._rest_api(f"/projects/{path}/{endpoint}")
-
     async def get_topics(self) -> list[Topic]:
         _topics: list[GitlabREST_Topic] = await self._rest_iterate(
-            url=self._rest_api("/topics")
+            url=self._resolve_rest_api_url("/topics")
         )
         return [Topic(**t) for t in _topics]
 
@@ -300,9 +291,9 @@ class GitlabClient(ProviderClient):
         """
         graphql_project_req = await self._graphql(graphql_query)
         graphql_project_data = graphql_project_req["data"]["project"]
-        project = _adapt_graphql_project(graphql_project_data)
-
-        return project
+        if not graphql_project_data:
+            raise HTTPException(status_code=404)
+        return _adapt_graphql_project(graphql_project_data)
 
     async def get_license(self, project: ProjectReference) -> License | None:
         rest_project_data = await self._get_project_rest(project.path)
@@ -318,7 +309,7 @@ class GitlabClient(ProviderClient):
 
     async def _get_project_rest(self, path_or_id: str) -> GitlabREST_Project:
         path_or_id = urlsafe_path(path_or_id.strip("/"))
-        url = self._rest_api(f"/projects/{path_or_id}?license=true")
+        url = self._resolve_rest_api_url(f"/projects/{path_or_id}?license=true")
         return await self._request(url)
 
     async def search_references(
@@ -732,7 +723,7 @@ class GitlabClient(ProviderClient):
     ) -> StreamingResponse:
         path = urlsafe_path(project_path.strip("/"))
         fpath = urlsafe_path(file_path)
-        url = self._rest_api(
+        url = self._resolve_rest_api_url(
             f"/projects/{path}/repository/files/{fpath}/raw?ref={ref}&lfs=true"
         )
         return await self._request_streaming(
@@ -746,12 +737,18 @@ class GitlabClient(ProviderClient):
         self, project_path: str, ref: str, format: str, request: Request
     ) -> StreamingResponse:
         path = urlsafe_path(project_path.strip("/"))
-        url = self._rest_api(f"/projects/{path}/repository/archive.{format}?sha={ref}")
+        url = self._resolve_rest_api_url(
+            f"/projects/{path}/repository/archive.{format}?sha={ref}"
+        )
         return await self._request_streaming(url, request=request)
 
     async def rest_proxy(self, endpoint: str, request: Request) -> StreamingResponse:
-        url = self._rest_api(endpoint)
+        url = self._resolve_rest_api_url(endpoint)
         return await self._request_streaming(url, request=request)
+
+    def _resolve_rest_api_url(self, endpoint: str) -> str:
+        endpoint = endpoint.removeprefix("/")
+        return f"{self.rest_url}/{endpoint}"
 
     async def _graphql(
         self, query: str, *, variables: dict[str, Any] | None = None

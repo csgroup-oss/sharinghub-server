@@ -21,7 +21,7 @@ from ..settings import (
     STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT,
     STAC_PROJECTS_CACHE_TIMEOUT,
 )
-from .category import Category, FeatureVal, get_category
+from .category import Category, FeatureVal
 from .search import STACPagination
 
 logger = logging.getLogger("app")
@@ -151,7 +151,7 @@ def build_stac_root(
                 "type": "application/geo+json",
                 "href": url_for(
                     _request,
-                    "stac_search",
+                    "stac_search_get",
                     query={**_token.query},
                 ),
                 "method": "GET",
@@ -161,7 +161,7 @@ def build_stac_root(
                 "type": "application/geo+json",
                 "href": url_for(
                     _request,
-                    "stac_search",
+                    "stac_search_post",
                     query={**_token.query},
                 ),
                 "method": "POST",
@@ -558,7 +558,7 @@ def _build_stac_item_default_values(
     _request = context["request"]
     _token = context["token"]
 
-    fields = {}
+    fields = {"collection": project.category.id}
     assets = {}
     links = [
         {
@@ -593,22 +593,17 @@ def _build_stac_item_default_values(
                 query={**_token.query},
             ),
         },
+        {
+            "rel": "collection",
+            "type": "application/json",
+            "href": url_for(
+                _request,
+                "stac_collection",
+                path=dict(collection_id=project.category.id),
+                query={**_token.query},
+            ),
+        },
     ]
-
-    if project.category:
-        fields["collection"] = project.category.id
-        links.append(
-            {
-                "rel": "collection",
-                "type": "application/json",
-                "href": url_for(
-                    _request,
-                    "stac_collection",
-                    path=dict(collection_id=project.category.id),
-                    query={**_token.query},
-                ),
-            }
-        )
 
     return fields, links, assets
 

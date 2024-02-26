@@ -137,11 +137,7 @@ async def stac_collection_feature(
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     project = await gitlab_client.get_project(path=feature_id)
 
-    if not project.category:
-        raise HTTPException(
-            status_code=400, detail=f"Category not found for project '{project.path}'"
-        )
-    elif category != project.category:
+    if category != project.category:
         raise HTTPException(
             status_code=400,
             detail=f"Category mismatch for project '{project.path}', "
@@ -196,7 +192,7 @@ def _get_project_checksum(project: Project) -> int:
 
 
 @router.get("/search")
-async def stac_search(
+async def stac_search_get(
     request: Request,
     token: GitlabTokenDep,
     prev: str | None = None,
@@ -224,7 +220,7 @@ async def stac_search(
     return await _stac_search(
         request=request,
         token=token,
-        route="stac_search",
+        route="stac_search_get",
         mode=mode,
         search_query=search_query,
         category=None,
@@ -234,7 +230,7 @@ async def stac_search(
 
 
 @router.post("/search")
-async def stac_search(
+async def stac_search_post(
     request: Request,
     token: GitlabTokenDep,
     search_query: STACSearchQuery,
@@ -245,7 +241,7 @@ async def stac_search(
     return await _stac_search(
         request=request,
         token=token,
-        route="stac_search",
+        route="stac_search_get",
         mode=mode,
         search_query=search_query,
         category=None,
