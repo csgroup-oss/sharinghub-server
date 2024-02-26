@@ -457,12 +457,6 @@ class GitlabClient(ProviderClient):
                     project_fragment, **req_params, cursor=cursor
                 )
 
-                # Filter by topics
-                _topics = set(topics)
-                _projects_cur = [
-                    _pc for _pc in _projects_cur if _topics.issubset(_pc[1]["topics"])
-                ]
-
             if datetime_range:
 
                 def temporal_check(project_data: GitlabGraphQL_Project) -> bool:
@@ -631,6 +625,7 @@ class GitlabClient(ProviderClient):
         self,
         project_fragment: str,
         query: str | None,
+        topics: list[str],
         limit: int,
         cursor: str | None,
         direction: int,
@@ -687,8 +682,11 @@ class GitlabClient(ProviderClient):
             start=page_info["startCursor"] if page_info["hasPreviousPage"] else None,
             end=page_info["endCursor"] if page_info["hasNextPage"] else None,
         )
+        _topics = set(topics)
         projects_cur: list[tuple[str, GitlabGraphQL_Project]] = [
-            (e["cursor"], e["node"]) for e in data["edges"]
+            (e["cursor"], e["node"])
+            for e in data["edges"]
+            if _topics.issubset(e["node"]["topics"])
         ]
         return projects_cur, pagination
 
