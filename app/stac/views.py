@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import time
@@ -145,25 +146,23 @@ async def stac_collection_feature(
         )
 
     cache_key = project.path
-    cache_val = await cache.get(cache_key, namespace="project")
-    if cache_val:
-        elapsed_time = time.time() - cache_val["time"]
+    if cached_stac := await cache.get(cache_key, namespace="project"):
+        elapsed_time = time.time() - cached_stac["time"]
         if elapsed_time < STAC_PROJECTS_CACHE_TIMEOUT:
             logger.debug(
                 f"Read project stac from cache '{project.path}' "
                 f"({elapsed_time:.3f}/{STAC_PROJECTS_CACHE_TIMEOUT} s)"
             )
-            return cache_val["stac"]
-        elif cache_val["checksum"] == _get_project_checksum(project):
+            return cached_stac["stac"]
+        elif cached_stac["checksum"] == _get_project_checksum(project):
             logger.debug(
                 "Read project stac from cache" f"'{project.path}' (no changes detected)"
             )
-            cache_val["time"] = time.time()
-            await cache.set(cache_key, cache_val, namespace="project")
-            return cache_val["stac"]
+            cached_stac["time"] = time.time()
+            await cache.set(cache_key, cached_stac, namespace="project")
+            return cached_stac["stac"]
 
-    if license := await gitlab_client.get_license(project):
-        project.license = license
+    await _resolve_license(project, gitlab_client)
 
     try:
         project_stac = build_stac_item(
@@ -177,12 +176,12 @@ async def stac_collection_feature(
 
     if ENABLE_CACHE:
         logger.debug(f"Write stac '{feature_id}' in cache")
-        cache_val = {
+        cached_stac = {
             "time": time.time(),
             "checksum": _get_project_checksum(project),
             "stac": project_stac,
         }
-        await cache.set(cache_key, cache_val, namespace="project")
+        await cache.set(cache_key, cached_stac, namespace="project")
 
     return project_stac
 
@@ -371,6 +370,9 @@ async def _stac_search(
                 prev=prev,
                 next=next,
             )
+            await asyncio.gather(
+                *(_resolve_license(p, gitlab_client) for p in projects)
+            )
             features = [
                 build_stac_item(p, request=request, token=token) for p in projects
             ]
@@ -401,3 +403,21 @@ def _create_stac_pagination(
         prev=cursor_pagination["start"],
         next=cursor_pagination["end"],
     )
+
+
+async def _resolve_license(project: Project, client: GitlabClient):
+    cache_key = project.path
+    nolicense = 1
+
+    license_ = await cache.get(cache_key, namespace="license")
+    if not license_:
+        license_ = await client.get_license(project)
+        await cache.set(
+            cache_key,
+            license_ if license_ else nolicense,
+            namespace="license",
+            ttl=int(STAC_PROJECTS_CACHE_TIMEOUT),
+        )
+
+    if license_ and license_ != nolicense:
+        project.license = license_
