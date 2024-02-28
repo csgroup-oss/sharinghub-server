@@ -52,7 +52,7 @@ dvc remote default shstore
 git push
 ```
 
-### Authenticate DVC with SharingHUB
+### Authenticate DVC with SharingHub
 
 Configure your authentication (will be only stored locally)
 
@@ -100,7 +100,7 @@ git push
 To retrieve the managed data:
 
 * clone the GIT project
-* configure authentication as described in the section `Authenticate DVC with SharingHUB`.
+* configure authentication as described in the section `Authenticate DVC with SharingHub`.
 * and download the data through `dvc pull`.
 
 ```bash
