@@ -8,7 +8,7 @@ You can find this dataset in SharingHub [here](https://sharinghub.p2.csgroup.spa
 
 ## Configuration
 
-To share your dataset on the SharingHub, you need to set up your gitlab repository to include the topics `sharinghub:dataset` from Settings and General:
+To share your dataset on the SharingHub, you need to set up your GitLab repository to include the topics `sharinghub:dataset` from Settings and General:
 
 ![Add topics to dataset](../../assets/img/add-dataset-topic.png)
 

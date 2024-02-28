@@ -8,7 +8,7 @@ You can find this model in SharingHub [here](https://sharinghub.p2.csgroup.space
 
 ## Configuration
 
-To share your artificial intelligence model on the SharingHub, you need to set up your gitlab repository to include the topics `sharinghub:aimodel` from Settings and General:
+To share your artificial intelligence model on the SharingHub, you need to set up your GitLab repository to include the topics `sharinghub:aimodel` from Settings and General:
 
 ![Add topics to model](../../assets/img/add-model-topic.png)
 
