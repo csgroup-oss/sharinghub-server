@@ -19,8 +19,7 @@ Content:
   - [Server: allowed origins](#server-allowed-origins)
   - [Server: session secret key](#server-session-secret-key)
   - [Server: session max age](#server-session-max-age)
-  - [Server: web ui path](#server-web-ui-path)
-  - [Server: docs path](#server-docs-path)
+  - [Server: static files path](#server-static-files-path)
   - [Server: HTTP client timeout](#server-http-client-timeout)
   - [Server: enable cache](#server-enable-cache)
   - [Gitlab: URL](#gitlab-url)
@@ -70,6 +69,7 @@ Content:
 - YAML:
   - Path: `server.debug`
   - Example value:
+
     ```yaml
     server:
       debug: true
@@ -85,6 +85,7 @@ Content:
 - YAML:
   - Path: `server.log-level`
   - Example value:
+
     ```yaml
     server:
       log-level: WARNING
@@ -100,6 +101,7 @@ Content:
 - YAML:
   - Path: `server.prefix`
   - Example value:
+
     ```yaml
     server:
       prefix: /my/prefix
@@ -115,6 +117,7 @@ Content:
 - YAML:
   - Path: `server.allowed-origins`
   - Example value:
+
     ```yaml
     server:
       allowed-origins:
@@ -133,6 +136,7 @@ Content:
 - YAML:
   - Path: `server.session.secret-key`
   - Example value:
+
     ```yaml
     server:
       session:
@@ -149,40 +153,26 @@ Content:
 - YAML:
   - Path: `server.session.max-age`
   - Example value:
+
     ```yaml
     server:
       session:
         max-age: 7200.0
     ```
 
-### Server: web ui path
+### Server: static files path
 
 - Type: path
-- Default: `"<PWD>/web-ui/dist"`
 - Environment variable:
-  - Name: `WEB_UI_PATH`
-  - Example value: `web-ui/dist`
+  - Name: `STATIC_FILES_PATH`
+  - Example value: `/statics`
 - YAML:
-  - Path: `server.web-ui-path`
+  - Path: `server.statics`
   - Example value:
+
     ```yaml
     server:
-      web-ui-path: web-ui/dist
-    ```
-
-### Server: docs path
-
-- Type: path
-- Default: `"<PWD>/docs"`
-- Environment variable:
-  - Name: `DOCS_PATH`
-  - Example value: `docs/`
-- YAML:
-  - Path: `server.docs-path`
-  - Example value:
-    ```yaml
-    server:
-      docs-path: docs/
+      statics: /statics
     ```
 
 ### Server: HTTP client timeout
@@ -195,6 +185,7 @@ Content:
 - YAML:
   - Path: `server.http_client.timeout`
   - Example value:
+
     ```yaml
     server:
       http_client:
@@ -211,6 +202,7 @@ Content:
 - YAML:
   - Path: `server.cache`
   - Example value:
+
     ```yaml
     server:
       cache: true
@@ -226,10 +218,11 @@ Content:
 - YAML:
   - Path: `gitlab.url`
   - Example value:
-  ```yaml
-  gitlab:
-    url: https://gitlab.example.com
-  ```
+
+    ```yaml
+    gitlab:
+      url: https://gitlab.example.com
+    ```
 
 ### Gitlab: OAuth client id
 
@@ -241,11 +234,12 @@ Content:
 - YAML:
   - Path: `gitlab.oauth.client-id`
   - Example value:
-  ```yaml
-  gitlab:
-    oauth:
-      client-id: <client-id>
-  ```
+
+    ```yaml
+    gitlab:
+      oauth:
+        client-id: <client-id>
+    ```
 
 ### Gitlab: OAuth client secret
 
@@ -257,11 +251,12 @@ Content:
 - YAML:
   - Path: `gitlab.oauth.client-secret`
   - Example value:
-  ```yaml
-  gitlab:
-    oauth:
-      client-secret: <client-secret>
-  ```
+
+    ```yaml
+    gitlab:
+      oauth:
+        client-secret: <client-secret>
+    ```
 
 ### Gitlab: OAuth default token
 
@@ -273,11 +268,12 @@ Content:
 - YAML:
   - Path: `gitlab.oauth.default-token`
   - Example value:
-  ```yaml
-  gitlab:
-    oauth:
-      default-token: <default-token>
-  ```
+
+    ```yaml
+    gitlab:
+      oauth:
+        default-token: <default-token>
+    ```
 
 ### Gitlab: ignore topics
 
@@ -289,6 +285,7 @@ Content:
 - YAML:
   - Path: `gitlab.ignore.topics`
   - Example value:
+
     ```yaml
     gitlab:
       ignore:
@@ -307,10 +304,11 @@ Content:
 - YAML:
   - Path: `jupyterlab.url`
   - Example value:
-  ```yaml
-  gitlab:
-    url: https://nb.example.com
-  ```
+
+    ```yaml
+    gitlab:
+      url: https://nb.example.com
+    ```
 
 ### S3: enable
 
@@ -322,6 +320,7 @@ Content:
 - YAML:
   - Path: `s3.enable`
   - Example value:
+
     ```yaml
     s3:
       enable: true
@@ -337,10 +336,11 @@ Content:
 - YAML:
   - Path: `s3.bucket`
   - Example value:
-  ```yaml
-  s3:
-    bucket: gitlab
-  ```
+
+    ```yaml
+    s3:
+      bucket: gitlab
+    ```
 
 ### S3: access key
 
@@ -352,10 +352,11 @@ Content:
 - YAML:
   - Path: `s3.access-key`
   - Example value:
-  ```yaml
-  s3:
-    access-key: <access-key>
-  ```
+
+    ```yaml
+    s3:
+      access-key: <access-key>
+    ```
 
 ### S3: secret key
 
@@ -367,10 +368,11 @@ Content:
 - YAML:
   - Path: `s3.secret-key`
   - Example value:
-  ```yaml
-  s3:
-    secret-key: <secret-key>
-  ```
+
+    ```yaml
+    s3:
+      secret-key: <secret-key>
+    ```
 
 ### S3: region
 
@@ -382,10 +384,11 @@ Content:
 - YAML:
   - Path: `s3.region`
   - Example value:
-  ```yaml
-  s3:
-    region: test
-  ```
+
+    ```yaml
+    s3:
+      region: test
+    ```
 
 ### S3: endpoint url
 
@@ -397,10 +400,11 @@ Content:
 - YAML:
   - Path: `s3.endpoint`
   - Example value:
-  ```yaml
-  s3:
-    endpoint: "http://127.0.0.1:9000"
-  ```
+
+    ```yaml
+    s3:
+      endpoint: "http://127.0.0.1:9000"
+    ```
 
 ### S3: presigned expiration
 
@@ -412,6 +416,7 @@ Content:
 - YAML:
   - Path: `s3.presigned-expiration`
   - Example value:
+
     ```yaml
     s3:
       presigned-expiration: 1200
@@ -427,6 +432,7 @@ Content:
 - YAML:
   - Path: `s3.upload-chunk-size`
   - Example value:
+
     ```yaml
     s3:
       upload-chunk-size: 300000
@@ -439,6 +445,7 @@ Content:
 - YAML:
   - Path: `stac.root`
   - Example value:
+
     ```yaml
     stac:
       root:
@@ -455,6 +462,7 @@ Content:
 - YAML:
   - Path: `stac.categories.definitions`
   - Example value:
+
     ```yaml
     stac:
       categories:
@@ -475,6 +483,7 @@ Content:
 - YAML:
   - Path: `stac.projects.cache-timeout`
   - Example value:
+
     ```yaml
     stac:
       projects:
@@ -491,6 +500,7 @@ Content:
 - YAML:
   - Path: `stac.projects.assets.rules`
   - Example value:
+
     ```yaml
     stac:
       projects:
@@ -510,6 +520,7 @@ Content:
 - YAML:
   - Path: `stac.projects.assets.release-source-format`
   - Example value:
+
     ```yaml
     stac:
       projects:
@@ -527,6 +538,7 @@ Content:
 - YAML:
   - Path: `stac.search.cache-timeout`
   - Example value:
+
     ```yaml
     stac:
       search:
@@ -543,6 +555,7 @@ Content:
 - YAML:
   - Path: `stac.search.page-size`
   - Example value:
+
     ```yaml
     stac:
       search:
@@ -555,24 +568,25 @@ Content:
 - Default: read from [config file](./app/config.yaml)
 - YAML:
   - Path: `tags`
-- Example value:
-  ```yaml
-  tags:
-    gitlab:
-      minimum_count: 1
-    sections:
-      - name: "Computer Vision"
-        enabled_for:
-          - ai-model
-          - dataset
-          - processor
-          - challenge
-        keywords:
-          - "Image qualification"
-          - "Object detection"
-          - "Image segmentation"
-          - "Mask generation"
-  ```
+  - Example value:
+
+    ```yaml
+    tags:
+      gitlab:
+        minimum_count: 1
+      sections:
+        - name: "Computer Vision"
+          enabled_for:
+            - ai-model
+            - dataset
+            - processor
+            - challenge
+          keywords:
+            - "Image qualification"
+            - "Object detection"
+            - "Image segmentation"
+            - "Mask generation"
+    ```
 
 ### FRONT-CONFIG: external urls
 
@@ -580,28 +594,29 @@ Content:
 - Default: read from [config file](./app/config.yaml)
 - YAML:
   - Path: `external-urls`
-- Example value:
-  ```yaml
-    external-urls:
-      - name: Link
-        url : <url>
-        icon: <icon>  # not required
-        locales:
-          fr:
-            name: French Localization
-      - name: Links with dropdown
-        icon: <icon>
-        locales:
-          fr:
-            name: French Localization
-        dropdown:
-          - name : Link Children
-            url: <url>
-            icon: <icon>
-            locales:
-              fr:
-                name: <localization>
-  ```
+  - Example value:
+
+    ```yaml
+      external-urls:
+        - name: Link
+          url : <url>
+          icon: <icon>  # not required
+          locales:
+            fr:
+              name: French Localization
+        - name: Links with dropdown
+          icon: <icon>
+          locales:
+            fr:
+              name: French Localization
+          dropdown:
+            - name : Link Children
+              url: <url>
+              icon: <icon>
+              locales:
+                fr:
+                  name: <localization>
+    ```
 
 ### FRONT-CONFIG: visitor alert message
 
@@ -609,15 +624,16 @@ Content:
 - Default: read from [config file](./app/config.yaml)
 - YAML:
   - Path: `alerts`
-- Example value:
-  ```yaml
-    alerts:
-      timeout: 3 # days unit
-      type: info # color of alert | possibility (info, danger, success, warning,primary, dark, secondary)
-      title: "Welcome to new SharingHub" 
-      message: "To see all projects and unlock all features, please login.." # Possible to render primitives html component in message ex: <a href='url'> text here <a/>
-      locales:
-        fr:
-          title: "Bienvenue sur le nouveau sharing hub"
-          message: "Pour voir tous les projets et débloquer toutes les fonctionnalités, veuillez vous connecter..." # Possible to render primitives html component in message ex: <a href='url'> text here <a/>
-  ```
+  - Example value:
+
+    ```yaml
+      alerts:
+        timeout: 3 # days unit
+        type: info # color of alert | possibility (info, danger, success, warning,primary, dark, secondary)
+        title: "Welcome to new SharingHub"
+        message: "To see all projects and unlock all features, please login.." # Possible to render primitives html component in message ex: <a href='url'> text here <a/>
+        locales:
+          fr:
+            title: "Bienvenue sur le nouveau sharing hub"
+            message: "Pour voir tous les projets et débloquer toutes les fonctionnalités, veuillez vous connecter..." # Possible to render primitives html component in message ex: <a href='url'> text here <a/>
+    ```

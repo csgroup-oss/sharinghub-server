@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 from app.utils.config import Config, cbool, clist, cpath
 
-load_dotenv()
+load_dotenv(override=True)
 
 ROOT_PATH = Path(__file__).parent
 
@@ -76,14 +76,8 @@ SESSION_MAX_AGE: float = conf(
     "server.session.max-age", "SESSION_MAX_AGE", default=3600.0, cast=float
 )
 
-DEFAULT_WEB_UI_PATH = Path(os.getcwd(), "web-ui", "dist")
-WEB_UI_PATH: Path = conf(
-    "server.web-ui-path", "WEB_UI_PATH", default=DEFAULT_WEB_UI_PATH, cast=cpath()
-)
-
-DEFAULT_DOCS_PATH = Path(os.getcwd(), "docs", "build", "html")
-DOCS_PATH: Path = conf(
-    "server.docs-path", "DOCS_PATH", default=DEFAULT_DOCS_PATH, cast=cpath()
+STATIC_FILES_PATH: Path | None = conf(
+    "server.statics", "STATIC_FILES_PATH", default=None, cast=cpath()
 )
 
 HTTP_CLIENT_TIMEOUT: float = conf(

@@ -1,63 +1,51 @@
-FROM amd64/python:3.11-alpine as docs
+FROM python:3.11-alpine as installer
 
-COPY requirements-docs.txt .
+WORKDIR /usr/src/app
 
-RUN pip install --no-cache-dir -r requirements-docs.txt
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-COPY docs/ /docs
+# Install build dependencies
+RUN apk add \
+        # Shapely
+        g++ \
+        geos-dev
 
-WORKDIR /docs
+# Generate python dependencies wheels
+COPY requirements.txt .
+RUN pip wheel --no-cache-dir --wheel-dir /usr/src/app/wheels -r requirements.txt
 
-RUN mkdocs build
+FROM python:3.11-alpine
 
-FROM node:lts-alpine3.18 AS web-ui
+ARG VERSION=latest
 
-WORKDIR /app
+LABEL version=${VERSION}
 
-COPY web-ui/package*.json ./
-RUN npm install
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV PATH=$PATH:/home/app/.local/bin
 
-COPY web-ui/ ./
-RUN npm run build:minimal -- --catalogTitle="SharingHub" --historyMode="hash" --pathPrefix="/ui"
-
-FROM amd64/python:3.11-alpine as build
+RUN addgroup -S app && adduser -S app -G app && \
+    chown app /home/app
 
 # Install runtime dependencies
 RUN apk add \
         # Shapely
-        g++ \
         geos-dev \
         # MIME TYPES
         mailcap
 
-# Add non root user
-RUN addgroup -S app && adduser -S app --ingroup app && chown app /home/app
-
 USER app
 
-ENV PATH=$PATH:/home/app/.local/bin
-
 WORKDIR /home/app/
 
-COPY --chown=app:app requirements.txt   .
+COPY --chown=app:app --from=installer /usr/src/app/wheels wheels
 
-USER root
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --user --no-cache-dir wheels/* && \
+    rm -rf wheels
 
-FROM build as test
-ARG TEST_COMMAND=tox
-ARG TEST_ENABLED=false
-RUN [ "$TEST_ENABLED" = "false" ] && echo "skipping tests" || eval "$TEST_COMMAND"
-
-FROM build as ship
-WORKDIR /home/app/
-
-ENV DOCS_PATH=/home/app/docs
-ENV WEB_UI_PATH=/home/app/web-ui
-
-COPY --chown=app:app --from=docs /docs/build/html docs/
-COPY --chown=app:app --from=web-ui /app/dist web-ui/
 COPY --chown=app:app app/ app/
 
-USER app
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]  # , "--log-level", "critical"]
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--proxy-headers"]

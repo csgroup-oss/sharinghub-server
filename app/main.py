@@ -13,12 +13,11 @@ from app.settings import (
     ALLOWED_ORIGINS,
     API_PREFIX,
     DEBUG,
-    DOCS_PATH,
     HTTP_CLIENT_TIMEOUT,
     LOGGING,
     SESSION_MAX_AGE,
     SESSION_SECRET_KEY,
-    WEB_UI_PATH,
+    STATIC_FILES_PATH,
 )
 from app.utils.http import AiohttpClient, url_for
 
@@ -45,7 +44,7 @@ app = FastAPI(
     version="0.1.0",
     root_path=API_PREFIX,
     docs_url="/api/docs",
-    redoc_url=None,
+    redoc_url="/api/redoc",
     lifespan=lifespan,
 )
 
@@ -66,7 +65,9 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.get("/")
 async def index(request: Request):
-    return RedirectResponse(url_for(request, "web-ui", path=dict(path="")))
+    if STATIC_FILES_PATH:
+        return RedirectResponse(url_for(request, "statics", path=dict(path="")))
+    return RedirectResponse(url_for(request, "swagger_ui_html"))
 
 
 @app.get("/status")
@@ -74,10 +75,10 @@ async def status():
     return [{"status": "ok"}]
 
 
-app.mount(
-    "/ui", StaticFiles(directory=WEB_UI_PATH, html=True, check_dir=False), name="web-ui"
-)
-app.mount(
-    "/docs", StaticFiles(directory=DOCS_PATH, html=True, check_dir=False), name="docs"
-)
-app.include_router(views_router)
+if STATIC_FILES_PATH:
+    app.mount(
+        "/ui",
+        StaticFiles(directory=STATIC_FILES_PATH, html=True),
+        name="statics",
+    )
+app.include_router(views_router, prefix="/api")

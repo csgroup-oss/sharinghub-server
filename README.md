@@ -2,66 +2,27 @@
 
 ## Table of contents
 
-- [Roadmap](#roadmap)
-- [Setup](#setup)
+- [Environment setup](#environment-setup)
 - [Development](#development)
   - [Run with uvicorn](#run-with-uvicorn)
   - [Run with docker container](#run-with-docker-container)
-  - [Run full stack with docker compose](#run-full-stack-with-docker-compose)
-- [Production](#production)
-  - [Create the Docker image](#create-the-docker-image)
-  - [HELM](#helm)
 - [Configuration](#configuration)
 
-## Roadmap
+## Environment setup
 
-The goal here is to establish a plan on the developments of SharingHub, with the different requirements for each release.
+Python 3.11 required.
 
-- **Release v0.1.0 (v0.1.X): MVP**
-
-  The goal of this release is to implement the minimum set of features to have a functioning and cohesive platform. This version could be used for demonstrations and deployed as such, independently from the development one. Fixes can be added, but no new features implemented. Milestone [here](https://gitlab.si.c-s.fr/groups/space_applications/mlops-services/-/boards?milestone_title=v0.1.0).
-
-- **Release v1.0.0 (v1.X.Y): Industrialized, first stable**
-
-  After the v0.1.0, we will work on the industrialization of the SharingHub. It is important to refactor and improve the software architecture to create a robust base for future developments. We will also add here the QA tools and create the CI/CD pipelines. Small new features and bug fixes can be added after, as long as they do not overstep on the boundaries of the next release. Milestone [here](https://gitlab.si.c-s.fr/groups/space_applications/mlops-services/-/boards?milestone_title=v1.0.0).
-
-- **Release v2.0.0 (v2.X.Y): Model-centered**
-
-  The last set of features planned, with AI models capabilities. The goal is to be able to deploy and manage an inference service for models hosted on GitLab. A CLI tool can be developed as part of a "kit" for developers, to init models/datasets/others repositories, and help for the packaging of the models for deployment (Eg. command to generate a .joblib file for a scikit-learn model).
-
-For compatibility with [SharingHub UI](https://gitlab.si.c-s.fr/space_applications/mlops-services/sharinghub-ui), a versioning scheme will be put in place. SharingHub UI will use this server, so it must be the one to constraint a version between the two. For a `x.y.z` version required by the front, it can connect to a `x.v.w` version of the back, with `v>=y`, and if `v == y`, then `w>=z`.
-
-## Setup
-
-You will need first to update the submodules.
+Setup the environment:
 
 ```bash
-git submodule init
-git submodule update
+python3 -mvenv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ## Development
 
 ### Run with uvicorn
-
-Setup the environment:
-
-```bash
-virtualenv -p python3.11 venv
-# or python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Build Web UI static files
-cd web-ui
-npm install
-npm run build:minimal -- --catalogTitle="SharingHub" --historyMode="hash" --pathPrefix="/ui"
-
-# Build docs (reuse previous virtualenv)
-pip install -r requirements-docs.txt
-cd docs
-mkdocs build
-```
 
 We use `python-dotenv`, if a `.env` file is present it will be loaded.
 You can copy the `.env.template` as `.env`, and complete it to have a quick env setup done.
@@ -79,85 +40,16 @@ uvicorn app.main:app --reload
 Build image
 
 ```bash
-docker build -t sharinghub:latest .
+docker build . -t sharinghub-server:latest --build-arg VERSION=$(git rev-parse --short HEAD)
 ```
 
 Use it
 
 ```bash
-docker run --name sharinghub --rm \
-    -p 8000:8000 \
-    sharinghub:latest
+docker run --rm --env-file .env -p 8000:8000 --name sharinghub-server sharinghub-server:latest
 ```
 
-You can check the API docs at [localhost:8000](http://localhost:8000/docs).
-
-### Run full stack with docker compose
-
-If you want to run the server and the web UI, you can use docker compose.
-
-First, build your images:
-
-```bash
-make build
-```
-
-Then you can run them:
-
-```bash
-make run
-```
-
-## Production
-
-### Create the Docker image
-
-We'll need to push the image to a docker registry.
-
-```bash
-# Login
-docker login <your-registry>
-# Example: docker login 643vlk6z.gra7.container-registry.ovh.net
-
-# Tag the image for your registry
-docker build -t <registry-tag> .
-# Example: docker build -t 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub:latest .
-
-# Push
-docker push <registry-tag>
-# Example: docker push 643vlk6z.gra7.container-registry.ovh.net/space_applications/sharinghub:latest
-```
-
-### HELM
-
-Create a robot account in the harbor interface to access GeoJson Proxy Image
-
-```bash
-kubectl create namespace sharinghub
-
-kubectl create secret docker-registry regcred --docker-username='robot$space_applications+p2.gitlab2stac' --docker-password='<password>' --docker-server='643vlk6z.gra7.container-registry.ovh.net' --namespace sharinghub
-```
-
-Deploy CS SharingHub
-
-```bash
-# Install
-kubectl create secret generic sharinghub-oidc --from-literal client-id="<client-id>" --from-literal client-secret="<client-secret>" --namespace sharinghub
-kubectl create secret generic sharinghub-s3 --from-literal access-key="<access-key>" --from-literal secret-key="<secret-key>" --namespace sharinghub
-
-# Install & Update
-helm upgrade --install -n sharinghub --create-namespace sharinghub ./deploy/helm/sharinghub -f ./deploy/helm/values.yaml
-```
-
-Deploy CNES SharingHub
-
-```bash
-# Install
-kubectl create secret generic sharinghub-cnes-oidc --from-literal default-token="<token>" --namespace sharinghub
-
-# Install & Update
-helm upgrade --install -n sharinghub --create-namespace sharinghub-cnes ./deploy/helm/sharinghub -f ./deploy/helm/values.cnes.yaml
-```
+You can check the API docs at [localhost:8000/docs](http://localhost:8000/docs).
 
 ## Configuration
 

@@ -1,3 +1,0 @@
-[submodule "web-ui"]
-	path = web-ui
-	url = git@gitlab.si.c-s.fr:space_applications/mlops-services/sharinghub-ui.git

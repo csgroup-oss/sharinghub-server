@@ -1,14 +1,9 @@
-# Env
-.env
-
-# Byte-compiled
+# Python
 **/__pycache__/
 
 # Virtualenv
-/*venv*
+/.venv
+/venv
 
-# Docs
-/docs/build
-
-# Jupyter notebook
-.ipynb_checkpoints
+# Env
+.env
