@@ -12,8 +12,8 @@ RUN apk add \
         geos-dev
 
 # Generate python dependencies wheels
-COPY requirements.txt .
-RUN pip wheel --no-cache-dir --wheel-dir /usr/src/app/wheels -r requirements.txt
+COPY . .
+RUN pip wheel --no-cache-dir --wheel-dir /usr/src/app/wheels .[prod]
 
 FROM python:3.11-alpine
 
@@ -41,10 +41,8 @@ WORKDIR /home/app/
 
 COPY --chown=app:app --from=installer /usr/src/app/wheels wheels
 
-RUN python -m pip install --user --no-cache-dir wheels/* && \
+RUN pip install --user --no-cache-dir wheels/* && \
     rm -rf wheels
-
-COPY --chown=app:app app/ app/
 
 EXPOSE 8000
 
