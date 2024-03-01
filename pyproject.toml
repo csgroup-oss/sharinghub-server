@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling >= 1.21.0", "hatch-vcs >= 0.4.0 "]
+build-backend = "hatchling.build"
+
+# -----------------------------------------------
+# Package infos
+
+[project]
+name = "app"
+description = "Server of SharingHub"
+authors = [
+    { name = "CS Group" },
+]
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+keywords = ["stac", "gitlab", "sharinghub"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "License :: OSI Approved :: Apache Software License",
+]
+dependencies = [
+    "aiocache[memcached]",
+    "aiohttp[speedups]",
+    "authlib",
+    "boto3",
+    "fastapi",
+    "httpx", # authlib
+    "itsdangerous", # fastapi
+    "markdown",
+    "markdown-full-yaml-metadata",
+    "pyyaml",
+    "shapely",
+    "typing-extensions",
+]
+dynamic = ["version"]
+
+[project.urls]
+"Homepage" = "https://gitlab.si.c-s.fr/space_applications/mlops-services/sharinghub-server"
+"Source" = "https://gitlab.si.c-s.fr/space_applications/mlops-services/sharinghub-server"
+"Bug Tracker" = "https://gitlab.si.c-s.fr/space_applications/mlops-services/sharinghub-server/-/issues"
+
+[project.optional-dependencies]
+dev = [
+    "python-dotenv",
+    "uvicorn",
+]
+prod = [
+    "uvicorn[standard]",
+]
+
+# -----------------------------------------------
+# Build & Packaging
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.hatch.version]
+source = "vcs"
+fallback-version = "0.1.0"
