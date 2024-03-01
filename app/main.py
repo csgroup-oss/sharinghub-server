@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
+from app import __version__ as version
 from app.settings import (
     ALLOWED_ORIGINS,
     API_PREFIX,
@@ -41,7 +42,7 @@ app = FastAPI(
     debug=DEBUG,
     title="SharingHub API",
     description="The SharingHub server serves STAC resources generated from Gitlab repositories.",
-    version="0.1.0",
+    version=version,
     root_path=API_PREFIX,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
