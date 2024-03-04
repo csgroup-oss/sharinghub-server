@@ -1,6 +1,9 @@
 # Python
 **/__pycache__/
 
+# Caches
+/.*_cache
+
 # Build
 /dist
 
