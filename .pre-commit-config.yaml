@@ -24,6 +24,11 @@ repos:
       - id: forbid-submodules
       - id: trailing-whitespace
 
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v3.16.0
     hooks:
