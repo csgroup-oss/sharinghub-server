@@ -20,7 +20,21 @@ source .venv/bin/activate
 pip install -e .[dev]
 ```
 
+Install the [pre-commit](https://pre-commit.com/) hooks:
+
+```bash
+pre-commit install --install-hooks
+```
+
 ## Development
+
+### Lint
+
+The linting is managed by pre-commit, but you can run it with:
+
+```bash
+pre-commit run --all-files
+```
 
 ### Run with uvicorn
 
