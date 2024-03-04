@@ -1,7 +1,10 @@
-def singleton(cls):
+from typing import Any
+
+
+def singleton(cls: type) -> object:
     instances = {}
 
-    def getinstance(*args, **kwargs):
+    def getinstance(*args: Any, **kwargs: Any) -> object:
         if cls not in instances:
             instances[cls] = cls(*args, **kwargs)
         return instances[cls]

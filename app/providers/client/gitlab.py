@@ -9,6 +9,14 @@ from fastapi import HTTPException, Request
 from fastapi.responses import StreamingResponse
 from shapely.geometry.base import BaseGeometry
 
+from app.providers.schemas import (
+    License,
+    Project,
+    ProjectPreview,
+    ProjectReference,
+    Release,
+    Topic,
+)
 from app.stac.api.category import get_category_from_topics
 from app.utils import geo
 from app.utils import markdown as md
@@ -20,11 +28,12 @@ from app.utils.http import (
     urlsafe_path,
 )
 
-from ..schemas import License, Project, ProjectPreview, ProjectReference, Release, Topic
 from ._base import CursorPagination, ProviderClient
 
 logger = logging.getLogger("app")
 
+
+BBOX_LEN = 4
 
 GITLAB_LICENSES_SPDX_MAPPING = {
     "agpl-3.0": "AGPL-3.0",
@@ -258,7 +267,11 @@ fragment projectFields on Project {
 
 class GitlabClient(ProviderClient):
     def __init__(
-        self, url: str, token: str, *, headers: dict[str, str] | None = None
+        self,
+        url: str,
+        token: str,
+        *,
+        headers: dict[str, str] | None = None,
     ) -> None:
         self.url = clean_url(url, trailing_slash=False)
         self.api_url = f"{self.url}/api"
@@ -270,7 +283,7 @@ class GitlabClient(ProviderClient):
 
     async def get_topics(self) -> list[Topic]:
         _topics: list[GitlabREST_Topic] = await self._rest_iterate(
-            url=self._resolve_rest_api_url("/topics")
+            url=self._resolve_rest_api_url("/topics"),
         )
         return [Topic(**t) for t in _topics]
 
@@ -302,7 +315,8 @@ class GitlabClient(ProviderClient):
         _license = rest_project_data["license"]
         if _license and _license_url:
             license_id = GITLAB_LICENSES_SPDX_MAPPING.get(
-                _license["key"], _license["key"].upper()
+                _license["key"],
+                _license["key"].upper(),
             )
             return License(id=license_id, url=_license_url)
         return None
@@ -320,8 +334,8 @@ class GitlabClient(ProviderClient):
         flags: list[str],
         limit: int,
         sort: tuple[str, str] | None,
-        prev: str | None,
-        next: str | None,
+        start: str | None,
+        end: str | None,
     ) -> tuple[list[ProjectReference], CursorPagination]:
         _projects, pagination = await self._search(
             project_fragment=GITLAB_GRAPHQL_PROJECT_REFERENCE_FRAGMENT,
@@ -333,8 +347,8 @@ class GitlabClient(ProviderClient):
             datetime_range=None,
             limit=limit,
             sort=sort,
-            prev=prev,
-            next=next,
+            start=start,
+            end=end,
         )
         projects = [_adapt_graphql_project_reference(p) for p in _projects]
         return projects, pagination
@@ -349,8 +363,8 @@ class GitlabClient(ProviderClient):
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: tuple[str, str] | None,
-        prev: str | None,
-        next: str | None,
+        start: str | None,
+        end: str | None,
     ) -> tuple[list[ProjectPreview], CursorPagination]:
         _projects, pagination = await self._search(
             project_fragment=GITLAB_GRAPHQL_PROJECT_PREVIEW_FRAGMENT,
@@ -362,8 +376,8 @@ class GitlabClient(ProviderClient):
             datetime_range=datetime_range,
             limit=limit,
             sort=sort,
-            prev=prev,
-            next=next,
+            start=start,
+            end=end,
         )
         projects = [_adapt_graphql_project_preview(p) for p in _projects]
         return projects, pagination
@@ -378,8 +392,8 @@ class GitlabClient(ProviderClient):
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: tuple[str, str] | None,
-        prev: str | None,
-        next: str | None,
+        start: str | None,
+        end: str | None,
     ) -> tuple[list[Project], CursorPagination]:
         _projects, pagination = await self._search(
             project_fragment=GITLAB_GRAPHQL_PROJECT_FRAGMENT,
@@ -391,13 +405,13 @@ class GitlabClient(ProviderClient):
             datetime_range=datetime_range,
             limit=limit,
             sort=sort,
-            prev=prev,
-            next=next,
+            start=start,
+            end=end,
         )
         projects = [_adapt_graphql_project(p) for p in _projects]
         return projects, pagination
 
-    async def _search(
+    async def _search(  # noqa: C901
         self,
         project_fragment: str,
         ids: list[str],
@@ -408,8 +422,8 @@ class GitlabClient(ProviderClient):
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: tuple[str, str] | None,
-        prev: str | None,
-        next: str | None,
+        start: str | None,
+        end: str | None,
     ) -> tuple[list[dict[str, Any]], CursorPagination]:
         if ids:
             projects = await self._search_projects_by_ids(project_fragment, ids)
@@ -421,11 +435,11 @@ class GitlabClient(ProviderClient):
             pagination = CursorPagination(total=len(ids), start=None, end=None)
             return projects, pagination
 
-        if prev:
-            cursor = prev
+        if end:
+            cursor = end
             direction = -1
         else:
-            cursor = next
+            cursor = start
             direction = 1
 
         local_filtering = any((extent, datetime_range, flags))
@@ -450,11 +464,15 @@ class GitlabClient(ProviderClient):
         while len(projects_cur) < search_size and not _stop:
             if not starred:
                 _projects_cur, _pagination = await self._search_projects(
-                    project_fragment, **req_params, cursor=cursor
+                    project_fragment,
+                    **req_params,
+                    cursor=cursor,
                 )
             else:
                 _projects_cur, _pagination = await self._search_starred_projects(
-                    project_fragment, **req_params, cursor=cursor
+                    project_fragment,
+                    **req_params,
+                    cursor=cursor,
                 )
 
             if datetime_range:
@@ -508,8 +526,8 @@ class GitlabClient(ProviderClient):
         else:
             logger.debug(
                 f"Could not find any project {'after' if direction > 0 else 'before'}: "
-                f"{prev if prev else next} "
-                f"({query=}, {topics=}, {limit=}, {datetime_range=} {extent=})"
+                f"{end if end else start} "
+                f"({query=}, {topics=}, {limit=}, {datetime_range=} {extent=})",
             )
             start_cursor = None
             end_cursor = None
@@ -522,7 +540,7 @@ class GitlabClient(ProviderClient):
                 if not local_filtering
                 else (
                     count_projects
-                    if (count_projects < limit and not any((prev, next)))
+                    if (count_projects < limit and not any((start, end)))
                     or (count_projects == limit and not end_cursor)
                     else None
                 )
@@ -533,7 +551,9 @@ class GitlabClient(ProviderClient):
         return projects, pagination
 
     async def _search_projects_by_ids(
-        self, project_fragment: str, ids: list[str]
+        self,
+        project_fragment: str,
+        ids: list[str],
     ) -> list[dict[str, Any]]:
         graphql_query = "\n".join(
             f'project{i}: project(fullPath: "{id_}") {{...projectFields }}'
@@ -547,7 +567,7 @@ class GitlabClient(ProviderClient):
         """
         result = await self._graphql(graphql_query)
         data = result["data"]
-        return [p for p in data.values()]
+        return list(data.values())
 
     async def _search_projects(
         self,
@@ -690,7 +710,7 @@ class GitlabClient(ProviderClient):
         ]
         return projects_cur, pagination
 
-    def _get_graphql_cursor_params(self, direction) -> tuple[str, str]:
+    def _get_graphql_cursor_params(self, direction: int) -> tuple[str, str]:
         if direction > 0:
             limit_param = "first"
             cursor_param = "after"
@@ -704,7 +724,8 @@ class GitlabClient(ProviderClient):
             sort_field, sort_direction = sort
             if sort_field not in GITLAB_GRAPHQL_SORTS:
                 sort_field = GITLAB_GRAPHQL_SORTS_ALIASES.get(
-                    sort_field, GITLAB_GRAPHQL_SORTS[0]
+                    sort_field,
+                    GITLAB_GRAPHQL_SORTS[0],
                 )
         else:
             sort_direction = "asc"
@@ -722,7 +743,7 @@ class GitlabClient(ProviderClient):
         path = urlsafe_path(project_path.strip("/"))
         fpath = urlsafe_path(file_path)
         url = self._resolve_rest_api_url(
-            f"/projects/{path}/repository/files/{fpath}/raw?ref={ref}&lfs=true"
+            f"/projects/{path}/repository/files/{fpath}/raw?ref={ref}&lfs=true",
         )
         return await self._request_streaming(
             url,
@@ -732,11 +753,15 @@ class GitlabClient(ProviderClient):
         )
 
     async def download_archive(
-        self, project_path: str, ref: str, format: str, request: Request
+        self,
+        project_path: str,
+        ref: str,
+        archive_format: str,
+        request: Request,
     ) -> StreamingResponse:
         path = urlsafe_path(project_path.strip("/"))
         url = self._resolve_rest_api_url(
-            f"/projects/{path}/repository/archive.{format}?sha={ref}"
+            f"/projects/{path}/repository/archive.{archive_format}?sha={ref}",
         )
         return await self._request_streaming(url, request=request)
 
@@ -749,7 +774,10 @@ class GitlabClient(ProviderClient):
         return f"{self.rest_url}/{endpoint}"
 
     async def _graphql(
-        self, query: str, *, variables: dict[str, Any] | None = None
+        self,
+        query: str,
+        *,
+        variables: dict[str, Any] | None = None,
     ) -> dict[str, Any] | list[Any] | str | None:
         return await self._request(
             url=self.graphql_url,
@@ -760,7 +788,10 @@ class GitlabClient(ProviderClient):
         )
 
     async def _request(
-        self, url: str, media_type: str = "json", **params: Any
+        self,
+        url: str,
+        media_type: str = "json",
+        **params: Any,
     ) -> dict[str, Any] | list[Any] | str | None:
         response = await self._send_request(url, **params)
         match media_type:
@@ -787,16 +818,16 @@ class GitlabClient(ProviderClient):
                 f"filename*=UTF-8''{filename}",
             ]
             content_disposition = response_headers.get("Content-Disposition", "").split(
-                ";"
+                ";",
             )
             if content_disposition:
                 filename_set = False
                 for i, e in enumerate(content_disposition):
-                    e = e.strip()
-                    if e.startswith("filename=") and filename:
+                    cd = e.strip()
+                    if cd.startswith("filename=") and filename:
                         content_disposition[i] = f'filename="{filename}"'
                         filename_set = True
-                    if e.startswith("filename*=UTF-8''") and filename:
+                    if cd.startswith("filename*=UTF-8''") and filename:
                         content_disposition[i] = f"filename*=UTF-8''{filename}"
                         filename_set = True
                 if not filename_set:
@@ -814,7 +845,7 @@ class GitlabClient(ProviderClient):
             headers=response_headers,
         )
 
-    async def _rest_iterate(self, url: str, per_page=100) -> list[Any]:
+    async def _rest_iterate(self, url: str, per_page: int = 100) -> list[Any]:
         logger.debug(f"Request iterate {url}")
 
         params = {
@@ -860,7 +891,7 @@ class GitlabClient(ProviderClient):
         method: HttpMethod = HttpMethod.GET,
         headers: dict[str, str] | None = None,
         query: dict[str, Any] | None = None,
-        body: Any = None,
+        body: str | bytes | dict | None = None,
         request: Request | None = None,
     ) -> aiohttp.ClientResponse:
         if query is None:
@@ -894,9 +925,12 @@ class GitlabClient(ProviderClient):
             )
 
         if not response.ok:
+            detail = f"HTTP {response.status} "
+            f"| {method} {response.url}"
+            f": {await response.text()}"
             raise HTTPException(
                 status_code=response.status,
-                detail=f"HTTP {response.status} | {method} {response.url}: {await response.text()}",
+                detail=detail,
             )
 
         return response
@@ -985,13 +1019,14 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
 
 
 def _process_readme_and_metadata(
-    project_data: GitlabGraphQL_ProjectPreview, save: bool = True
+    project_data: GitlabGraphQL_ProjectPreview,
+    save: bool = True,
 ) -> tuple[str, dict]:
     if all(e in project_data for e in ["_readme", "_metadata"]):
         readme, metadata = project_data["_readme"], project_data["_metadata"]
     elif project_data["repository"]["blobs"]["nodes"]:
         readme, metadata = md.parse(
-            project_data["repository"]["blobs"]["nodes"][0]["rawBlob"]
+            project_data["repository"]["blobs"]["nodes"][0]["rawBlob"],
         )
         if save:
             project_data["_readme"] = readme
@@ -1002,14 +1037,15 @@ def _process_readme_and_metadata(
 
 
 def _process_spatial_extent(
-    project_data: GitlabGraphQL_ProjectPreview, save: bool = True
+    project_data: GitlabGraphQL_ProjectPreview,
+    save: bool = True,
 ) -> BaseGeometry | None:
     if "_extent" in project_data:
         return project_data["_extent"]
 
     _, metadata = _process_readme_and_metadata(project_data, save=save)
     if extent_src := metadata.get("extent", {}).get("spatial"):
-        if isinstance(extent_src, list) and len(extent_src) == 4:
+        if isinstance(extent_src, list) and len(extent_src) == BBOX_LEN:
             extent = geo.bbox2geom(extent_src)
         elif isinstance(extent_src, str):
             extent = geo.wkt2geom(extent_src)

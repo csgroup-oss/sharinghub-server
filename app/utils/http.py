@@ -51,7 +51,8 @@ def clean_url(url: str, trailing_slash: bool = True) -> str:
     u = urlparse(url)
     if u.scheme in ["http", "https"] and u.netloc:
         return url.removesuffix("/") + ("/" if trailing_slash else "")
-    raise ValueError(f"Not a valid URL: '{url}'")
+    msg = f"Not a valid URL: '{url}'"
+    raise ValueError(msg)
 
 
 def is_local(uri: str) -> bool:
@@ -86,7 +87,8 @@ class AiohttpClient:
     def connect(self, timeout: float) -> None:
         client_timeout = aiohttp.ClientTimeout(total=timeout if timeout else None)
         connector = aiohttp.TCPConnector(
-            family=AF_INET, limit_per_host=self.SIZE_POOL_AIOHTTP
+            family=AF_INET,
+            limit_per_host=self.SIZE_POOL_AIOHTTP,
         )
         self.client = aiohttp.ClientSession(timeout=client_timeout, connector=connector)
 
@@ -97,8 +99,9 @@ class AiohttpClient:
 
     async def __aenter__(self) -> aiohttp.ClientSession:
         if not self.client:
-            raise RuntimeError("AiohttpClient is closed")
+            msg = "AiohttpClient is closed"
+            raise RuntimeError(msg)
         return self.client
 
-    async def __aexit__(self, exc_type, exc, tb) -> bool:
+    async def __aexit__(self, *exc: object) -> bool:
         return False

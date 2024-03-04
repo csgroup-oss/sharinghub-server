@@ -4,10 +4,11 @@ from typing import Annotated
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
-from fastapi import APIRouter, HTTPException, Path, Request, Response
+from fastapi import APIRouter, HTTPException, Path, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.auth import GitlabTokenDep
+from app.auth.api import GitlabToken
 from app.providers.client import GitlabClient
 from app.settings import GITLAB_URL
 from app.stac.api.category import FeatureVal
@@ -37,10 +38,10 @@ s3_client = boto3.client(
 )
 
 
-async def check_access(token, project_id):
+async def check_access(token: GitlabToken, project_id: str) -> None:
     """Checks the access permissions for a given Gitlab user token and project ID."""
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
-    project = await gitlab_client.get_project_from_id(project_id)
+    project = await gitlab_client.get_project_from_id(id=int(project_id))
     if (
         project.category.features.get(S3_FEATURE_NAME, FeatureVal.DISABLE)
         != FeatureVal.ENABLE
@@ -61,7 +62,7 @@ async def s3_get_proxy(
     path: str,
     request: Request,
     token: GitlabTokenDep,
-) -> Response:
+) -> RedirectResponse:
     await check_access(token, project_id)
 
     try:
@@ -83,8 +84,8 @@ async def s3_get_proxy(
                 ExpiresIn=S3_PRESIGNED_EXPIRATION,
             )
     except ClientError as e:
-        logger.error(e)
-        raise HTTPException(status_code=500, detail=f"AWS S3 Client Error: {e}")
+        detail = f"AWS S3 Client Error: {e}"
+        raise HTTPException(status_code=500, detail=detail) from e
 
     return RedirectResponse(response)
 
@@ -98,7 +99,7 @@ async def s3_post_proxy(
     path: Annotated[str, Path(title="The path of the item to get")],
     request: Request,
     token: GitlabTokenDep,
-):
+) -> JSONResponse:
     await check_access(token, project_id)
 
     try:
@@ -150,12 +151,13 @@ async def s3_post_proxy(
         )
 
         return JSONResponse(
-            content={"message": "File uploaded successfully"}, status_code=200
+            content={"message": "File uploaded successfully"},
+            status_code=200,
         )
 
     except BotoCoreError as e:
-        logger.error(e)
-        raise HTTPException(status_code=500, detail=f"Error connecting to AWS S3: {e}")
+        detail = f"Error connecting to AWS S3: {e}"
+        raise HTTPException(status_code=500, detail=detail) from e
     except ClientError as e:
-        logger.error(e)
-        raise HTTPException(status_code=500, detail=f"AWS S3 Client Error: {e}")
+        detail = f"AWS S3 Client Error: {e}"
+        raise HTTPException(status_code=500, detail=detail) from e

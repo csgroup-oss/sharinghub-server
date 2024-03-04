@@ -1,4 +1,4 @@
-from collections import namedtuple
+from typing import Any, NamedTuple
 
 from authlib.integrations.starlette_client import OAuth, StarletteOAuth2App
 from fastapi import HTTPException
@@ -8,20 +8,22 @@ from app.settings import GITLAB_URL
 
 from .settings import GITLAB_OAUTH
 
-GitlabToken = namedtuple("GitlabToken", ["value", "query", "rc_query"])
-
 _oauth = OAuth()
 _OAUTH_NAME = "gitlab"
 _MANDATORY_KEYS = ["client_id", "client_secret", "server_metadata_url"]
 
 
+class GitlabToken(NamedTuple):
+    value: str
+    query: dict[str, Any]
+    rc_query: dict[str, Any]
+
+
 async def get_oauth() -> StarletteOAuth2App | None:
     if oauth_client := _oauth.create_client(_OAUTH_NAME):
         return oauth_client
-    oauth_conf = {
-        "server_metadata_url": f"{GITLAB_URL.removesuffix('/')}/.well-known/openid-configuration",
-        **GITLAB_OAUTH,
-    }
+    openid_url = f"{GITLAB_URL.removesuffix('/')}/.well-known/openid-configuration"
+    oauth_conf = {"server_metadata_url": openid_url, **GITLAB_OAUTH}
     if all(k in oauth_conf for k in _MANDATORY_KEYS):
         return _oauth.register(
             name=_OAUTH_NAME,

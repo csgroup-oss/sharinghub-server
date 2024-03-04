@@ -63,7 +63,7 @@ CONFORMANCE = [
 
 @router.get("")
 @router.get("/")
-async def stac_root(request: Request, token: GitlabTokenDep):
+async def stac_root(request: Request, token: GitlabTokenDep) -> dict:
     return build_stac_root(
         root_config=STAC_ROOT_CONF,
         conformance_classes=CONFORMANCE,
@@ -74,21 +74,25 @@ async def stac_root(request: Request, token: GitlabTokenDep):
 
 
 @router.get("/conformance")
-async def stac_conformance():
+async def stac_conformance() -> dict:
     return {"conformsTo": CONFORMANCE}
 
 
 @router.get("/collections")
-async def stac_collections(request: Request, token: GitlabTokenDep):
+async def stac_collections(request: Request, token: GitlabTokenDep) -> dict:
     return build_stac_collections(
-        categories=get_categories(), request=request, token=token
+        categories=get_categories(),
+        request=request,
+        token=token,
     )
 
 
 @router.get("/collections/{collection_id}")
 async def stac_collection(
-    request: Request, token: GitlabTokenDep, category: CategoryFromCollectionIdDep
-):
+    request: Request,
+    token: GitlabTokenDep,
+    category: CategoryFromCollectionIdDep,
+) -> dict:
     return build_stac_collection(
         category=category,
         request=request,
@@ -102,12 +106,12 @@ async def stac_collection_items(
     token: GitlabTokenDep,
     category: CategoryFromCollectionIdDep,
     mode: SearchMode = "full",
-    prev: str | None = None,
-    next: str | None = None,
+    before: str | None = None,
+    after: str | None = None,
     limit: int = STAC_SEARCH_PAGE_DEFAULT_SIZE,
     bbox: str = "",
     datetime: str = "",
-):
+) -> dict:
     search_query = STACSearchQuery(
         limit=limit,
         bbox=[float(p) for p in bbox.split(",")] if bbox else [],
@@ -121,8 +125,8 @@ async def stac_collection_items(
         mode=mode,
         search_query=search_query,
         category=category,
-        prev=prev,
-        next=next,
+        before=before,
+        after=after,
     )
 
 
@@ -132,9 +136,9 @@ async def stac_collection_feature(
     token: GitlabTokenDep,
     category: CategoryFromCollectionIdDep,
     feature_id: str,
-):
+) -> dict:
     if not feature_id:
-        raise HTTPException(status_code=400, detail=f"No feature ID given")
+        raise HTTPException(status_code=400, detail="No feature ID given")
 
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     project = await gitlab_client.get_project(path=feature_id)
@@ -152,12 +156,13 @@ async def stac_collection_feature(
         if elapsed_time < STAC_PROJECTS_CACHE_TIMEOUT:
             logger.debug(
                 f"Read project stac from cache '{project.path}' "
-                f"({elapsed_time:.3f}/{STAC_PROJECTS_CACHE_TIMEOUT} s)"
+                f"({elapsed_time:.3f}/{STAC_PROJECTS_CACHE_TIMEOUT} s)",
             )
             return cached_stac["stac"]
-        elif cached_stac["checksum"] == _get_project_checksum(project):
+        if cached_stac["checksum"] == _get_project_checksum(project):
             logger.debug(
-                "Read project stac from cache" f"'{project.path}' (no changes detected)"
+                "Read project stac from cache"
+                f"'{project.path}' (no changes detected)",
             )
             cached_stac["time"] = time.time()
             await cache.set(cache_key, cached_stac, namespace="project")
@@ -165,16 +170,11 @@ async def stac_collection_feature(
 
     await _resolve_license(project, gitlab_client)
 
-    try:
-        project_stac = build_stac_item(
-            project=project,
-            request=request,
-            token=token,
-        )
-    except Exception as exc:
-        logger.exception(exc)
-        raise HTTPException(status_code=500, detail=str(exc))
-
+    project_stac = build_stac_item(
+        project=project,
+        request=request,
+        token=token,
+    )
     if ENABLE_CACHE:
         logger.debug(f"Write stac '{feature_id}' in cache")
         cached_stac = {
@@ -195,8 +195,8 @@ def _get_project_checksum(project: Project) -> int:
 async def stac_search_get(
     request: Request,
     token: GitlabTokenDep,
-    prev: str | None = None,
-    next: str | None = None,
+    before: str | None = None,
+    after: str | None = None,
     limit: int = STAC_SEARCH_PAGE_DEFAULT_SIZE,
     sortby: str | None = None,
     q: str = "",
@@ -206,7 +206,7 @@ async def stac_search_get(
     ids: str = "",
     collections: str = "",
     mode: SearchMode = "full",
-):
+) -> dict:
     search_query = STACSearchQuery(
         limit=limit,
         sortby=sortby,
@@ -224,8 +224,8 @@ async def stac_search_get(
         mode=mode,
         search_query=search_query,
         category=None,
-        prev=prev,
-        next=next,
+        before=before,
+        after=after,
     )
 
 
@@ -234,10 +234,10 @@ async def stac_search_post(
     request: Request,
     token: GitlabTokenDep,
     search_query: STACSearchQuery,
-    prev: str | None = None,
-    next: str | None = None,
+    before: str | None = None,
+    after: str | None = None,
     mode: SearchMode = "full",
-):
+) -> dict:
     return await _stac_search(
         request=request,
         token=token,
@@ -245,20 +245,20 @@ async def stac_search_post(
         mode=mode,
         search_query=search_query,
         category=None,
-        prev=prev,
-        next=next,
+        before=before,
+        after=after,
     )
 
 
-async def _stac_search(
+async def _stac_search(  # noqa: C901
     request: Request,
     token: GitlabTokenDep,
     route: str,
     mode: SearchMode,
     search_query: STACSearchQuery,
     category: Category | None,
-    prev: str | None,
-    next: str | None,
+    before: str | None,
+    after: str | None,
 ) -> dict:
     count_collections = len(search_query.collections)
     if count_collections > 1:
@@ -267,12 +267,16 @@ async def _stac_search(
             detail="Search is enabled only for one collection, "
             f"got {count_collections} collections",
         )
-    elif count_collections == 0:
+    if count_collections == 0:
         return build_features_collection(
             features=[],
             state_query={},
             pagination=STACPagination(
-                limit=search_query.limit, matched=0, returned=0, next=None, prev=None
+                limit=search_query.limit,
+                matched=0,
+                returned=0,
+                prev=None,
+                next=None,
             ),
             route=route,
             category=None,
@@ -297,9 +301,8 @@ async def _stac_search(
         if isinstance(_sortby, str):
             sort_direction = "desc" if _sortby.startswith("-") else "asc"
             sort_field = _sortby.lstrip("-+").strip()
-            sort_field = sort_field.replace("properties.", "").replace(
-                "sharinghub:", ""
-            )
+            sort_field = sort_field.replace("properties.", "")
+            sort_field = sort_field.replace("sharinghub:", "")
             sortby = sort_field, sort_direction
         elif len(_sortby) > 0:
             sortby = _sortby[0]["field"], _sortby[0]["direction"]
@@ -334,8 +337,8 @@ async def _stac_search(
                 flags=flags,
                 limit=search_query.limit,
                 sort=sortby,
-                prev=prev,
-                next=next,
+                start=after,
+                end=before,
             )
             features = [
                 build_stac_item_reference(p, request=request, token=token)
@@ -351,8 +354,8 @@ async def _stac_search(
                 datetime_range=search_query.datetime_range,
                 limit=search_query.limit,
                 sort=sortby,
-                prev=prev,
-                next=next,
+                start=after,
+                end=before,
             )
             features = [
                 build_stac_item_preview(p, request=request, token=token)
@@ -368,17 +371,19 @@ async def _stac_search(
                 datetime_range=search_query.datetime_range,
                 limit=search_query.limit,
                 sort=sortby,
-                prev=prev,
-                next=next,
+                start=after,
+                end=before,
             )
             await asyncio.gather(
-                *(_resolve_license(p, gitlab_client) for p in projects)
+                *(_resolve_license(p, gitlab_client) for p in projects),
             )
             features = [
                 build_stac_item(p, request=request, token=token) for p in projects
             ]
     pagination = _create_stac_pagination(
-        _pagination, limit=search_query.limit, count=len(projects)
+        _pagination,
+        limit=search_query.limit,
+        count=len(projects),
     )
     return build_features_collection(
         features=features,
@@ -395,7 +400,9 @@ async def _stac_search(
 
 
 def _create_stac_pagination(
-    cursor_pagination: CursorPagination, limit: int, count: int
+    cursor_pagination: CursorPagination,
+    limit: int,
+    count: int,
 ) -> STACPagination:
     return STACPagination(
         limit=limit,
@@ -406,7 +413,7 @@ def _create_stac_pagination(
     )
 
 
-async def _resolve_license(project: Project, client: GitlabClient):
+async def _resolve_license(project: Project, client: GitlabClient) -> None:
     cache_key = project.path
     nolicense = 1
 

@@ -5,7 +5,7 @@ from fastapi import Request
 from fastapi.responses import StreamingResponse
 from shapely.geometry.base import BaseGeometry
 
-from ..schemas import Project, ProjectPreview, ProjectReference, Topic
+from app.providers.schemas import Project, ProjectPreview, ProjectReference, Topic
 
 
 class CursorPagination(TypedDict):
@@ -27,8 +27,8 @@ class ProviderClient(Protocol):
         flags: list[str],
         limit: int,
         sort: tuple[str, str] | None,
-        prev: str | None,
-        next: str | None,
+        start: str | None,
+        end: str | None,
     ) -> tuple[list[ProjectReference], CursorPagination]: ...
 
     async def search_previews(
@@ -41,8 +41,8 @@ class ProviderClient(Protocol):
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: tuple[str, str] | None,
-        prev: str | None,
-        next: str | None,
+        start: str | None,
+        end: str | None,
     ) -> tuple[list[ProjectPreview], CursorPagination]: ...
 
     async def search(
@@ -55,8 +55,8 @@ class ProviderClient(Protocol):
         datetime_range: tuple[datetime, datetime] | None,
         limit: int,
         sort: tuple[str, str] | None,
-        prev: str | None,
-        next: str | None,
+        start: str | None,
+        end: str | None,
     ) -> tuple[list[Project], CursorPagination]: ...
 
     async def download_file(
@@ -69,5 +69,9 @@ class ProviderClient(Protocol):
     ) -> StreamingResponse: ...
 
     async def download_archive(
-        self, project_path: str, ref: str, format: str, request: Request
+        self,
+        project_path: str,
+        ref: str,
+        archive_format: str,
+        request: Request,
     ) -> StreamingResponse: ...

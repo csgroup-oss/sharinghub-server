@@ -8,7 +8,7 @@ router = APIRouter()
 
 
 @router.get("/")
-async def configuration():
+async def configuration() -> dict:
     text_keys = ["title", "description", "name"]
     exclude_keys = ["locales"]
     return {
@@ -25,7 +25,7 @@ async def configuration():
             "locales": {
                 "en": {k: v for k, v in STAC_ROOT_CONF.items() if k in text_keys},
                 **{
-                    locale: {k: v for k, v in translation.items()}
+                    locale: dict(translation)
                     for locale, translation in STAC_ROOT_CONF.get("locales", {}).items()
                 },
             },
@@ -40,7 +40,7 @@ async def configuration():
                 "locales": {
                     "en": {k: v for k, v in category.items() if k in text_keys},
                     **{
-                        locale: {k: v for k, v in translation.items()}
+                        locale: dict(translation)
                         for locale, translation in category.get("locales", {}).items()
                     },
                 },
@@ -55,7 +55,7 @@ async def configuration():
                     k: v for k, v in ALERT_MESSAGE.items() if k in ["message", "title"]
                 },
                 **{
-                    locale: {k: v for k, v in translation.items()}
+                    locale: dict(translation)
                     for locale, translation in ALERT_MESSAGE.get("locales", {}).items()
                 },
             },
@@ -64,23 +64,23 @@ async def configuration():
 
 
 def normalize_external_urls(array: list[dict], text_keys: list[str]) -> list[dict]:
-    def mapping(link: dict):
-        if not link.get("dropdown"):
+    def mapping(link: dict) -> dict:
+        dropdown = link.get("dropdown", [])
+        if not dropdown:
             return {
                 **{k: v for k, v in link.items() if k not in text_keys},
                 "locales": {
                     "en": {k: v for k, v in link.items() if k in text_keys},
-                    **{k: v for k, v in link.get("locales", {}).items()},
+                    **dict(link.get("locales", {})),
                 },
             }
-        else:
-            return {
-                **{k: v for k, v in link.items() if k not in text_keys},
-                "locales": {
-                    "en": {k: v for k, v in link.items() if k in text_keys},
-                    **{k: v for k, v in link.get("locales", {}).items()},
-                },
-                "dropdown": normalize_external_urls(link.get("dropdown"), text_keys),
-            }
+        return {
+            **{k: v for k, v in link.items() if k not in text_keys},
+            "locales": {
+                "en": {k: v for k, v in link.items() if k in text_keys},
+                **dict(link.get("locales", {})),
+            },
+            "dropdown": normalize_external_urls(dropdown, text_keys),
+        }
 
     return list(map(mapping, array))

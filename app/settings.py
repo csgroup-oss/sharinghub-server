@@ -25,7 +25,10 @@ conf = Config.load(*_CONFIG_FILES, secret_dir=SECRET_DIR)
 DEBUG: bool = conf("server.debug", "DEBUG", default=False, cast=cbool())
 
 DEFAULT_LOG_LEVEL: str = conf(
-    "server.log-level", "LOG_LEVEL", default="INFO", cast=str
+    "server.log-level",
+    "LOG_LEVEL",
+    default="INFO",
+    cast=str,
 ).upper()
 LOG_LEVEL = "DEBUG" if DEBUG else DEFAULT_LOG_LEVEL
 LOGGING = {
@@ -48,7 +51,7 @@ LOGGING = {
         "app": {
             "handlers": ["default"],
             "level": LOG_LEVEL,
-        }
+        },
     },
 }
 
@@ -73,19 +76,31 @@ SESSION_SECRET_KEY: str = conf(
     cast=str,
 )
 SESSION_MAX_AGE: float = conf(
-    "server.session.max-age", "SESSION_MAX_AGE", default=3600.0, cast=float
+    "server.session.max-age",
+    "SESSION_MAX_AGE",
+    default=3600.0,
+    cast=float,
 )
 
 STATIC_FILES_PATH: Path | None = conf(
-    "server.statics", "STATIC_FILES_PATH", default=None, cast=cpath()
+    "server.statics",
+    "STATIC_FILES_PATH",
+    default=None,
+    cast=cpath(),
 )
 
 HTTP_CLIENT_TIMEOUT: float = conf(
-    "server.http_client.timeout", "HTTP_CLIENT_TIMEOUT", default=300.0, cast=float
+    "server.http_client.timeout",
+    "HTTP_CLIENT_TIMEOUT",
+    default=300.0,
+    cast=float,
 )
 
 ENABLE_CACHE: bool = conf(
-    "server.cache", "ENABLE_CACHE", default=not DEBUG, cast=cbool()
+    "server.cache",
+    "ENABLE_CACHE",
+    default=not DEBUG,
+    cast=cbool(),
 )
 
 EXTERNAL_URLS: list = conf("external-urls", default=[], cast=clist())

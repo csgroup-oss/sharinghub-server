@@ -12,15 +12,15 @@ from shapely.geometry.base import BaseGeometry
 from app.auth import GitlabToken
 from app.providers.schemas import License, Project, ProjectPreview, ProjectReference
 from app.settings import GITLAB_URL
-from app.utils import geo
-from app.utils import markdown as md
-from app.utils.http import is_local, url_for
-
-from ..settings import (
+from app.stac.settings import (
     STAC_EXTENSIONS,
     STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT,
     STAC_PROJECTS_CACHE_TIMEOUT,
 )
+from app.utils import geo
+from app.utils import markdown as md
+from app.utils.http import is_local, url_for
+
 from .category import Category, FeatureVal
 from .search import STACPagination
 
@@ -40,6 +40,7 @@ MEDIA_TYPES = {
 }
 
 DOI_URL = "https://doi.org/"
+DOI_PREFIX = "DOI:"
 
 
 class STACContext(TypedDict):
@@ -63,7 +64,7 @@ def build_stac_root(
     title = root_config.get("title", "GitLab STAC")
     description = root_config.get(
         "description",
-        f"Catalog generated from your [Gitlab]({GITLAB_URL}) repositories with SharingHub.",
+        f"Catalog generated from your [Gitlab]({GITLAB_URL}) with SharingHub.",
     )
     logo = root_config.get("logo")
 
@@ -74,7 +75,7 @@ def build_stac_root(
             "href": url_for(
                 _request,
                 "stac_collection",
-                path=dict(collection_id=category.id),
+                path={"collection_id": category.id},
                 query={**_token.query},
             ),
         }
@@ -88,7 +89,7 @@ def build_stac_root(
                 "rel": "preview",
                 "type": logo_media_type,
                 "href": logo,
-            }
+            },
         )
 
     return {
@@ -173,7 +174,8 @@ def build_stac_root(
 
 
 def build_stac_collections(
-    categories: list[Category], **context: Unpack[STACContext]
+    categories: list[Category],
+    **context: Unpack[STACContext],
 ) -> dict:
     _request = context["request"]
     _token = context["token"]
@@ -227,7 +229,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
     description = (
         category.description
         if category.description
-        else f"STAC {title} generated from your [Gitlab]({GITLAB_URL}) repositories with SharingHub."
+        else f"STAC {title} generated from your [Gitlab]({GITLAB_URL}) with SharingHub."
     )
     logo = category.logo
 
@@ -241,7 +243,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
                 "rel": "preview",
                 "type": logo_media_type,
                 "href": logo,
-            }
+            },
         )
 
     return {
@@ -271,7 +273,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
                 "href": url_for(
                     _request,
                     "stac_collection",
-                    path=dict(collection_id=category.id),
+                    path={"collection_id": category.id},
                     query={**_token.query},
                 ),
             },
@@ -299,7 +301,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
                 "href": url_for(
                     _request,
                     "stac_collection_items",
-                    path=dict(collection_id=category.id),
+                    path={"collection_id": category.id},
                     query={**_token.query},
                 ),
             },
@@ -329,18 +331,18 @@ def build_features_collection(
                 "href": url_for(
                     _request,
                     "stac_collection",
-                    path=dict(collection_id=category.id),
+                    path={"collection_id": category.id},
                     query={**_token.query},
                 ),
-            }
+            },
         )
 
     query_params = state_query | dict(_request.query_params)
 
     if pagination["prev"]:
         prev_params = query_params.copy()
-        prev_params.pop("next", None)
-        prev_params["prev"] = pagination["prev"]
+        prev_params.pop("after", None)
+        prev_params["before"] = pagination["prev"]
         links.append(
             {
                 "rel": "prev",
@@ -351,13 +353,13 @@ def build_features_collection(
                     query=prev_params,
                 ),
                 "type": "application/geo+json",
-            }
+            },
         )
 
     if pagination["next"]:
         next_params = query_params.copy()
-        next_params.pop("prev", None)
-        next_params["next"] = pagination["next"]
+        next_params.pop("before", None)
+        next_params["after"] = pagination["next"]
         links.append(
             {
                 "rel": "next",
@@ -368,7 +370,7 @@ def build_features_collection(
                     query=next_params,
                 ),
                 "type": "application/geo+json",
-            }
+            },
         )
 
     return {
@@ -413,7 +415,8 @@ def build_stac_item_reference(
     **context: Unpack[STACContext],
 ) -> dict:
     default_fields, default_links, default_assets = _build_stac_item_default_values(
-        project, **context
+        project,
+        **context,
     )
     return {
         "stac_version": "1.0.0",
@@ -442,7 +445,8 @@ def build_stac_item_preview(
     description = _get_preview_description(project)
 
     stac_fields, stac_links, stac_assets = _build_stac_item_default_values(
-        project, **context
+        project,
+        **context,
     )
 
     if preview:
@@ -478,7 +482,8 @@ def build_stac_item(
     preview = _retrieve_preview(project, metadata, **context)
     description = _get_description(project, **context)
     license_ = _retrieve_license(
-        project, metadata
+        project,
+        metadata,
     )  # "license" property can be mapped transparently
     spatial_extent, temporal_extent = _retrieve_extent(project, metadata)
     providers = _retrieve_providers(project, metadata)
@@ -502,14 +507,15 @@ def build_stac_item(
             {
                 "rel": "license",
                 "href": license_.url,
-            }
+            },
         )
 
     if doi := extensions_properties.get("sci:doi"):
         stac_links.append({"rel": "cite-as", "href": f"{DOI_URL}{doi}"})
 
     default_fields, default_links, default_assets = _build_stac_item_default_values(
-        project, **context
+        project,
+        **context,
     )
     return {
         "stac_version": "1.0.0",
@@ -567,10 +573,10 @@ def _build_stac_item_default_values(
             "href": url_for(
                 _request,
                 "stac_collection_feature",
-                path=dict(
-                    collection_id=project.category.id,
-                    feature_id=project.path,
-                ),
+                path={
+                    "collection_id": project.category.id,
+                    "feature_id": project.path,
+                },
                 query={**_token.query},
             ),
         },
@@ -580,7 +586,7 @@ def _build_stac_item_default_values(
             "href": url_for(
                 _request,
                 "stac_collection",
-                path=dict(collection_id=project.category.id),
+                path={"collection_id": project.category.id},
                 query={**_token.query},
             ),
         },
@@ -599,7 +605,7 @@ def _build_stac_item_default_values(
             "href": url_for(
                 _request,
                 "stac_collection",
-                path=dict(collection_id=project.category.id),
+                path={"collection_id": project.category.id},
                 query={**_token.query},
             ),
         },
@@ -631,7 +637,9 @@ def _get_preview_description(project: ProjectPreview, wrap_char: int = 150) -> s
 
 
 def _retrieve_preview(
-    project: ProjectPreview, metadata: dict, **context: Unpack[STACContext]
+    project: ProjectPreview,
+    metadata: dict,
+    **context: Unpack[STACContext],
 ) -> tuple[dict, dict] | None:
     preview = metadata.pop("preview", None)
     for link_alt, link_img in md.get_images(project.readme):
@@ -640,7 +648,10 @@ def _retrieve_preview(
 
     if preview:
         preview_href = __resolve_href(
-            preview, project, {"cache": int(STAC_PROJECTS_CACHE_TIMEOUT)}, **context
+            preview,
+            project,
+            {"cache": int(STAC_PROJECTS_CACHE_TIMEOUT)},
+            **context,
         )
         asset = {
             "href": preview_href,
@@ -661,7 +672,8 @@ def _retrieve_preview(
 
 
 def _retrieve_extent(
-    project: ProjectPreview, metadata: dict
+    project: ProjectPreview,
+    metadata: dict,
 ) -> tuple[BaseGeometry | None, list[str | None]]:
     extent = metadata.pop("extent", {})
     spatial_extent = project.extent
@@ -678,10 +690,12 @@ def _get_description(project: Project, **context: Unpack[STACContext]) -> str:
 
 def _retrieve_license(project: Project, metadata: dict) -> License | None:
     license_id = metadata.pop(
-        "license", project.license.id if project.license else None
+        "license",
+        project.license.id if project.license else None,
     )
     license_url = metadata.pop(
-        "license-url", project.license.url if project.license else None
+        "license-url",
+        project.license.url if project.license else None,
     )
     if license_id:
         if license_url:
@@ -710,7 +724,7 @@ def _retrieve_providers(project: Project, metadata: dict) -> list[dict]:
                 "name": f"GitLab ({GITLAB_URL})",
                 "roles": ["host"],
                 "url": project.url,
-            }
+            },
         )
     if not has_producer:
         producer = project.full_name.split("/")[0].rstrip()
@@ -721,7 +735,7 @@ def _retrieve_providers(project: Project, metadata: dict) -> list[dict]:
                 "name": producer,
                 "roles": ["producer"],
                 "url": producer_url,
-            }
+            },
         )
 
     return providers
@@ -745,7 +759,8 @@ def _retrieve_sharinghub_properties(project: Project, metadata: dict) -> dict:
 
 
 def _retrieve_extensions(
-    project: ProjectPreview, metadata: dict
+    project: ProjectPreview,
+    metadata: dict,
 ) -> tuple[list[str], dict[str, Any]]:
     extensions = set()
     properties = {}
@@ -760,7 +775,7 @@ def _retrieve_extensions(
     doi, publications = __parse_scientific_citations(project.readme)
     if any((doi, publications)):
         extensions.add(
-            "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
+            "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
         )
         if doi:
             properties["sci:doi"], properties["sci:citation"] = doi
@@ -773,8 +788,6 @@ def _retrieve_extensions(
 def __parse_scientific_citations(
     md_content: str,
 ) -> tuple[tuple[str, str] | None, list[dict[str, str]]]:
-    DOI_PREFIX = "DOI:"
-
     doi = None
     publications = []
 
@@ -790,7 +803,9 @@ def __parse_scientific_citations(
 
 
 def _retrieve_links(
-    project: ProjectPreview, metadata: dict, **context: Unpack[STACContext]
+    project: ProjectPreview,
+    metadata: dict,
+    **context: Unpack[STACContext],
 ) -> list[tuple[str, str]]:
     _request = context["request"]
     _token = context["token"]
@@ -811,10 +826,10 @@ def _retrieve_links(
             "href": url_for(
                 _request,
                 "stac_collection_feature",
-                path=dict(
-                    collection_id=collection_id,
-                    feature_id=_path,
-                ),
+                path={
+                    "collection_id": collection_id,
+                    "feature_id": _path,
+                },
                 query={**_token.query},
             ),
         }
@@ -847,7 +862,8 @@ def _retrieve_assets(
 
 
 def __retrieve_assets_rules(
-    project: ProjectReference, metadata: dict
+    project: ProjectReference,
+    metadata: dict,
 ) -> list[dict[str, Any]]:
     assets_rules = []
 
@@ -902,7 +918,9 @@ def __create_assets(
 
 
 def __prepare_asset(
-    project: ProjectPreview, asset_def: dict[str, Any], **context: Unpack[STACContext]
+    project: ProjectPreview,
+    asset_def: dict[str, Any],
+    **context: Unpack[STACContext],
 ) -> tuple[str, dict[str, Any]] | None:
     href = asset_def.get("href")
     path = asset_def.get("path", "")
@@ -930,7 +948,8 @@ def __prepare_asset(
 
 
 def __create_release_asset(
-    project: Project, **context: Unpack[STACContext]
+    project: Project,
+    **context: Unpack[STACContext],
 ) -> dict[str, Any] | None:
     if project.latest_release:
         _request = context["request"]
@@ -940,14 +959,14 @@ def __create_release_asset(
         archive_url = url_for(
             _request,
             "download_gitlab_archive",
-            path=dict(
-                project_path=project.path,
-                format=STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT,
-            ),
+            path={
+                "project_path": project.path,
+                "archive_format": STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT,
+            },
             query={"ref": release.tag, **_token.rc_query},
         )
         media_type, _ = mimetypes.guess_type(
-            f"archive.{STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT}"
+            f"archive.{STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT}",
         )
 
         release_asset = {
@@ -964,20 +983,28 @@ def __create_release_asset(
 
 
 def __resolve_links(
-    md_content: str, project: ProjectPreview, **context: Unpack[STACContext]
+    md_content: str,
+    project: ProjectPreview,
+    **context: Unpack[STACContext],
 ) -> str:
-    def _resolve_src(match: re.Match):
+    def _resolve_src(match: re.Match) -> str:
         href = match.groupdict()["src"]
         href = __resolve_href(
-            href, project, {"cache": int(STAC_PROJECTS_CACHE_TIMEOUT)}, **context
+            href,
+            project,
+            {"cache": int(STAC_PROJECTS_CACHE_TIMEOUT)},
+            **context,
         )
         return f'src="{href}"'
 
-    def __resolve_md(match: re.Match):
+    def __resolve_md(match: re.Match) -> str:
         image = match.groupdict()
         href = image["src"]
         href = __resolve_href(
-            href, project, {"cache": int(STAC_PROJECTS_CACHE_TIMEOUT)}, **context
+            href,
+            project,
+            {"cache": int(STAC_PROJECTS_CACHE_TIMEOUT)},
+            **context,
         )
         return f"![{image['alt']}]({href})"
 
@@ -1004,14 +1031,15 @@ def __resolve_href(
         href = url_for(
             _request,
             "download_gitlab_file",
-            path=dict(
-                project_path=project.path,
-                file_path=path,
-            ),
+            path={
+                "project_path": project.path,
+                "file_path": path,
+            },
             query={**href_query, **_token.rc_query},
         )
     elif match := re.search(
-        r"(?P<collection>[a-z\-]+)\+(?P<href>http[s]?://[^)]+)", href
+        r"(?P<collection>[a-z\-]+)\+(?P<href>http[s]?://[^)]+)",
+        href,
     ):
         _map = match.groupdict()
         collection = _map["collection"]
@@ -1022,10 +1050,10 @@ def __resolve_href(
         href = url_for(
             _request,
             "stac_collection_feature",
-            path=dict(
-                collection_id=collection,
-                feature_id=href_parsed.path.removeprefix("/"),
-            ),
+            path={
+                "collection_id": collection,
+                "feature_id": href_parsed.path.removeprefix("/"),
+            },
             query={**href_query, **_token.query},
         )
     return href

@@ -1,4 +1,5 @@
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from logging.config import dictConfig
 
@@ -29,7 +30,7 @@ logger = logging.getLogger("app")
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
     aiohttp_client = AiohttpClient()
     logger.debug("Connect http client")
     aiohttp_client.connect(timeout=HTTP_CLIENT_TIMEOUT)
@@ -41,7 +42,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     debug=DEBUG,
     title="SharingHub API",
-    description="The SharingHub server serves STAC resources generated from Gitlab repositories.",
+    description="STAC resources generated from Gitlab repositories.",
     version=version,
     root_path=API_PREFIX,
     docs_url="/api/docs",
@@ -65,14 +66,14 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.get("/")
-async def index(request: Request):
+async def index(request: Request) -> RedirectResponse:
     if STATIC_FILES_PATH:
-        return RedirectResponse(url_for(request, "statics", path=dict(path="")))
+        return RedirectResponse(url_for(request, "statics", path={"path": ""}))
     return RedirectResponse(url_for(request, "swagger_ui_html"))
 
 
 @app.get("/status")
-async def status():
+async def status() -> list[dict]:
     return [{"status": "ok"}]
 
 

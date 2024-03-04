@@ -1,4 +1,5 @@
-from typing import Annotated, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Annotated
 
 from fastapi import Depends, Request
 
@@ -10,7 +11,7 @@ async def get_session(request: Request) -> dict:
     return request.session
 
 
-def _clean_session(session: dict):
+def _clean_session(session: dict) -> None:
     # Clean authlib states if still exists
     for key in list(session.keys()):
         if key.startswith("_state"):

@@ -23,7 +23,7 @@ class Config:
         self.secret_dir = Path(secret_dir) if secret_dir else Path.cwd()
 
     @staticmethod
-    def load(*files: list[str], **kwargs: Any) -> "Config":
+    def load(*files: str, **kwargs: Any) -> "Config":
         mapping = {}
         _files = []
         for file_path in files:
@@ -41,9 +41,9 @@ class Config:
         env_var: str = "",
         file_name: str = "",
         *,
-        default: Any = None,
+        default: Any = None,  # noqa: ANN401
         cast: Callable[[Any], Any] | None = None,
-    ) -> Any:
+    ) -> Any:  # noqa: ANN401
         val = None
         cursor = self.mapping
 

@@ -5,7 +5,7 @@ from typing import Annotated, Any
 from fastapi import Depends, HTTPException
 from pydantic import AnyHttpUrl, BaseModel, Field
 
-from ..settings import STAC_CATEGORIES
+from app.stac.settings import STAC_CATEGORIES
 
 logger = logging.getLogger("app")
 
@@ -43,7 +43,7 @@ def get_category_from_collection_id(collection_id: CategoryName) -> Category:
     category = get_category(category_id=collection_id)
     if not category:
         logger.error(
-            f"Collection '{collection_id}' requested but its configuration is missing."
+            f"Collection '{collection_id}' requested but its configuration is missing.",
         )
         raise HTTPException(status_code=404, detail="Collection not found")
 
@@ -59,5 +59,6 @@ def get_category_from_topics(topics: list[str]) -> Category:
 
 
 CategoryFromCollectionIdDep = Annotated[
-    Category, Depends(get_category_from_collection_id)
+    Category,
+    Depends(get_category_from_collection_id),
 ]

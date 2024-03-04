@@ -1,13 +1,13 @@
 import logging
 import re
 from datetime import datetime as dt
+from functools import cached_property
 from typing import Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
     Field,
     SerializationInfo,
-    computed_field,
     field_serializer,
     field_validator,
 )
@@ -32,7 +32,8 @@ class STACSearchSortBy(TypedDict):
 
 class STACSearchQuery(BaseModel):
     limit: Annotated[
-        int, Field(default=STAC_SEARCH_PAGE_DEFAULT_SIZE, strict=True, gt=0)
+        int,
+        Field(default=STAC_SEARCH_PAGE_DEFAULT_SIZE, strict=True, gt=0),
     ]
     sortby: str | list[STACSearchSortBy] | None = Field(default=None)
     bbox: list[float] | None = Field(default_factory=list)
@@ -40,7 +41,7 @@ class STACSearchQuery(BaseModel):
     intersects: dict[str, Any] | None = Field(default=None)
     ids: list[str] = Field(default_factory=list)
     collections: list[str] = Field(default_factory=list)
-    q: list[str] | None = Field(default_factory=list)
+    q: list[str] = Field(default_factory=list)
 
     @field_validator("datetime")
     @classmethod
@@ -53,7 +54,7 @@ class STACSearchQuery(BaseModel):
                 dt.fromisoformat(d2)
         return d
 
-    @computed_field
+    @cached_property
     def datetime_range(self) -> tuple[dt, dt] | None:
         if self.datetime:
             start_dt_str, *other_dts_str = self.datetime.split("/")
@@ -73,14 +74,15 @@ class STACSearchQuery(BaseModel):
 
 class STACPagination(TypedDict):
     limit: int
-    matched: int
+    matched: int | None
     returned: int
-    next: str | None
     prev: str | None
+    next: str | None
 
 
 def get_state_query(
-    search_query: STACSearchQuery, exclude: list[str] | None = None
+    search_query: STACSearchQuery,
+    exclude: list[str] | None = None,
 ) -> dict[str, str | int]:
     state_query = search_query.model_dump(
         mode="json",

@@ -14,7 +14,7 @@ REDIRECT_URI_KEY = "redirect_uri"
 
 
 @router.get("/info")
-async def auth_info(session_auth: SessionAuthDep):
+async def auth_info(session_auth: SessionAuthDep) -> dict:
     if session_auth:
         return session_auth
     raise HTTPException(
@@ -29,7 +29,7 @@ async def auth_login(
     oauth: OAuthDep,
     session_auth: SessionAuthDep,
     redirect_uri: str = "",
-):
+) -> RedirectResponse:
     if not redirect_uri:
         index = True
         redirect_uri = url_for(request, "index")
@@ -50,8 +50,10 @@ async def auth_login(
 
 @router.get("/login/callback", dependencies=[PostCleanSessionDep])
 async def auth_login_callback(
-    request: Request, session_auth: SessionAuthDep, oauth: OAuthDep
-):
+    request: Request,
+    session_auth: SessionAuthDep,
+    oauth: OAuthDep,
+) -> RedirectResponse:
     token = await oauth.authorize_access_token(request)
     session_auth["access_token"] = token.get("access_token")
     session_auth["refresh_token"] = token.get("refresh_token")
@@ -61,6 +63,8 @@ async def auth_login_callback(
 
 
 @router.get("/logout")
-async def auth_logout(request: Request, session_auth: SessionAuthDep):
+async def auth_logout(
+    request: Request, session_auth: SessionAuthDep
+) -> RedirectResponse:
     session_auth.clear()
     return RedirectResponse(url_for(request, "index"))

@@ -1,4 +1,5 @@
 from fastapi import Request
+from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
 
 from app.auth import GitlabTokenDep
@@ -14,7 +15,7 @@ _IGNORE_LIST = [*GITLAB_IGNORE_TOPICS, *(c.gitlab_topic for c in get_categories(
 @router.get("/tags")
 async def api_get_tags(
     token: GitlabTokenDep,
-):
+) -> dict:
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     topics_from_gitlab = await gitlab_client.get_topics()
     topics_from_gitlab = [
@@ -39,6 +40,6 @@ async def api_reverse_proxy(
     request: Request,
     endpoint: str,
     token: GitlabTokenDep,
-):
+) -> StreamingResponse:
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     return await gitlab_client.rest_proxy(f"/{endpoint}", request)
