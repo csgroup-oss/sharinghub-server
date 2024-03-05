@@ -40,3 +40,11 @@ repos:
     rev: v0.16
     hooks:
       - id: validate-pyproject
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.39.0
+    hooks:
+    - id: markdownlint-fix
+      args: [ --disable=MD013 ]
+    - id: markdownlint
+      args: [ --disable=MD013 ]
