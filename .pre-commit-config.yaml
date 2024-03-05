@@ -55,3 +55,13 @@ repos:
       - id: ruff
         args: [ --fix ]
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy app
+        files: "^app"
+        pass_filenames: false
+        types_or: [python]
+        language: python

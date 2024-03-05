@@ -48,8 +48,11 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = [
+    "mypy",
     "pre-commit",
     "python-dotenv",
+    "types-Markdown",
+    "types-PyYAML",
     "uvicorn",
 ]
 prod = [
@@ -68,6 +71,14 @@ fallback-version = "0.1.0"
 
 # -----------------------------------------------
 # Linter & Format
+
+[tool.mypy]
+no_implicit_optional = true
+ignore_missing_imports = true
+show_error_context = true
+show_column_numbers = true
+show_error_codes = true
+pretty = true
 
 [tool.ruff]
 required-version = "0.3.0"
