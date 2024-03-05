@@ -330,7 +330,7 @@ async def _stac_search(  # noqa: C901
 
     match mode:
         case "reference":
-            projects, _pagination = await gitlab_client.search_references(
+            projects_refs, _pagination = await gitlab_client.search_references(
                 ids=search_query.ids,
                 query=query,
                 topics=topics,
@@ -340,12 +340,13 @@ async def _stac_search(  # noqa: C901
                 start=after,
                 end=before,
             )
+            count = len(projects_refs)
             features = [
                 build_stac_item_reference(p, request=request, token=token)
-                for p in projects
+                for p in projects_refs
             ]
         case "preview":
-            projects, _pagination = await gitlab_client.search_previews(
+            projects_prevs, _pagination = await gitlab_client.search_previews(
                 ids=search_query.ids,
                 query=query,
                 topics=topics,
@@ -357,9 +358,10 @@ async def _stac_search(  # noqa: C901
                 start=after,
                 end=before,
             )
+            count = len(projects_prevs)
             features = [
                 build_stac_item_preview(p, request=request, token=token)
-                for p in projects
+                for p in projects_prevs
             ]
         case "full":
             projects, _pagination = await gitlab_client.search(
@@ -374,6 +376,7 @@ async def _stac_search(  # noqa: C901
                 start=after,
                 end=before,
             )
+            count = len(projects)
             await asyncio.gather(
                 *(_resolve_license(p, gitlab_client) for p in projects),
             )
@@ -383,7 +386,7 @@ async def _stac_search(  # noqa: C901
     pagination = _create_stac_pagination(
         _pagination,
         limit=search_query.limit,
-        count=len(projects),
+        count=count,
     )
     return build_features_collection(
         features=features,

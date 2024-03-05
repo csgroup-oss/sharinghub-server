@@ -3,7 +3,7 @@ import mimetypes
 import os
 import re
 from pathlib import Path
-from typing import Any, TypedDict, Unpack
+from typing import Any, TypedDict, Unpack, cast
 from urllib import parse
 
 from fastapi import Request
@@ -83,14 +83,16 @@ def build_stac_root(
     ]
 
     if logo:
+        logo_link = {
+            "rel": "preview",
+            "href": logo,
+        }
+
         logo_media_type, _ = mimetypes.guess_type(logo)
-        links.append(
-            {
-                "rel": "preview",
-                "type": logo_media_type,
-                "href": logo,
-            },
-        )
+        if logo_media_type:
+            logo_link["type"] = logo_media_type
+
+        links.append(logo_link)
 
     return {
         "stac_version": "1.0.0",
@@ -235,7 +237,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
 
     links = []
 
-    if logo:
+    if logo and logo.path:
         logo_path = Path(logo.path)
         logo_media_type, _ = mimetypes.guess_type(logo_path.name)
         links.append(
@@ -558,14 +560,14 @@ def build_stac_item(
 
 
 def _build_stac_item_default_values(
-    project: Project,
+    project: ProjectReference,
     **context: Unpack[STACContext],
 ) -> tuple[dict[str, str], list[dict], dict[str, dict]]:
     _request = context["request"]
     _token = context["token"]
 
     fields = {"collection": project.category.id}
-    assets = {}
+    assets: dict[str, dict] = {}
     links = [
         {
             "rel": "self",
@@ -633,7 +635,7 @@ def _get_preview_description(project: ProjectPreview, wrap_char: int = 150) -> s
         description = description[:wrap_char].strip()
         if len(description) == wrap_char:
             description += "..."
-    return description if description else None
+    return description if description else ""
 
 
 def _retrieve_preview(
@@ -806,7 +808,7 @@ def _retrieve_links(
     project: ProjectPreview,
     metadata: dict,
     **context: Unpack[STACContext],
-) -> list[tuple[str, str]]:
+) -> list[dict]:
     _request = context["request"]
     _token = context["token"]
 
@@ -850,7 +852,7 @@ def _retrieve_assets(
     metadata: dict,
     **context: Unpack[STACContext],
 ) -> dict[str, dict[str, Any]]:
-    assets = {}
+    assets: dict[str, dict[str, Any]] = {}
 
     if assets_rules := __retrieve_assets_rules(project, metadata):
         assets |= __create_assets(project, assets_rules, **context)
@@ -936,7 +938,10 @@ def __prepare_asset(
             asset["title"] = _title.replace("{key}", key).replace("{path}", path)
         if _desc := asset_def.get("description"):
             asset["description"] = _desc.replace("{key}", key).replace("{path}", path)
-        if _type := MEDIA_TYPES.get(asset_def.get("type-as"), asset_def.get("type")):
+
+        _type_as = cast(str, asset_def.get("type-as", ""))
+        _raw_type = cast(str, asset_def.get("type", ""))
+        if _type := MEDIA_TYPES.get(_type_as, _raw_type):
             asset["type"] = _type
         else:
             href_parsed = parse.urlparse(href)

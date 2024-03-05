@@ -102,6 +102,5 @@ def parse_stac_query(query: str) -> tuple[str | None, list[str], list[str]]:
         query = re.sub(QUERY_TOPIC_PATTERN, "", query)
         query = re.sub(QUERY_FLAG_PATTERN, "", query)
         query = re.sub(QUERY_CLEAN_PATTERN, " ", query).strip()
-        query = query if query else None
-        return query, topics, flags
+        return query if query else None, topics, flags
     return None, [], []

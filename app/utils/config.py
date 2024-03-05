@@ -24,7 +24,7 @@ class Config:
 
     @staticmethod
     def load(*files: str, **kwargs: Any) -> "Config":
-        mapping = {}
+        mapping: dict = {}
         _files = []
         for file_path in files:
             if os.path.isfile(file_path):
@@ -45,7 +45,7 @@ class Config:
         cast: Callable[[Any], Any] | None = None,
     ) -> Any:  # noqa: ANN401
         val = None
-        cursor = self.mapping
+        cursor: Any = self.mapping
 
         if path:
             paths = path.split(".")

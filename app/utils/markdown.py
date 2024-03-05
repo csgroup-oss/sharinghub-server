@@ -1,5 +1,6 @@
 import re
 from functools import cache
+from typing import cast
 
 import markdown
 from yaml.scanner import ScannerError
@@ -14,7 +15,7 @@ def parse(markdown_content: str) -> tuple[str, dict]:
     try:
         md = markdown.Markdown(extensions=["full_yaml_metadata"])
         md.convert(markdown_content)
-        metadata = md.Meta if md.Meta else {}
+        metadata = cast(dict, md.Meta if md.Meta else {})  # type: ignore[attr-defined]
     except ScannerError:
         metadata = {}
     if markdown_content.startswith("---"):
@@ -73,7 +74,7 @@ def remove_headings(markdown_content: str) -> str:
 def remove_links(markdown_content: str) -> str:
     return re.sub(
         LINK_PATTERN,
-        lambda match: match.groupdict().get("text"),
+        lambda match: cast(str, match.groupdict().get("text")),
         markdown_content,
     )
 

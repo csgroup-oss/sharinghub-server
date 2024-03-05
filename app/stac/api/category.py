@@ -26,9 +26,6 @@ class Category(BaseModel):
     assets: list[str | dict[str, Any]] = Field(default_factory=list)
 
 
-CategoryName = StrEnum("CategoryName", {k: k for k in STAC_CATEGORIES})
-
-
 def get_category(category_id: str) -> Category | None:
     if category_id in STAC_CATEGORIES:
         return Category(id=category_id, **STAC_CATEGORIES[category_id])
@@ -36,10 +33,13 @@ def get_category(category_id: str) -> Category | None:
 
 
 def get_categories() -> list[Category]:
-    return [get_category(category_id) for category_id in STAC_CATEGORIES]
+    return [
+        get_category_from_collection_id(collection_id)
+        for collection_id in STAC_CATEGORIES
+    ]
 
 
-def get_category_from_collection_id(collection_id: CategoryName) -> Category:
+def get_category_from_collection_id(collection_id: str) -> Category:
     category = get_category(category_id=collection_id)
     if not category:
         logger.error(
