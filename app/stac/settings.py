@@ -1,10 +1,18 @@
+from typing import Any
+
 from app.settings import conf
 
 # Root
 STAC_ROOT_CONF: dict = conf("stac.root", default={}, cast=dict)
 
 # Categories
-STAC_CATEGORIES: dict = conf("stac.categories.definitions", default={}, cast=dict)
+_STAC_CATEGORIES_LIST: list[dict[str, dict]] = conf(
+    "stac.categories", default=[], cast=list
+)
+_STAC_CATEGORIES: dict[str, Any] = {}
+for c in _STAC_CATEGORIES_LIST:
+    _STAC_CATEGORIES |= c
+STAC_CATEGORIES = _STAC_CATEGORIES
 
 # Projects
 STAC_PROJECTS_ASSETS_RELEASE_SOURCE_FORMAT: str = (

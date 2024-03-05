@@ -19,8 +19,7 @@ stac:
         title: GitLab - CS Group
         description: Votre plateforme de collaboration sur les projets ML et NLP stockés dans [GitLab](https://gitlab.si.c-s.fr).
   categories:
-    definitions:
-      ai-model:
+    - ai-model:
         title: AI Models
         description: AI models are the core of our platform, go and browse them to discover our models.
         gitlab_topic: sharinghub:aimodel
@@ -35,7 +34,7 @@ stac:
           jupyter: disable
           map-viewer: enable
           store-s3: enable
-      dataset:
+    - dataset:
         title: Datasets
         description: Datasets are very important in the process of training an AI, discover those that we put at your disposal.
         gitlab_topic: sharinghub:dataset
@@ -50,7 +49,7 @@ stac:
           jupyter: disable
           map-viewer: enable
           store-s3: enable
-      processor:
+    - processor:
         title: Tools and libraries
         description: We list tools and libraries that can make your life easier in the development of your models, or their use.
         gitlab_topic: sharinghub:processor
@@ -65,7 +64,7 @@ stac:
           jupyter: disable
           map-viewer: disable
           store-s3: disable
-      challenge:
+    - challenge:
         title: Challenges
         description: Challenges may be offered to you here. Put yourself to the test!
         gitlab_topic: sharinghub:challenge

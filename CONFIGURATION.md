@@ -460,14 +460,13 @@ Content:
 - Type: mapping
 - Default: read from [config file](./app/config.yaml)
 - YAML:
-  - Path: `stac.categories.definitions`
+  - Path: `stac.categories`
   - Example value:
 
     ```yaml
     stac:
       categories:
-        definitions:
-          my-category:
+        - my-category:
             title: My Category
             description: Custom category
             default_type: item
