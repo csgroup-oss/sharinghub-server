@@ -1,0 +1,23 @@
+include:
+  - component: gitlab.si.c-s.fr/to-be-continuous/docker/gitlab-ci-docker@5.8.1
+    inputs:
+      build-args: "--build-arg VERSION=$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA-$CI_JOB_STARTED_AT"
+      prod-publish-strategy: "auto"
+      hadolint-args: "--failure-threshold warning --ignore DL3018"
+      trivy-security-level-threshold: "HIGH,CRITICAL"
+
+stages:
+  - build
+  - test
+  - package-build
+  - package-test
+  - infra
+  - deploy
+  - acceptance
+  - publish
+  - infra-prod
+  - production
+
+variables:
+  KUBERNETES_MEMORY_REQUEST: '1Gi'
+  KUBERNETES_MEMORY_LIMIT: '2Gi'
