@@ -1,5 +1,8 @@
 include:
   - component: gitlab.si.c-s.fr/to-be-continuous/gitleaks/gitlab-ci-gitleaks@2.4.1
+  - component: gitlab.si.c-s.fr/space_platforms/metis/tools/ci-precommit/gitlab-ci-precommit@3.0.0
+    inputs:
+      skip: mypy
   - component: gitlab.si.c-s.fr/to-be-continuous/docker/gitlab-ci-docker@5.8.1
     inputs:
       build-args: "--build-arg VERSION=$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA-$CI_JOB_STARTED_AT"
