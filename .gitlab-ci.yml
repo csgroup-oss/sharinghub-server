@@ -3,7 +3,7 @@ include:
     inputs:
       build-args: "--build-arg VERSION=$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA-$CI_JOB_STARTED_AT"
       prod-publish-strategy: "auto"
-      hadolint-args: "--failure-threshold warning --ignore DL3018"
+      hadolint-args: "--failure-threshold warning --ignore DL3008"
       trivy-security-level-threshold: "HIGH,CRITICAL"
 
 stages:

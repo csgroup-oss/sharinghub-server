@@ -1,21 +1,15 @@
-FROM python:3.11-alpine as installer
+FROM python:3.11-slim-bookworm as installer
 
 WORKDIR /usr/src/app
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Install build dependencies
-RUN apk add \
-        # Shapely
-        g++ \
-        geos-dev
-
 # Generate python dependencies wheels
 COPY . .
 RUN pip wheel --no-cache-dir --wheel-dir /usr/src/app/wheels .[prod]
 
-FROM python:3.11-alpine
+FROM python:3.11-slim-bookworm
 
 ARG VERSION=latest
 
@@ -25,19 +19,15 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV PATH=$PATH:/home/app/.local/bin
 
-RUN addgroup -S app && adduser -S app -G app && \
-    chown app /home/app
+RUN useradd -mrU -d /home/app -s /bin/bash app
 
-# Install runtime dependencies
-RUN apk add \
-        # Shapely
-        geos-dev \
-        # MIME TYPES
-        mailcap
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends mailcap && \
+    rm -rf /var/lib/apt/lists/*
 
 USER app
 
-WORKDIR /home/app/
+WORKDIR /home/app
 
 COPY --chown=app:app --from=installer /usr/src/app/wheels wheels
 
