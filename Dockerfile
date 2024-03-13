@@ -5,6 +5,11 @@ WORKDIR /usr/src/app
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
+# Install Git for VCS versioning
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
+
 # Generate python dependencies wheels
 COPY . .
 RUN pip wheel --no-cache-dir --wheel-dir /usr/src/app/wheels .[prod]
