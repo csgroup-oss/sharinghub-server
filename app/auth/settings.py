@@ -17,5 +17,6 @@ GITLAB_OAUTH_DEFAULT_TOKEN: str | None = conf(
     "GITLAB_OAUTH_DEFAULT_TOKEN",
     cast=str,
 )
+GITLAB_OAUTH_NAME = "gitlab"
 
 SESSION_AUTH_KEY = "auth"

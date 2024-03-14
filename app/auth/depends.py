@@ -7,8 +7,8 @@ from starlette.status import HTTP_403_FORBIDDEN
 
 from app.session import SessionDep
 
-from .api import GitlabToken, get_oauth
-from .settings import GITLAB_OAUTH_DEFAULT_TOKEN, SESSION_AUTH_KEY
+from .api import GitlabToken, oauth
+from .settings import GITLAB_OAUTH_DEFAULT_TOKEN, GITLAB_OAUTH_NAME, SESSION_AUTH_KEY
 
 gitlab_token_query = APIKeyQuery(
     name="gitlab_token",
@@ -20,6 +20,10 @@ gitlab_token_header = APIKeyHeader(
     scheme_name="GitLab Private Token header",
     auto_error=False,
 )
+
+
+def get_oauth() -> StarletteOAuth2App:
+    return oauth.create_client(GITLAB_OAUTH_NAME)
 
 
 async def get_session_auth(session: SessionDep) -> dict:
@@ -62,6 +66,6 @@ async def get_gitlab_token(
     )
 
 
-OAuthDep = Annotated[StarletteOAuth2App, Depends(get_oauth)]
+AuthAppDep = Annotated[StarletteOAuth2App, Depends(get_oauth)]
 SessionAuthDep = Annotated[dict, Depends(get_session_auth)]
 GitlabTokenDep = Annotated[GitlabToken, Depends(get_gitlab_token)]

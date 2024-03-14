@@ -3,10 +3,10 @@ from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from app.session import PostCleanSessionDep, PreCleanSessionDep
+from app.session import PostCleanSessionDep, PreCleanSessionDep, SessionDep
 from app.utils.http import url_for
 
-from .depends import OAuthDep, SessionAuthDep
+from .depends import AuthAppDep, SessionAuthDep
 
 router = APIRouter()
 
@@ -26,7 +26,8 @@ async def auth_info(session_auth: SessionAuthDep) -> dict:
 @router.get("/login", dependencies=[PreCleanSessionDep])
 async def auth_login(
     request: Request,
-    oauth: OAuthDep,
+    auth_app: AuthAppDep,
+    session: SessionDep,
     session_auth: SessionAuthDep,
     redirect_uri: str = "",
 ) -> RedirectResponse:
@@ -40,25 +41,25 @@ async def auth_login(
         return RedirectResponse(redirect_uri)
 
     if index:
-        request.session.pop(REDIRECT_URI_KEY, None)
+        session.pop(REDIRECT_URI_KEY, None)
     else:
-        request.session[REDIRECT_URI_KEY] = redirect_uri
+        session[REDIRECT_URI_KEY] = redirect_uri
 
     callback_uri = url_for(request, "auth_login_callback")
-    return await oauth.authorize_redirect(request, redirect_uri=callback_uri)
+    return await auth_app.authorize_redirect(request, redirect_uri=callback_uri)
 
 
 @router.get("/login/callback", dependencies=[PostCleanSessionDep])
 async def auth_login_callback(
     request: Request,
+    session: SessionDep,
     session_auth: SessionAuthDep,
-    oauth: OAuthDep,
+    auth_app: AuthAppDep,
 ) -> RedirectResponse:
-    token = await oauth.authorize_access_token(request)
+    token = await auth_app.authorize_access_token(request)
     session_auth["access_token"] = token.get("access_token")
-    session_auth["refresh_token"] = token.get("refresh_token")
 
-    redirect_uri = request.session.pop(REDIRECT_URI_KEY, url_for(request, "index"))
+    redirect_uri = session.pop(REDIRECT_URI_KEY, url_for(request, "index"))
     return RedirectResponse(redirect_uri)
 
 
