@@ -1,5 +1,4 @@
 import os
-import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -72,7 +71,7 @@ SESSION_SECRET_KEY: str = conf(
     "server.session.secret-key",
     "SESSION_SECRET_KEY",
     "sessionSecretKey",
-    default=str(uuid.uuid4()),
+    default="",
     cast=str,
 )
 SESSION_MAX_AGE: float = conf(
