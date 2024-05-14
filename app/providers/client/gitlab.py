@@ -473,6 +473,9 @@ class GitlabClient(ProviderClient):
         if ids:
             projects = await self._search_projects_by_ids(project_fragment, ids)
 
+            # Filter-out not found
+            projects = [p for p in projects if p is not None]
+
             # Filter by topics
             _topics = set(topics)
             projects = [p for p in projects if _topics.issubset(p["topics"])]
