@@ -39,6 +39,7 @@ Content:
   - [S3: upload chunk size](#s3-upload-chunk-size)
   - [STAC: root conf](#stac-root-conf)
   - [STAC: categories](#stac-categories)
+    - [STAC: categories features](#stac-categories-features)
   - [STAC: projects cache timeout](#stac-projects-cache-timeout)
   - [STAC: projects assets rules](#stac-projects-assets-rules)
   - [STAC: projects assets release source format](#stac-projects-assets-release-source-format)
@@ -487,6 +488,26 @@ Content:
             title: My Category
             description: Custom category
             default_type: item
+    ```
+
+#### STAC: categories features
+
+- Type: mapping
+- Default: read from [config file](./app/config.yaml)
+- YAML:
+  - Path: `stac.categories.[entry].features`
+  - Example value:
+
+    ```yaml
+    stac:
+      categories:
+        - my-category:
+            features:
+              deployment: enable #to enable deployment link for item of this category
+              jupyter: disable  #to enable jupyter link for item of this category
+              map-viewer: enable #to enable map-viewer for item of this category
+              store-s3: enable #to enable dvc for item of this category
+              mlflow: enable #to enable mlflow for item of this category
     ```
 
 ### STAC: projects cache timeout
