@@ -42,9 +42,9 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://gitlab.si.c-s.fr/space_applications/mlops-services/sharinghub-server"
-"Source" = "https://gitlab.si.c-s.fr/space_applications/mlops-services/sharinghub-server"
-"Bug Tracker" = "https://gitlab.si.c-s.fr/space_applications/mlops-services/sharinghub-server/-/issues"
+"Homepage" = "https://github.com/csgroup-oss/sharinghub-server"
+"Source" = "https://github.com/csgroup-oss/sharinghub-server/issues"
+"Bug Tracker" = "https://github.com/csgroup-oss/sharinghub-server/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -114,7 +114,7 @@ select = [
 ignore = [
     "ANN101", "ANN102", "COM812", "D100", "D101" ,"D102", "D103", "D104", "D105",
     "D106", "D107", "D203", "D213", "D301", "D417", "G004", "ISC001", "RET504",
-    "TD002", "TD003", "TRY400",
+    "TD002", "TD003", "TRY400", "TRY003",
 ]
 
 [tool.ruff.lint.per-file-ignores]

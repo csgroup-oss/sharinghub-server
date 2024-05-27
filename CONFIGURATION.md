@@ -1,6 +1,6 @@
 # Configuration
 
-You can can configure the SharingHub server through multiple sources:
+You can configure the SharingHub server through multiple sources:
 
 - YAML file
 - Environment variables
@@ -306,7 +306,7 @@ Content:
   - Example value:
 
     ```yaml
-    gitlab:
+    jupyterlab:
       url: https://nb.example.com
     ```
 

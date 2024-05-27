@@ -68,3 +68,9 @@ You can check the API docs at [localhost:8000/docs](http://localhost:8000/docs).
 ## Configuration
 
 Please check [CONFIGURATION.md](./CONFIGURATION.md).
+
+## Copyright and License
+
+Copyright 2024 `CS GROUP - France`
+
+**SharingHub Server**  is an open source software, distributed under the Apache License 2.0. See the [`LICENSE`](./LICENSE) file for more information.
