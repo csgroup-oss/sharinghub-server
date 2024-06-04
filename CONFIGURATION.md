@@ -20,6 +20,7 @@ Content:
   - [Server: session secret key](#server-session-secret-key)
   - [Server: session max age](#server-session-max-age)
   - [Server: static files path](#server-static-files-path)
+  - [Server: static UI dirname](#server-static-ui-dirname)
   - [Server: HTTP client timeout](#server-http-client-timeout)
   - [Server: enable cache](#server-enable-cache)
   - [Gitlab: URL](#gitlab-url)
@@ -173,6 +174,22 @@ Content:
     ```yaml
     server:
       statics: /statics
+    ```
+
+### Server: static UI dirname
+
+- Type: string
+- Default: `ui`
+- Environment variable:
+  - Name: `STATIC_UI_DIRNAME`
+  - Example value: `web-ui`
+- YAML:
+  - Path: `server.statics-ui`
+  - Example value:
+
+    ```yaml
+    server:
+      statics-ui: web-ui
     ```
 
 ### Server: HTTP client timeout

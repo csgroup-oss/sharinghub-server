@@ -36,6 +36,7 @@ from app.settings import (
     SESSION_MAX_AGE,
     SESSION_SECRET_KEY,
     STATIC_FILES_PATH,
+    STATIC_UI_DIRNAME,
 )
 from app.utils.http import AiohttpClient, url_for
 
@@ -84,7 +85,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 @app.get("/")
 async def index(request: Request) -> RedirectResponse:
     if STATIC_FILES_PATH:
-        return RedirectResponse(url_for(request, "statics", path={"path": ""}))
+        return RedirectResponse(url_for(request, STATIC_UI_DIRNAME, path={"path": ""}))
     return RedirectResponse(url_for(request, "swagger_ui_html"))
 
 
@@ -94,9 +95,11 @@ async def status() -> list[dict]:
 
 
 if STATIC_FILES_PATH:
-    app.mount(
-        "/ui",
-        StaticFiles(directory=STATIC_FILES_PATH, html=True),
-        name="statics",
-    )
+    children_dirs = [d for d in STATIC_FILES_PATH.iterdir() if d.is_dir()]
+    for d in children_dirs:
+        app.mount(
+            f"/{d.name}",
+            StaticFiles(directory=d, html=True),
+            name=d.name,
+        )
 app.include_router(views_router, prefix="/api")

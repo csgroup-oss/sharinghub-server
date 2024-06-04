@@ -103,6 +103,9 @@ STATIC_FILES_PATH: Path | None = conf(
     default=None,
     cast=cpath(),
 )
+STATIC_UI_DIRNAME: str = conf(
+    "server.statics-ui", "STATIC_UI_DIRNAME", default="ui", cast=str
+)
 
 HTTP_CLIENT_TIMEOUT: float = conf(
     "server.http_client.timeout",
