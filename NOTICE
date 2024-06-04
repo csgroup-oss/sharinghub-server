@@ -1,6 +1,4 @@
-# SharingHub Server
-
-Copyright 2024 CS GROUP - France, <https://www.csgroup.eu/>
+SharingHub Copyright 2024 CS GROUP - France
 
 This software is distributed under the Apache Software License (ASL) v2.0, see LICENSE
 file or http://www.apache.org/licenses/LICENSE-2.0 for details.
@@ -8,54 +6,48 @@ file or http://www.apache.org/licenses/LICENSE-2.0 for details.
 This software includes code from many other open source projects. See below for details
 about the license of each project.
 
-## The Apache 2.0 License
+================================================================
+The Apache 2.0 License
+================================================================
 
 The following components are provided under the Apache 2.0 License (https://opensource.org/licenses/Apache-2.0).
 See project link for details.
 
-- https://github.com/aio-libs/aiohttp
-- https://github.com/boto/boto3
+- aiohttp: https://github.com/aio-libs/aiohttp
+- boto3: https://github.com/boto/boto3
 
-## The MIT License
+================================================================
+The MIT License
+================================================================
 
 The following components are provided under the MIT License (https://opensource.org/licenses/mit).
 See project link for details.
 
-- https://pyyaml.org/
-- https://github.com/tiangolo/fastapi
-- https://github.com/lepture/authlib
-- https://github.com/sivakov512/python-markdown-full-yaml-metadata
-- https://github.com/benoitc/gunicorn
-- https://github.com/pypa/hatch
-- https://github.com/python/mypy
-- https://github.com/astral-sh/ruff
-- https://github.com/gitleaks/gitleaks
-- https://github.com/commitizen-tools/commitizen
-- https://github.com/pre-commit/pre-commit
-- https://github.com/igorshubovych/markdownlint-cli
+- authlib: https://github.com/lepture/authlib
+- fastapi: https://github.com/tiangolo/fastapi
+- gunicorn: https://github.com/benoitc/gunicorn
+- httpx: https://github.com/projectdiscovery/httpx
+- markdown-full-yaml-metadata: https://github.com/sivakov512/python-markdown-full-yaml-metadata
+- pyyaml: https://github.com/yaml/pyyaml
 
-## The PYTHON SOFTWARE FOUNDATION LICENSE
-
-The following components are provided under the PYTHON SOFTWARE FOUNDATION License (https://opensource.org/license/python-2-0).
-See project link for details.
-
-- https://github.com/python/typing_extensions
-
-## The Mozilla Public License 2.0
-
-The following components are provided under the Mozilla Public License 2.0 (https://opensource.org/license/mpl-2-0).
-See project link for details.
-
-- https://github.com/abravalheri/validate-pyproject
-
-## The BSD-3-Clause Licence
+================================================================
+The BSD-3-Clause License
+================================================================
 
 The following components are provided under the BSD-3-Clause License (https://opensource.org/licenses/BSD-3-Clause).
 See project link for details.
 
-- https://github.com/encode/uvicorn
-- https://github.com/encode/starlette
-- https://github.com/projectdiscovery/httpx
-- https://github.com/aio-libs/aiocache
-- https://github.com/shapely/shapely
-- https://github.com/Python-Markdown/markdown
+- aiocache: https://github.com/aio-libs/aiocache
+- itsdangerous: https://github.com/pallets/itsdangerous
+- markdown: https://github.com/Python-Markdown/markdown
+- shapely: https://github.com/shapely/shapely
+- uvicorn: https://github.com/encode/uvicorn
+
+================================================================
+The Python Software Foundation License
+================================================================
+
+The following components are provided under the PYTHON SOFTWARE FOUNDATION License (https://opensource.org/license/python-2-0).
+See project link for details.
+
+- typing-extensions: https://github.com/python/typing_extensions
