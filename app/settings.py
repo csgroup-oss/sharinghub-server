@@ -24,15 +24,14 @@ from app.utils.config import Config, cbool, clist, cpath
 load_dotenv(override=True)
 
 ROOT_PATH = Path(__file__).parent
-
 DEFAULT_CONFIG_PATH = str(ROOT_PATH / "config.yaml")
+
 CONFIG_PATH = os.environ.get("CONFIG_PATH")
 SECRET_DIR = os.environ.get("SECRET_DIR", "/var/lib/secret")
-NO_DEFAULT_CONFIG = cbool()(os.environ.get("NO_DEFAULT_CONFIG", False))
 
 _CONFIG_FILES = clist(sep=";")(CONFIG_PATH) if CONFIG_PATH else []
-if not NO_DEFAULT_CONFIG:
-    _CONFIG_FILES.insert(0, DEFAULT_CONFIG_PATH)
+if not _CONFIG_FILES:
+    _CONFIG_FILES.append(DEFAULT_CONFIG_PATH)
 conf = Config.load(*_CONFIG_FILES, secret_dir=SECRET_DIR)
 
 # ____________ SETTINGS ____________ #
