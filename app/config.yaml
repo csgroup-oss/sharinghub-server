@@ -4,6 +4,12 @@ gitlab:
 jupyterlab:
   url: https://nb.p2.csgroup.space
 
+mlflow:
+  url: https://mlflow.p2.csgroup.space
+
+docs:
+  url: https://sharinghub.p2.csgroup.space/docs
+
 stac:
   extensions:
     eo: https://stac-extensions.github.io/eo/v1.1.0/schema.json
@@ -120,12 +126,6 @@ tags:
         - "Tabular Regression"
 
 external-urls:
-  - name: Docs
-    url: http://localhost:5000/
-    icon: https://img.icons8.com/material-outlined/24/books--v1.png
-    locales:
-      fr:
-        name: Docs
   - name: External Links
     icon: https://img.icons8.com/color/48/info--v1.png
     locales:

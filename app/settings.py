@@ -135,6 +135,8 @@ GITLAB_IGNORE_TOPICS: list[str] = conf(
 )
 TAGS_OPTIONS: dict = conf("tags", default={}, cast=dict)
 
-# __ JupyterLab __ #
+# __ URLS __ #
 
 JUPYTERLAB_URL: str | None = conf("jupyterlab.url", "JUPYTERLAB_URL", cast=str)
+MLFLOW_URL: str | None = conf("mlflow.url", "MLFLOW_URL", cast=str)
+DOCS_URL: str | None = conf("docs.url", "DOCS_URL", cast=str)

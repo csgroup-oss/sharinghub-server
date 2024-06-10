@@ -16,7 +16,13 @@
 
 from fastapi.routing import APIRouter
 
-from app.settings import ALERT_MESSAGE, EXTERNAL_URLS, JUPYTERLAB_URL
+from app.settings import (
+    ALERT_MESSAGE,
+    DOCS_URL,
+    EXTERNAL_URLS,
+    JUPYTERLAB_URL,
+    MLFLOW_URL,
+)
 from app.stac.settings import STAC_CATEGORIES, STAC_ROOT_CONF
 from app.store.settings import S3_ENABLE
 
@@ -31,6 +37,12 @@ async def configuration() -> dict:
         "store": S3_ENABLE,
         "jupyterlab": {
             "url": JUPYTERLAB_URL,
+        },
+        "mlflow": {
+            "url": MLFLOW_URL,
+        },
+        "docs": {
+            "url": DOCS_URL,
         },
         "root": {
             **{

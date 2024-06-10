@@ -29,6 +29,8 @@ Content:
   - [Gitlab: OAuth default token](#gitlab-oauth-default-token)
   - [Gitlab: ignore topics](#gitlab-ignore-topics)
   - [JupyterLab: URL](#jupyterlab-url)
+  - [Documentation: URL](#documentation-url)
+  - [MLFLOW: URL](#mlflow-url)
   - [S3: enable](#s3-enable)
   - [S3: bucket](#s3-bucket)
   - [S3: access key](#s3-access-key)
@@ -327,6 +329,36 @@ Content:
     jupyterlab:
       url: https://nb.example.com
     ```
+
+### Documentation: URL
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `DOCS_URL`
+  - Example value: `https://sharingub.instance/docs`
+- YAML:
+  - Path: `docs.url`
+  - Example value:
+
+    ```yaml
+    docs:
+      url:https://sharinghub.p2.csgroup.space/docs
+
+### MLflow: URL
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `MLFLOW_URL`
+  - Example value: `https://mlflow.p2.csgroup.space`
+- YAML:
+  - Path: `mlflow.url`
+  - Example value:
+
+    ```yaml
+    mlflow:
+      url: https://mlflow.p2.csgroup.space
 
 ### S3: enable
 
