@@ -68,6 +68,7 @@ class Project(ProjectPreview):
     last_commit: str | None
     files: list[str] | None
     latest_release: Release | None
+    access_level: int
 
 
 class Topic(BaseModel):

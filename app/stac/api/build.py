@@ -770,6 +770,7 @@ def _retrieve_sharinghub_properties(project: Project, metadata: dict) -> dict:
         "name": project.full_name,
         "path": project.path,
         "stars": project.star_count,
+        "access-level": project.access_level,
         **features,
         **metadata.pop("sharinghub", {}),
     }

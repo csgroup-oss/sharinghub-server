@@ -151,6 +151,7 @@ class GitlabGraphQL_Project(GitlabGraphQL_ProjectReference):
     webUrl: str
     repository: "_GitlabGraphQL_Repository2"
     releases: "_GitlabGraphQL_Releases"
+    maxAccessLevel: "_GitlabGraphQL_AccessLevel"
     _metadata: NotRequired[dict[str, Any]]
     _readme: NotRequired[str]
     _extent: NotRequired[BaseGeometry]
@@ -205,6 +206,10 @@ class _GitlabGraphQL_Release(TypedDict):
 
 class _GitlabGraphQL_ReleaseCommit(TypedDict):
     sha: str
+
+
+class _GitlabGraphQL_AccessLevel(TypedDict):
+    integerValue: int
 
 
 class _QueryDataEdge(TypedDict):
@@ -275,6 +280,9 @@ fragment projectFields on Project {
   lastActivityAt
   starCount
   topics
+  maxAccessLevel {
+    integerValue
+  }
   repository {
     rootRef
     blobs(paths: ["README.md"]) {
@@ -1082,6 +1090,7 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         last_commit=last_commit,
         files=files,
         latest_release=release,
+        access_level=project_data["maxAccessLevel"]["integerValue"],
     )
 
 
