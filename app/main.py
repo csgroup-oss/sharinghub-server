@@ -33,6 +33,8 @@ from app.settings import (
     DEBUG,
     HTTP_CLIENT_TIMEOUT,
     LOGGING,
+    SESSION_COOKIE,
+    SESSION_DOMAIN,
     SESSION_MAX_AGE,
     SESSION_SECRET_KEY,
     STATIC_FILES_PATH,
@@ -70,7 +72,9 @@ app = FastAPI(
 app.add_middleware(
     SessionMiddleware,
     secret_key=SESSION_SECRET_KEY,
+    session_cookie=SESSION_COOKIE,
     max_age=SESSION_MAX_AGE,
+    domain=SESSION_DOMAIN,
 )
 app.add_middleware(
     CORSMiddleware,

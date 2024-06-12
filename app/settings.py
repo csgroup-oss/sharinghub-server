@@ -89,6 +89,18 @@ SESSION_SECRET_KEY: str = conf(
     default="",
     cast=str,
 )
+SESSION_COOKIE: str = conf(
+    "server.session.cookie",
+    "SESSION_COOKIE",
+    default="sharinghub-session",
+    cast=str,
+)
+SESSION_DOMAIN: str | None = conf(
+    "server.session.domain",
+    "SESSION_DOMAIN",
+    default=None,
+    cast=str,
+)
 SESSION_MAX_AGE: float = conf(
     "server.session.max-age",
     "SESSION_MAX_AGE",

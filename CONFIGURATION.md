@@ -18,6 +18,8 @@ Content:
   - [Server: API prefix](#server-api-prefix)
   - [Server: allowed origins](#server-allowed-origins)
   - [Server: session secret key](#server-session-secret-key)
+  - [Server: session cookie](#server-session-cookie)
+  - [Server: session domain](#server-session-domain)
   - [Server: session max age](#server-session-max-age)
   - [Server: static files path](#server-static-files-path)
   - [Server: static UI dirname](#server-static-ui-dirname)
@@ -30,7 +32,7 @@ Content:
   - [Gitlab: ignore topics](#gitlab-ignore-topics)
   - [JupyterLab: URL](#jupyterlab-url)
   - [Documentation: URL](#documentation-url)
-  - [MLFLOW: URL](#mlflow-url)
+  - [MLflow: URL](#mlflow-url)
   - [S3: enable](#s3-enable)
   - [S3: bucket](#s3-bucket)
   - [S3: access key](#s3-access-key)
@@ -145,6 +147,40 @@ Content:
     server:
       session:
         secret-key: <secret key>
+    ```
+
+### Server: session cookie
+
+- Type: string
+- Default: `"sharinghub-session"`
+- Environment variable:
+  - Name: `SESSION_COOKIE`
+  - Example value: `"session"`
+- YAML:
+  - Path: `server.session.cookie`
+  - Example value:
+
+    ```yaml
+    server:
+      session:
+        cookie: "session"
+    ```
+
+### Server: session domain
+
+- Type: string
+- Default: `None`
+- Environment variable:
+  - Name: `SESSION_DOMAIN`
+  - Example value: `"test.local"`
+- YAML:
+  - Path: `server.session.domain`
+  - Example value:
+
+    ```yaml
+    server:
+      session:
+        domain: "test.local"
     ```
 
 ### Server: session max age
