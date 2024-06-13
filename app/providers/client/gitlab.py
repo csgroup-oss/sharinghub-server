@@ -997,9 +997,11 @@ class GitlabClient(ProviderClient):
             )
 
         if not response.ok:
-            detail = f"HTTP {response.status} "
-            f"| {method} {response.url}"
-            f": {await response.text()}"
+            detail = (
+                f"HTTP {response.status} "
+                f"| {method} {response.url}"
+                f": {await response.text()}"
+            )
             raise HTTPException(
                 status_code=response.status,
                 detail=detail,
