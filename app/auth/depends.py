@@ -19,7 +19,7 @@ from typing import Annotated
 from authlib.integrations.starlette_client import StarletteOAuth2App
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import APIKeyHeader, APIKeyQuery
-from starlette.status import HTTP_403_FORBIDDEN
+from starlette.status import HTTP_401_UNAUTHORIZED
 
 from app.session import SessionDep
 
@@ -77,7 +77,7 @@ async def get_gitlab_token(
     if token:
         return token
     raise HTTPException(
-        status_code=HTTP_403_FORBIDDEN,
+        status_code=HTTP_401_UNAUTHORIZED,
         detail="Missing token, either use login, or pass it as header or query",
     )
 
