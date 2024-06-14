@@ -25,6 +25,7 @@ from fastapi import HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic_core import Url
 from shapely.geometry.base import BaseGeometry
+from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.providers.schemas import (
     License,
@@ -338,7 +339,12 @@ class GitlabClient(ProviderClient):
         return [Topic(**t) for t in _topics]
 
     async def get_project_from_id(self, id: int) -> Project:
-        rest_project_data = await self._get_project_rest(str(id))
+        try:
+            rest_project_data = await self._get_project_rest(str(id))
+        except HTTPException as err:
+            if err.status_code == HTTP_404_NOT_FOUND:
+                err.detail = "Not Found"
+            raise
         project_path = rest_project_data["path_with_namespace"]
         return await self.get_project(project_path)
 
@@ -355,12 +361,14 @@ class GitlabClient(ProviderClient):
         graphql_req = await self._graphql(graphql_query)
         if not isinstance(graphql_req, dict):
             detail = "Unexpected response from GitLab"
-            raise HTTPException(status_code=500, detail=detail)
+            raise HTTPException(
+                status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=detail
+            )
 
         graphql_data: dict[str, Any] = graphql_req["data"]
         project_data: GitlabGraphQL_Project = graphql_data["project"]
         if not project_data:
-            raise HTTPException(status_code=404)
+            raise HTTPException(status_code=HTTP_404_NOT_FOUND)
 
         return _adapt_graphql_project(project_data)
 
@@ -383,7 +391,9 @@ class GitlabClient(ProviderClient):
         rest_req = await self._request(url)
         if not isinstance(rest_req, dict):
             detail = "Unexpected response from GitLab"
-            raise HTTPException(status_code=500, detail=detail)
+            raise HTTPException(
+                status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=detail
+            )
         return cast(GitlabREST_Project, rest_req)
 
     async def search_references(
