@@ -22,12 +22,14 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, HTTPException, Path, Request
 from fastapi.responses import JSONResponse, RedirectResponse
+from starlette.status import HTTP_403_FORBIDDEN
 
 from app.auth import GitlabTokenDep
 from app.auth.api import GitlabToken
-from app.providers.client import GitlabClient
+from app.providers.client.gitlab import DEVELOPER_ACCESS_LEVEL, GitlabClient
 from app.settings import GITLAB_URL
 from app.stac.api.category import FeatureVal
+from app.utils.cache import cache
 
 from .settings import (
     S3_ACCESS_KEY,
@@ -54,27 +56,47 @@ s3_client = boto3.client(
 )
 
 
-async def check_access(token: GitlabToken, project_id: str) -> None:
+async def check_access(token: GitlabToken, project_id: int) -> None:
     """Checks the access permissions for a given Gitlab user token and project ID."""
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
-    project = await gitlab_client.get_project_from_id(id=int(project_id))
-    if (
-        project.category.features.get(S3_FEATURE_NAME, FeatureVal.DISABLE)
-        != FeatureVal.ENABLE
-    ):
+    user: str | None = await cache.get(token.value)
+    if not user:
+        user = await gitlab_client.get_user()
+        await cache.set(token.value, user)
+
+    project_path: str | None = await cache.get(("path", project_id))
+    if not project_path:
+        project_path = await gitlab_client.get_project_path(id=project_id)
+        await cache.set(("path", project_id), project_path)
+
+    has_access: bool | None = await cache.get(("access", user, project_path))
+    if has_access is None:
+        project = await gitlab_client.get_project(project_path)
+        if (
+            project.category.features.get(S3_FEATURE_NAME, FeatureVal.DISABLE)
+            != FeatureVal.ENABLE
+        ):
+            raise HTTPException(
+                status_code=HTTP_403_FORBIDDEN,
+                detail="S3 store is not enabled for this project's category",
+            )
+        has_access = project.access_level >= DEVELOPER_ACCESS_LEVEL
+        await cache.set(("access", user, project_path), has_access)
+
+    if not has_access:
         raise HTTPException(
-            status_code=403,
-            detail="S3 store is not enabled for this project's category",
+            status_code=HTTP_403_FORBIDDEN,
+            detail="Insufficient access level, must be at least developer.",
         )
 
 
 @router.api_route(
-    "/{project_id:str}/{path:path}",
+    "/{project_id}/{path:path}",
     methods=["PUT", "GET", "HEAD"],
     description="Create S3 redirect URL for given S3 Service",
 )
 async def s3_get_proxy(
-    project_id: str,
+    project_id: int,
     path: str,
     request: Request,
     token: GitlabTokenDep,
@@ -82,7 +104,7 @@ async def s3_get_proxy(
     await check_access(token, project_id)
 
     try:
-        s3_path = project_id + "/" + path
+        s3_path = f"{project_id}/{path}"
         if request.method in ["PUT"]:
             response = s3_client.generate_presigned_url(
                 ClientMethod="put_object",
@@ -107,11 +129,11 @@ async def s3_get_proxy(
 
 
 @router.post(
-    "/{project_id:str}/{path:path}",
+    "/{project_id}/{path:path}",
     description="Create S3 redirect URL for given S3 Service",
 )
 async def s3_post_proxy(
-    project_id: Annotated[str, Path(title="The ID of the item to get")],
+    project_id: Annotated[int, Path(title="The ID of the item to get")],
     path: Annotated[str, Path(title="The path of the item to get")],
     request: Request,
     token: GitlabTokenDep,
@@ -119,8 +141,7 @@ async def s3_post_proxy(
     await check_access(token, project_id)
 
     try:
-        s3_path = project_id + "/" + path
-
+        s3_path = f"{project_id}/{path}"
         byte_buffer = BytesIO()
 
         # Stream the file directly to S3 without loading it entirely into memory

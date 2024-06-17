@@ -69,6 +69,8 @@ GITLAB_LICENSES_SPDX_MAPPING = {
     "unlicense": "Unlicense",
 }
 
+DEVELOPER_ACCESS_LEVEL = 30
+
 
 class GitlabREST_Project(TypedDict):
     id: str
@@ -332,21 +334,38 @@ class GitlabClient(ProviderClient):
         if headers:
             self.headers |= headers
 
+    async def get_user(self) -> str:
+        graphql_query = """
+        query {
+            currentUser {
+                username
+            }
+        }
+        """
+        graphql_req = await self._graphql(graphql_query)
+        if not isinstance(graphql_req, dict):
+            detail = "Unexpected response from GitLab"
+            raise HTTPException(
+                status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=detail
+            )
+
+        graphql_data: dict[str, Any] = graphql_req["data"]
+        return graphql_data["currentUser"]["username"]
+
     async def get_topics(self) -> list[Topic]:
         _topics: list[GitlabREST_Topic] = await self._rest_iterate(
             url=self._resolve_rest_api_url("/topics"),
         )
         return [Topic(**t) for t in _topics]
 
-    async def get_project_from_id(self, id: int) -> Project:
+    async def get_project_path(self, id: int) -> str:
         try:
             rest_project_data = await self._get_project_rest(str(id))
         except HTTPException as err:
             if err.status_code == HTTP_404_NOT_FOUND:
                 err.detail = "Not Found"
             raise
-        project_path = rest_project_data["path_with_namespace"]
-        return await self.get_project(project_path)
+        return rest_project_data["path_with_namespace"]
 
     async def get_project(self, path: str) -> Project:
         path = path.strip("/")

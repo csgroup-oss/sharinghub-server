@@ -14,33 +14,54 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+
 from fastapi import APIRouter, HTTPException, Response
 from starlette.status import HTTP_400_BAD_REQUEST
 
 from app.auth.depends import GitlabTokenDep
 from app.providers.client.gitlab import GitlabClient
 from app.settings import GITLAB_URL
+from app.utils.cache import cache
 
 router = APIRouter()
 
 
-@router.get("/{project_path:path}")
+@router.get("/{project_id_or_path:path}")
 async def check(
-    project_path: str, token: GitlabTokenDep, info: bool = False
+    project_id_or_path: str, token: GitlabTokenDep, info: bool = False
 ) -> Response:
     """Check wether a project is found or not, by id or path."""
-    if project_path:
-        gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
-        if project_path.isdigit():
-            project = await gitlab_client.get_project_from_id(id=int(project_path))
-        else:
-            project = await gitlab_client.get_project(path=project_path)
-        if info:
-            return Response(
-                content=project.model_dump_json(
-                    include={"id", "name", "path", "access_level"}
-                ),
-                media_type="application/json",
-            )
-        return Response()
-    raise HTTPException(status_code=HTTP_400_BAD_REQUEST)
+    if not project_id_or_path:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST)
+
+    gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
+
+    user: str | None = await cache.get(token.value)
+    if not user:
+        user = await gitlab_client.get_user()
+        await cache.set(token.value, user)
+
+    if project_id_or_path.isdigit():
+        project_id = int(project_id_or_path)
+        project_path: str | None = await cache.get(("path", project_id))
+        if not project_path:
+            project_path = await gitlab_client.get_project_path(id=project_id)
+            await cache.set(("path", project_id), project_path)
+    else:
+        project_path = project_id_or_path
+
+    projectinfo: dict | None = await cache.get(("projectinfo", user, project_path))
+    if not projectinfo:
+        project = await gitlab_client.get_project(path=project_path)
+        projectinfo = project.model_dump(
+            mode="json", include={"id", "name", "path", "access_level"}
+        )
+        await cache.set(("projectinfo", user, project_path), projectinfo)
+
+    if info:
+        return Response(
+            content=json.dumps(projectinfo),
+            media_type="application/json",
+        )
+    return Response()

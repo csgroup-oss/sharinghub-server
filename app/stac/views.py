@@ -158,6 +158,10 @@ async def stac_collection_feature(
 
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     project = await gitlab_client.get_project(path=feature_id)
+    user: str | None = await cache.get(token.value)
+    if not user:
+        user = await gitlab_client.get_user()
+        await cache.set(token.value, user)
 
     if category != project.category:
         raise HTTPException(
@@ -166,7 +170,7 @@ async def stac_collection_feature(
             f"asked '{category.id}' but got '{project.category.id}' instead",
         )
 
-    cache_key = project.path
+    cache_key = ("stac", user, project.path)
     if cached_stac := await cache.get(cache_key, namespace="project"):
         elapsed_time = time.time() - cached_stac["time"]
         if elapsed_time < STAC_PROJECTS_CACHE_TIMEOUT:
