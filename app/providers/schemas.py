@@ -18,7 +18,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from pydantic import AnyHttpUrl, BaseModel
+from pydantic import AnyHttpUrl, BaseModel, Field
 from shapely.geometry.base import BaseGeometry
 
 from app.stac.api.category import Category
@@ -68,7 +68,11 @@ class Project(ProjectPreview):
     last_commit: str | None
     files: list[str] | None
     latest_release: Release | None
-    access_level: int
+    # 0 for no access
+    # 1 for read-only (visitor)
+    # 2 for modification allowed (contributor)
+    # 3 for management permissions (administrator)
+    access_level: int = Field(ge=0, le=3)
 
 
 class Topic(BaseModel):

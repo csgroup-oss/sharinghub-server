@@ -69,7 +69,9 @@ GITLAB_LICENSES_SPDX_MAPPING = {
     "unlicense": "Unlicense",
 }
 
+GUEST_ACCESS_LEVEL = 10
 DEVELOPER_ACCESS_LEVEL = 30
+MAINTAINER_ACCESS_LEVEL = 40
 
 
 class GitlabREST_Project(TypedDict):
@@ -1100,6 +1102,16 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     else:
         release = None
 
+    gitlab_access_level = project_data["maxAccessLevel"]["integerValue"]
+    if gitlab_access_level >= MAINTAINER_ACCESS_LEVEL:
+        access_level = 3
+    elif gitlab_access_level >= DEVELOPER_ACCESS_LEVEL:
+        access_level = 2
+    elif gitlab_access_level >= GUEST_ACCESS_LEVEL:
+        access_level = 1
+    else:
+        access_level = 0
+
     return Project(
         id=int(project_data["id"].split("/")[-1]),
         name=project_data["name"],
@@ -1121,7 +1133,7 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         last_commit=last_commit,
         files=files,
         latest_release=release,
-        access_level=project_data["maxAccessLevel"]["integerValue"],
+        access_level=access_level,
     )
 
 
