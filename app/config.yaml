@@ -10,6 +10,12 @@ mlflow:
 docs:
   url: https://sharinghub.p2.csgroup.space/docs
 
+spaces:
+   streamlit:
+     url: https://kdeployer.p3.csgroup.space/deploy/
+     assets:
+       - streamlit_app.py
+
 stac:
   extensions:
     eo: https://stac-extensions.github.io/eo/v1.1.0/schema.json
@@ -36,11 +42,12 @@ stac:
             title: Modèles IA
             description: Les modèles d'IA sont au cœur de notre plateforme, allez les parcourir pour découvrir nos modèles.
         features:
-          deployment: enable
+          deployment-spaces: enable
           jupyter: disable
           map-viewer: enable
           store-s3: enable
           mlflow: enable
+          spaces: disable
     - dataset:
         title: Datasets
         description: Datasets are very important in the process of training an AI, discover those that we put at your disposal.
@@ -52,11 +59,12 @@ stac:
             title: Jeux de données
             description: Les jeux de données sont très importants dans le processus de formation d'une IA, découvrez ceux que nous mettons à votre disposition.
         features:
-          deployment: disable
+          deployment-spaces: disable
           jupyter: disable
           map-viewer: enable
           store-s3: enable
           mlflow: disable
+
 
     - processor:
         title: Tools and libraries
@@ -80,12 +88,15 @@ stac:
         gitlab_topic: sharinghub:challenge
         logo: https://data.web.p2.csgroup.space/sharinghub/challenge.jpg
         icon: https://img.icons8.com/ios/50/mission-of-a-company.png
+        assets:
+          - glob: "streamlit_app.py"
+            title: "Streamlit App"
         locales:
           fr:
             title: Défis
             description: Des défis pourront vous être proposés ici. Mettez-vous à l'épreuve!
         features:
-          deployment: disable
+          deployment-spaces: enable
           jupyter: enable
           map-viewer: enable
           store-s3: disable

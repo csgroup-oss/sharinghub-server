@@ -151,3 +151,6 @@ TAGS_OPTIONS: dict = conf("tags", default={}, cast=dict)
 JUPYTERLAB_URL: str | None = conf("jupyterlab.url", "JUPYTERLAB_URL", cast=str)
 MLFLOW_URL: str | None = conf("mlflow.url", "MLFLOW_URL", cast=str)
 DOCS_URL: str | None = conf("docs.url", "DOCS_URL", cast=str)
+
+# __ DEPLOYMENT SPACES ___ #
+SPACES: dict = conf("spaces", "SPACES", default={}, cast=dict)

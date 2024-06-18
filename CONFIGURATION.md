@@ -33,6 +33,7 @@ Content:
   - [JupyterLab: URL](#jupyterlab-url)
   - [Documentation: URL](#documentation-url)
   - [MLflow: URL](#mlflow-url)
+  - [SPACES: Deployment conf: URL](#spaces-deployment-conf)
   - [S3: enable](#s3-enable)
   - [S3: bucket](#s3-bucket)
   - [S3: access key](#s3-access-key)
@@ -380,6 +381,7 @@ Content:
     ```yaml
     docs:
       url:https://sharinghub.p2.csgroup.space/docs
+    ```
 
 ### MLflow: URL
 
@@ -395,6 +397,24 @@ Content:
     ```yaml
     mlflow:
       url: https://mlflow.p2.csgroup.space
+    ```
+
+### SPACES: Deployment conf
+
+- Type: mapping
+- Default: read from [config file](./app/config.yaml)
+  - YAML:
+    - Path: `spaces`
+- Example value:
+
+  ```yaml
+    spaces:
+       streamlit:
+         url: "https://example.p2.csgroup.space/deploy/"
+         assets:
+            - streamlit_app.py
+            - file.example
+  ```
 
 ### S3: enable
 
@@ -571,7 +591,7 @@ Content:
       categories:
         - my-category:
             features:
-              deployment: enable #to enable deployment link for item of this category
+              deployment-spaces: enable #to enable spaces deployment link for item of this category
               jupyter: disable  #to enable jupyter link for item of this category
               map-viewer: enable #to enable map-viewer for item of this category
               store-s3: enable #to enable dvc for item of this category
@@ -603,16 +623,17 @@ Content:
   - Name: `STAC_PROJECTS_ASSETS_RULES`
   - Example value: `*.tif *.tiff`
 - YAML:
-  - Path: `stac.projects.assets.rules`
+  - Path: `stac.categories.[0].assets`
   - Example value:
 
     ```yaml
     stac:
-      projects:
-        assets:
-          rules:
-            - "*.tif"
+      categories:
+        dashboard:
+          assets:
             - "*.tiff"
+            - "*.py"
+
     ```
 
 ### STAC: projects assets release source format

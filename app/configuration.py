@@ -20,8 +20,10 @@ from app.settings import (
     ALERT_MESSAGE,
     DOCS_URL,
     EXTERNAL_URLS,
+    GITLAB_URL,
     JUPYTERLAB_URL,
     MLFLOW_URL,
+    SPACES,
 )
 from app.stac.settings import STAC_CATEGORIES, STAC_ROOT_CONF
 from app.store.settings import S3_ENABLE
@@ -35,6 +37,7 @@ async def configuration() -> dict:
     exclude_keys = ["locales"]
     return {
         "store": S3_ENABLE,
+        "gitlab": {"url": GITLAB_URL},
         "jupyterlab": {
             "url": JUPYTERLAB_URL,
         },
@@ -44,6 +47,7 @@ async def configuration() -> dict:
         "docs": {
             "url": DOCS_URL,
         },
+        "spaces": {**SPACES},
         "root": {
             **{
                 k: v
