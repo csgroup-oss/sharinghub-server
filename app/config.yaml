@@ -47,7 +47,6 @@ stac:
           map-viewer: enable
           store-s3: enable
           mlflow: enable
-          spaces: disable
     - dataset:
         title: Datasets
         description: Datasets are very important in the process of training an AI, discover those that we put at your disposal.
@@ -64,8 +63,6 @@ stac:
           map-viewer: enable
           store-s3: enable
           mlflow: disable
-
-
     - processor:
         title: Tools and libraries
         description: We list tools and libraries that can make your life easier in the development of your models, or their use.
@@ -77,7 +74,7 @@ stac:
             title: Outils et librairies
             description: Nous répertorions des outils et librairies pouvant vous faciliter la vie dans le développement de vos modèles, ou bien leur utilisation.
         features:
-          deployment: disable
+          deployment-spaces: disable
           jupyter: disable
           map-viewer: disable
           store-s3: disable

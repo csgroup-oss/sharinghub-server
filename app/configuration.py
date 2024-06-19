@@ -38,15 +38,9 @@ async def configuration() -> dict:
     return {
         "store": S3_ENABLE,
         "gitlab": {"url": GITLAB_URL},
-        "jupyterlab": {
-            "url": JUPYTERLAB_URL,
-        },
-        "mlflow": {
-            "url": MLFLOW_URL,
-        },
-        "docs": {
-            "url": DOCS_URL,
-        },
+        "jupyterlab": {"url": JUPYTERLAB_URL},
+        "mlflow": {"url": MLFLOW_URL},
+        "docs": {"url": DOCS_URL},
         "spaces": {**SPACES},
         "root": {
             **{

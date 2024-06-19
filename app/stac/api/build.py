@@ -761,16 +761,19 @@ def _retrieve_providers(project: Project, metadata: dict) -> list[dict]:
 
 def _retrieve_sharinghub_properties(project: Project, metadata: dict) -> dict:
     features = project.category.features
+    dvc_init = FeatureVal.ENABLE
     if project.files and not [
         fpath for fpath in project.files if fpath.startswith(".dvc/")
     ]:
-        features["store-s3"] = FeatureVal.DISABLE
+        dvc_init = FeatureVal.DISABLE
     props = {
         "id": project.id,
         "name": project.full_name,
         "path": project.path,
         "stars": project.star_count,
+        "default-branch": project.default_branch,
         "access-level": project.access_level,
+        "dvc-init": dvc_init,
         **features,
         **metadata.pop("sharinghub", {}),
     }

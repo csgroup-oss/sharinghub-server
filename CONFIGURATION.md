@@ -633,7 +633,6 @@ Content:
           assets:
             - "*.tiff"
             - "*.py"
-
     ```
 
 ### STAC: projects assets release source format
