@@ -35,8 +35,11 @@ dependencies = [
     "itsdangerous", # fastapi
     "markdown",
     "markdown-full-yaml-metadata",
+    "pydantic", # fastapi
+    "python-dotenv",
     "pyyaml",
     "shapely",
+    "starlette", # fastapi
     "typing-extensions",
 ]
 dynamic = ["version"]
@@ -50,7 +53,6 @@ dynamic = ["version"]
 dev = [
     "mypy",
     "pre-commit",
-    "python-dotenv",
     "types-Markdown",
     "types-PyYAML",
     "uvicorn",

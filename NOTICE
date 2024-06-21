@@ -28,6 +28,7 @@ See project link for details.
 - gunicorn: https://github.com/benoitc/gunicorn
 - httpx: https://github.com/projectdiscovery/httpx
 - markdown-full-yaml-metadata: https://github.com/sivakov512/python-markdown-full-yaml-metadata
+- pydantic: https://github.com/pydantic/pydantic
 - pyyaml: https://github.com/yaml/pyyaml
 
 ================================================================
@@ -40,7 +41,9 @@ See project link for details.
 - aiocache: https://github.com/aio-libs/aiocache
 - itsdangerous: https://github.com/pallets/itsdangerous
 - markdown: https://github.com/Python-Markdown/markdown
+- python-dotenv: https://github.com/theskumar/python-dotenv
 - shapely: https://github.com/shapely/shapely
+- starlette: https://github.com/encode/starlette
 - uvicorn: https://github.com/encode/uvicorn
 
 ================================================================
