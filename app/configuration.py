@@ -24,6 +24,7 @@ from app.settings import (
     JUPYTERLAB_URL,
     MLFLOW_URL,
     SPACES,
+    TAGS_OPTIONS,
 )
 from app.stac.settings import STAC_CATEGORIES, STAC_ROOT_CONF
 from app.store.settings import S3_ENABLE
@@ -86,6 +87,7 @@ async def configuration() -> dict:
                 },
             },
         },
+        "default_tags": {**TAGS_OPTIONS},
     }
 
 
