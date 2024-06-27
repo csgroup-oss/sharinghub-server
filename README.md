@@ -63,7 +63,7 @@ Use it
 docker run --rm --env-file .env -p 8000:8000 --name sharinghub-server sharinghub-server:latest
 ```
 
-You can check the API docs at [localhost:8000/docs](http://localhost:8000/docs).
+You can check the API docs at [localhost:8000/api/docs](http://localhost:8000/api/docs).
 
 ## Configuration
 
