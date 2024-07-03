@@ -13,46 +13,51 @@ Content:
 
 - [Variables](#variables)
   - [Config file path](#config-file-path)
-  - [Server: debug](#server-debug)
-  - [Server: log level](#server-log-level)
-  - [Server: API prefix](#server-api-prefix)
-  - [Server: allowed origins](#server-allowed-origins)
-  - [Server: session secret key](#server-session-secret-key)
-  - [Server: session cookie](#server-session-cookie)
-  - [Server: session domain](#server-session-domain)
-  - [Server: session max age](#server-session-max-age)
-  - [Server: static files path](#server-static-files-path)
-  - [Server: static UI dirname](#server-static-ui-dirname)
-  - [Server: HTTP client timeout](#server-http-client-timeout)
-  - [Server: enable cache](#server-enable-cache)
-  - [Gitlab: URL](#gitlab-url)
-  - [Gitlab: OAuth client id](#gitlab-oauth-client-id)
-  - [Gitlab: OAuth client secret](#gitlab-oauth-client-secret)
-  - [Gitlab: OAuth default token](#gitlab-oauth-default-token)
-  - [Gitlab: ignore topics](#gitlab-ignore-topics)
+  - [Server](#server)
+    - [Debug](#debug)
+    - [Log level](#log-level)
+    - [API prefix](#api-prefix)
+    - [Allowed origins](#allowed-origins)
+    - [Session secret key](#session-secret-key)
+    - [Session cookie](#session-cookie)
+    - [Session domain](#session-domain)
+    - [Session max age](#session-max-age)
+    - [Static files path](#static-files-path)
+    - [Static UI dirname](#static-ui-dirname)
+    - [HTTP client timeout](#http-client-timeout)
+    - [Enable cache](#enable-cache)
+  - [Gitlab](#gitlab)
+    - [URL](#url)
+    - [OAuth client id](#oauth-client-id)
+    - [OAuth client secret](#oauth-client-secret)
+    - [OAuth default token](#oauth-default-token)
+    - [Ignore topics](#ignore-topics)
+  - [S3](#s3)
+    - [Enable](#enable)
+    - [Bucket](#bucket)
+    - [Access key](#access-key)
+    - [Secret key](#secret-key)
+    - [Region](#region)
+    - [Endpoint url](#endpoint-url)
+    - [Presigned expiration](#presigned-expiration)
+    - [Upload chunk size](#upload-chunk-size)
   - [JupyterLab: URL](#jupyterlab-url)
-  - [Documentation: URL](#documentation-url)
   - [MLflow: URL](#mlflow-url)
-  - [SPACES: Deployment conf: URL](#spaces-deployment-conf)
-  - [S3: enable](#s3-enable)
-  - [S3: bucket](#s3-bucket)
-  - [S3: access key](#s3-access-key)
-  - [S3: secret key](#s3-secret-key)
-  - [S3: region](#s3-region)
-  - [S3: endpoint url](#s3-endpoint-url)
-  - [S3: presigned expiration](#s3-presigned-expiration)
-  - [S3: upload chunk size](#s3-upload-chunk-size)
-  - [STAC: root conf](#stac-root-conf)
-  - [STAC: categories](#stac-categories)
-    - [STAC: categories features](#stac-categories-features)
-  - [STAC: projects cache timeout](#stac-projects-cache-timeout)
-  - [STAC: projects assets rules](#stac-projects-assets-rules)
-  - [STAC: projects assets release source format](#stac-projects-assets-release-source-format)
-  - [STAC: search cache timeout](#stac-search-cache-timeout)
-  - [STAC: search page default size](#stac-search-page-default-size)
-  - [TAGS: sections](#tags-sections)
-  - [FRONT-CONFIG: external urls](#front-config-external-urls)
-  - [FRONT-CONFIG: visitor alert message](#front-config-visitor-alert-message)
+  - [SPACES: Deployment conf](#spaces-deployment-conf)
+  - [Documentation: URL](#documentation-url)
+  - [STAC](#stac)
+    - [Root conf](#root-conf)
+    - [Categories](#categories)
+      - [Categories features](#categories-features)
+    - [Projects cache timeout](#projects-cache-timeout)
+    - [Projects assets rules](#projects-assets-rules)
+    - [Projects assets release source format](#projects-assets-release-source-format)
+    - [Search cache timeout](#search-cache-timeout)
+    - [Search page default size](#search-page-default-size)
+  - [Front config](#front-config)
+    - [External urls](#external-urls)
+    - [Visitor alert message](#visitor-alert-message)
+    - [Tags sections](#tags-sections)
 
 ## Variables
 
@@ -66,7 +71,9 @@ Content:
   - Name: `CONFIG_PATH`
   - Example value: `/path/to/file.yaml`
 
-### Server: debug
+### Server
+
+#### Debug
 
 - Type: boolean
 - Default: `False`
@@ -82,7 +89,7 @@ Content:
       debug: true
     ```
 
-### Server: log level
+#### Log level
 
 - Type: string
 - Default: `"INFO"`, `"DEBUG"` if debug is true.
@@ -98,7 +105,7 @@ Content:
       log-level: WARNING
     ```
 
-### Server: API prefix
+#### API prefix
 
 - Type: string
 - Default: `""`
@@ -114,7 +121,7 @@ Content:
       prefix: /my/prefix
     ```
 
-### Server: allowed origins
+#### Allowed origins
 
 - Type: list of string
 - Default: `["http://localhost:8000", "https://radiantearth.github.io"]`
@@ -133,7 +140,7 @@ Content:
         - http://localhost:9000
     ```
 
-### Server: session secret key
+#### Session secret key
 
 - Type: string
 - Default: random uuid
@@ -150,7 +157,7 @@ Content:
         secret-key: <secret key>
     ```
 
-### Server: session cookie
+#### Session cookie
 
 - Type: string
 - Default: `"sharinghub-session"`
@@ -167,7 +174,7 @@ Content:
         cookie: "session"
     ```
 
-### Server: session domain
+#### Session domain
 
 - Type: string
 - Default: `None`
@@ -184,7 +191,7 @@ Content:
         domain: "test.local"
     ```
 
-### Server: session max age
+#### Session max age
 
 - Type: floating number
 - Default: `3600.0`
@@ -201,7 +208,7 @@ Content:
         max-age: 7200.0
     ```
 
-### Server: static files path
+#### Static files path
 
 - Type: path
 - Environment variable:
@@ -216,7 +223,7 @@ Content:
       statics: /statics
     ```
 
-### Server: static UI dirname
+#### Static UI dirname
 
 - Type: string
 - Default: `ui`
@@ -232,7 +239,7 @@ Content:
       statics-ui: web-ui
     ```
 
-### Server: HTTP client timeout
+#### HTTP client timeout
 
 - Type: floating number
 - Default: `300.0`
@@ -249,7 +256,7 @@ Content:
         timeout: 600.0
     ```
 
-### Server: enable cache
+#### Enable cache
 
 - Type: boolean
 - Default: `not DEBUG`
@@ -265,7 +272,9 @@ Content:
       cache: true
     ```
 
-### Gitlab: URL
+### Gitlab
+
+#### URL
 
 - Type: string
 - Default: read from [config file](./app/config.yaml)
@@ -281,7 +290,7 @@ Content:
       url: https://gitlab.example.com
     ```
 
-### Gitlab: OAuth client id
+#### OAuth client id
 
 - Type: string
 - Default: read from env var
@@ -298,7 +307,7 @@ Content:
         client-id: <client-id>
     ```
 
-### Gitlab: OAuth client secret
+#### OAuth client secret
 
 - Type: string
 - Default: read from env var
@@ -315,7 +324,7 @@ Content:
         client-secret: <client-secret>
     ```
 
-### Gitlab: OAuth default token
+#### OAuth default token
 
 - Type: string
 - Default: read from env var
@@ -332,7 +341,7 @@ Content:
         default-token: <default-token>
     ```
 
-### Gitlab: ignore topics
+#### Ignore topics
 
 - Type: list of string
 - Default: `[]`
@@ -351,6 +360,136 @@ Content:
           - "devops"
     ```
 
+### S3
+
+#### Enable
+
+- Type: boolean
+- Default: `False`
+- Environment variable:
+  - Name: `S3_ENABLE`
+  - Values: `true`, `false`
+- YAML:
+  - Path: `s3.enable`
+  - Example value:
+
+    ```yaml
+    s3:
+      enable: true
+    ```
+
+#### Bucket
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `S3_BUCKET`
+  - Example value: `gitlab`
+- YAML:
+  - Path: `s3.bucket`
+  - Example value:
+
+    ```yaml
+    s3:
+      bucket: gitlab
+    ```
+
+#### Access key
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `S3_ACCESS_KEY`
+  - Example value: `<access-key>`
+- YAML:
+  - Path: `s3.access-key`
+  - Example value:
+
+    ```yaml
+    s3:
+      access-key: <access-key>
+    ```
+
+#### Secret key
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `S3_SECRET_KEY`
+  - Example value: `<secret-key>`
+- YAML:
+  - Path: `s3.secret-key`
+  - Example value:
+
+    ```yaml
+    s3:
+      secret-key: <secret-key>
+    ```
+
+#### Region
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `S3_REGION_NAME`
+  - Example value: `test`
+- YAML:
+  - Path: `s3.region`
+  - Example value:
+
+    ```yaml
+    s3:
+      region: test
+    ```
+
+#### Endpoint url
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `S3_ENDPOINT_URL`
+  - Example value: `http://127.0.0.1:9000`
+- YAML:
+  - Path: `s3.endpoint`
+  - Example value:
+
+    ```yaml
+    s3:
+      endpoint: "http://127.0.0.1:9000"
+    ```
+
+#### Presigned expiration
+
+- Type: integer number
+- Default: `3600`
+- Environment variable:
+  - Name: `S3_PRESIGNED_EXPIRATION`
+  - Example value: `1200`
+- YAML:
+  - Path: `s3.presigned-expiration`
+  - Example value:
+
+    ```yaml
+    s3:
+      presigned-expiration: 1200
+    ```
+
+#### Upload chunk size
+
+- Type: integer number
+- Default: `6000000`
+- Environment variable:
+  - Name: `S3_UPLOAD_CHUNK_SIZE`
+  - Example value: `300000`
+- YAML:
+  - Path: `s3.upload-chunk-size`
+  - Example value:
+
+    ```yaml
+    s3:
+      upload-chunk-size: 300000
+    ```
+
 ### JupyterLab: URL
 
 - Type: string
@@ -365,22 +504,6 @@ Content:
     ```yaml
     jupyterlab:
       url: https://nb.example.com
-    ```
-
-### Documentation: URL
-
-- Type: string
-- Default: read from [config file](./app/config.yaml)
-- Environment variable:
-  - Name: `DOCS_URL`
-  - Example value: `https://sharingub.instance/docs`
-- YAML:
-  - Path: `docs.url`
-  - Example value:
-
-    ```yaml
-    docs:
-      url:https://sharinghub.p2.csgroup.space/docs
     ```
 
 ### MLflow: URL
@@ -416,135 +539,25 @@ Content:
             - file.example
   ```
 
-### S3: enable
-
-- Type: boolean
-- Default: `False`
-- Environment variable:
-  - Name: `S3_ENABLE`
-  - Values: `true`, `false`
-- YAML:
-  - Path: `s3.enable`
-  - Example value:
-
-    ```yaml
-    s3:
-      enable: true
-    ```
-
-### S3: bucket
+### Documentation: URL
 
 - Type: string
 - Default: read from [config file](./app/config.yaml)
 - Environment variable:
-  - Name: `S3_BUCKET`
-  - Example value: `gitlab`
+  - Name: `DOCS_URL`
+  - Example value: `https://sharingub.instance/docs`
 - YAML:
-  - Path: `s3.bucket`
+  - Path: `docs.url`
   - Example value:
 
     ```yaml
-    s3:
-      bucket: gitlab
+    docs:
+      url:https://sharinghub.p2.csgroup.space/docs
     ```
 
-### S3: access key
+### STAC
 
-- Type: string
-- Default: read from [config file](./app/config.yaml)
-- Environment variable:
-  - Name: `S3_ACCESS_KEY`
-  - Example value: `<access-key>`
-- YAML:
-  - Path: `s3.access-key`
-  - Example value:
-
-    ```yaml
-    s3:
-      access-key: <access-key>
-    ```
-
-### S3: secret key
-
-- Type: string
-- Default: read from [config file](./app/config.yaml)
-- Environment variable:
-  - Name: `S3_SECRET_KEY`
-  - Example value: `<secret-key>`
-- YAML:
-  - Path: `s3.secret-key`
-  - Example value:
-
-    ```yaml
-    s3:
-      secret-key: <secret-key>
-    ```
-
-### S3: region
-
-- Type: string
-- Default: read from [config file](./app/config.yaml)
-- Environment variable:
-  - Name: `S3_REGION_NAME`
-  - Example value: `test`
-- YAML:
-  - Path: `s3.region`
-  - Example value:
-
-    ```yaml
-    s3:
-      region: test
-    ```
-
-### S3: endpoint url
-
-- Type: string
-- Default: read from [config file](./app/config.yaml)
-- Environment variable:
-  - Name: `S3_ENDPOINT_URL`
-  - Example value: `http://127.0.0.1:9000`
-- YAML:
-  - Path: `s3.endpoint`
-  - Example value:
-
-    ```yaml
-    s3:
-      endpoint: "http://127.0.0.1:9000"
-    ```
-
-### S3: presigned expiration
-
-- Type: integer number
-- Default: `3600`
-- Environment variable:
-  - Name: `S3_PRESIGNED_EXPIRATION`
-  - Example value: `1200`
-- YAML:
-  - Path: `s3.presigned-expiration`
-  - Example value:
-
-    ```yaml
-    s3:
-      presigned-expiration: 1200
-    ```
-
-### S3: upload chunk size
-
-- Type: integer number
-- Default: `6000000`
-- Environment variable:
-  - Name: `S3_UPLOAD_CHUNK_SIZE`
-  - Example value: `300000`
-- YAML:
-  - Path: `s3.upload-chunk-size`
-  - Example value:
-
-    ```yaml
-    s3:
-      upload-chunk-size: 300000
-    ```
-
-### STAC: root conf
+#### Root conf
 
 - Type: mapping
 - Default: read from [config file](./app/config.yaml)
@@ -561,7 +574,7 @@ Content:
         logo: URL
     ```
 
-### STAC: categories
+#### Categories
 
 - Type: mapping
 - Default: read from [config file](./app/config.yaml)
@@ -578,7 +591,7 @@ Content:
             default_type: item
     ```
 
-#### STAC: categories features
+##### Categories features
 
 - Type: mapping
 - Default: read from [config file](./app/config.yaml)
@@ -598,7 +611,7 @@ Content:
               mlflow: enable #to enable mlflow for item of this category
     ```
 
-### STAC: projects cache timeout
+#### Projects cache timeout
 
 - Type: floating number
 - Default: `300.0`
@@ -615,7 +628,7 @@ Content:
         cache-timeout: 15.0
     ```
 
-### STAC: projects assets rules
+#### Projects assets rules
 
 - Type: list of string
 - Default: `["*.tif", "*.tiff", "*.geojson"]`
@@ -635,7 +648,7 @@ Content:
             - "*.py"
     ```
 
-### STAC: projects assets release source format
+#### Projects assets release source format
 
 - Type: string
 - Default: `"zip"`
@@ -653,7 +666,7 @@ Content:
           release-source-format: tar.gz
     ```
 
-### STAC: search cache timeout
+#### Search cache timeout
 
 - Type: floating number
 - Default: `180.0`
@@ -670,7 +683,7 @@ Content:
         cache-timeout: 15.0
     ```
 
-### STAC: search page default size
+#### Search page default size
 
 - Type: integer number
 - Default: `12`
@@ -687,33 +700,9 @@ Content:
         page-size: 20
     ```
 
-### TAGS: sections
+### Front config
 
-- Type: mapping
-- Default: read from [config file](./app/config.yaml)
-- YAML:
-  - Path: `tags`
-  - Example value:
-
-    ```yaml
-    tags:
-      gitlab:
-        minimum_count: 1
-      sections:
-        - name: "Computer Vision"
-          enabled_for:
-            - ai-model
-            - dataset
-            - processor
-            - challenge
-          keywords:
-            - "Image qualification"
-            - "Object detection"
-            - "Image segmentation"
-            - "Mask generation"
-    ```
-
-### FRONT-CONFIG: external urls
+#### External urls
 
 - Type: mapping
 - Default: read from [config file](./app/config.yaml)
@@ -743,7 +732,7 @@ Content:
                   name: <localization>
     ```
 
-### FRONT-CONFIG: visitor alert message
+#### Visitor alert message
 
 - Type: mapping
 - Default: read from [config file](./app/config.yaml)
@@ -761,4 +750,30 @@ Content:
           fr:
             title: "Bienvenue sur le nouveau sharing hub"
             message: "Pour voir tous les projets et débloquer toutes les fonctionnalités, veuillez vous connecter..." # Possible to render primitives html component in message ex: <a href='url'> text here <a/>
+    ```
+
+#### Tags sections
+
+- Type: mapping
+- Default: read from [config file](./app/config.yaml)
+- YAML:
+  - Path: `tags`
+  - Example value:
+
+    ```yaml
+    tags:
+      gitlab:
+        minimum_count: 1
+      sections:
+        - name: "Computer Vision"
+          enabled_for:
+            - ai-model
+            - dataset
+            - processor
+            - challenge
+          keywords:
+            - "Image qualification"
+            - "Object detection"
+            - "Image segmentation"
+            - "Mask generation"
     ```
