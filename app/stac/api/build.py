@@ -700,8 +700,7 @@ def _retrieve_extent(
 
 
 def _get_description(project: Project, **context: Unpack[STACContext]) -> str:
-    description = md.increase_headings(project.readme, 3)
-    description = __resolve_links(description, project, **context)
+    description = __resolve_links(project.readme, project, **context)
     description = md.clean_new_lines(description)
     return description
 

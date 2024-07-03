@@ -42,17 +42,6 @@ def parse(markdown_content: str) -> tuple[str, dict]:
 
 
 @cache
-def increase_headings(markdown_content: str, incr: int = 1) -> str:
-    markdown_buff = []
-    for line in markdown_content.split("\n"):
-        if line.startswith("#"):
-            markdown_buff.append(f"{'#' * incr}{line}")
-        else:
-            markdown_buff.append(line)
-    return "\n".join(markdown_buff)
-
-
-@cache
 def get_images(markdown_content: str) -> list[tuple[str, str]]:
     images = []
     for match_ in re.finditer(IMAGE_PATTERN, markdown_content):
