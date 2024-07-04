@@ -55,6 +55,7 @@ MEDIA_TYPES = {
     "notebook": "application/x-ipynb+json",
 }
 
+DOI_URL_PATTERN = re.compile(r"https://doi.org/(?P<doi>10\.\d{4,9}/[-._;/:a-zA-Z0-9]+)")
 DOI_URL = "https://doi.org/"
 DOI_PREFIX = "DOI:"
 
@@ -810,15 +811,19 @@ def __parse_scientific_citations(
     md_content: str,
 ) -> tuple[tuple[str, str] | None, list[dict[str, str]]]:
     doi = None
-    publications = []
+    publications: list[dict[str, str]] = []
 
     for link_text, link_href in md.get_links(md_content):
-        if link_href.startswith(DOI_URL):
-            _doi = link_href.removeprefix(DOI_URL)
-            if link_text.startswith(DOI_PREFIX):
-                doi = (_doi, link_text.removeprefix(DOI_PREFIX).lstrip())
+        if m := DOI_URL_PATTERN.search(link_href):
+            _doi = m.groupdict()["doi"]
+            _citation = link_text.removeprefix(DOI_PREFIX).lstrip()
+            if not doi:
+                doi = (_doi, _citation)
             else:
-                publications.append({"doi": _doi, "citation": link_text})
+                publications.append({"doi": _doi, "citation": _citation})
+
+    if not doi and (m := DOI_URL_PATTERN.search(md_content)):
+        doi = (m.groupdict()["doi"], "")
 
     return doi, publications
 
