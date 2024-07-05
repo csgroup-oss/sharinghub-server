@@ -163,11 +163,12 @@ async def stac_collection_feature(
         user = await gitlab_client.get_user()
         await cache.set(token.value, user)
 
-    if category != project.category:
+    if category not in project.categories:
         raise HTTPException(
             status_code=400,
             detail=f"Category mismatch for project '{project.path}', "
-            f"asked '{category.id}' but got '{project.category.id}' instead",
+            f"asked '{category.id}' but got "
+            f"{', '.join(c.id for c in project.categories)} instead",
         )
 
     cache_key = ("stac", user, project.path)
@@ -192,6 +193,7 @@ async def stac_collection_feature(
 
     project_stac = build_stac_item(
         project=project,
+        category=category,
         request=request,
         token=token,
     )
@@ -362,7 +364,7 @@ async def _stac_search(  # noqa: C901
             )
             count = len(projects_refs)
             features = [
-                build_stac_item_reference(p, request=request, token=token)
+                build_stac_item_reference(p, category, request=request, token=token)
                 for p in projects_refs
             ]
         case "preview":
@@ -380,7 +382,7 @@ async def _stac_search(  # noqa: C901
             )
             count = len(projects_prevs)
             features = [
-                build_stac_item_preview(p, request=request, token=token)
+                build_stac_item_preview(p, category, request=request, token=token)
                 for p in projects_prevs
             ]
         case "full":
@@ -401,7 +403,8 @@ async def _stac_search(  # noqa: C901
                 *(_resolve_license(p, gitlab_client) for p in projects),
             )
             features = [
-                build_stac_item(p, request=request, token=token) for p in projects
+                build_stac_item(p, category, request=request, token=token)
+                for p in projects
             ]
     pagination = _create_stac_pagination(
         _pagination,

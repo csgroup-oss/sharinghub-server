@@ -43,7 +43,7 @@ class ProjectReference(BaseModel):
     name: str
     path: str
     topics: list[str]
-    category: Category
+    categories: list[Category]
 
 
 class ProjectPreview(ProjectReference):

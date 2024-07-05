@@ -72,9 +72,9 @@ async def check_access(token: GitlabToken, project_id: int) -> None:
     has_access: bool | None = await cache.get(("access", user, project_path))
     if has_access is None:
         project = await gitlab_client.get_project(project_path)
-        if (
-            project.category.features.get(S3_FEATURE_NAME, FeatureVal.DISABLE)
-            != FeatureVal.ENABLE
+        if any(
+            c.features.get(S3_FEATURE_NAME, FeatureVal.DISABLE) != FeatureVal.ENABLE
+            for c in project.categories
         ):
             raise HTTPException(
                 status_code=HTTP_403_FORBIDDEN,

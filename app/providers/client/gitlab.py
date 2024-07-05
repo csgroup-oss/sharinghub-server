@@ -35,7 +35,7 @@ from app.providers.schemas import (
     Release,
     Topic,
 )
-from app.stac.api.category import get_category_from_topics
+from app.stac.api.category import get_categories_from_topics
 from app.utils import geo
 from app.utils import markdown as md
 from app.utils.http import (
@@ -1070,7 +1070,7 @@ def _adapt_graphql_project_reference(
         name=project_data["name"],
         path=project_data["fullPath"],
         topics=project_data["topics"],
-        category=get_category_from_topics(project_data["topics"]),
+        categories=get_categories_from_topics(project_data["topics"]),
     )
 
 
@@ -1086,7 +1086,7 @@ def _adapt_graphql_project_preview(
         path=project_data["fullPath"],
         description=project_data["description"],
         topics=project_data["topics"],
-        category=get_category_from_topics(project_data["topics"]),
+        categories=get_categories_from_topics(project_data["topics"]),
         created_at=project_data["createdAt"],
         last_update=project_data["lastActivityAt"],
         star_count=project_data["starCount"],
@@ -1141,7 +1141,7 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         topics=project_data["topics"],
         url=project_data["webUrl"],
         bug_tracker=project_data["webUrl"] + "/issues",
-        category=get_category_from_topics(project_data["topics"]),
+        categories=get_categories_from_topics(project_data["topics"]),
         created_at=project_data["createdAt"],
         last_update=project_data["lastActivityAt"],
         star_count=project_data["starCount"],

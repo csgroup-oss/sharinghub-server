@@ -431,10 +431,12 @@ def build_features_collection(
 
 def build_stac_item_reference(
     project: ProjectReference,
+    category: Category,
     **context: Unpack[STACContext],
 ) -> dict:
     default_fields, default_links, default_assets = _build_stac_item_default_values(
         project,
+        category,
         **context,
     )
     return {
@@ -455,6 +457,7 @@ def build_stac_item_reference(
 
 def build_stac_item_preview(
     project: ProjectPreview,
+    category: Category,
     **context: Unpack[STACContext],
 ) -> dict:
     metadata = {**project.metadata}
@@ -465,6 +468,7 @@ def build_stac_item_preview(
 
     stac_fields, stac_links, stac_assets = _build_stac_item_default_values(
         project,
+        category,
         **context,
     )
 
@@ -493,6 +497,7 @@ def build_stac_item_preview(
 
 def build_stac_item(
     project: Project,
+    category: Category,
     **context: Unpack[STACContext],
 ) -> dict:
     metadata = {**project.metadata}
@@ -509,7 +514,7 @@ def build_stac_item(
 
     # STAC generation
 
-    sharinghub_properties = _retrieve_sharinghub_properties(project, metadata)
+    sharinghub_properties = _retrieve_sharinghub_properties(project, category, metadata)
     stac_extensions, extensions_properties = _retrieve_extensions(project, metadata)
 
     stac_links = _retrieve_links(project, metadata, **context)
@@ -534,6 +539,7 @@ def build_stac_item(
 
     default_fields, default_links, default_assets = _build_stac_item_default_values(
         project,
+        category,
         **context,
     )
     return {
@@ -578,12 +584,13 @@ def build_stac_item(
 
 def _build_stac_item_default_values(
     project: ProjectReference,
+    category: Category,
     **context: Unpack[STACContext],
 ) -> tuple[dict[str, str], list[dict], dict[str, dict]]:
     _request = context["request"]
     _token = context["token"]
 
-    fields = {"collection": project.category.id}
+    fields = {"collection": category.id}
     assets: dict[str, dict] = {}
     links = [
         {
@@ -593,7 +600,7 @@ def _build_stac_item_default_values(
                 _request,
                 "stac_collection_feature",
                 path={
-                    "collection_id": project.category.id,
+                    "collection_id": category.id,
                     "feature_id": project.path,
                 },
                 query={**_token.query},
@@ -605,7 +612,7 @@ def _build_stac_item_default_values(
             "href": url_for(
                 _request,
                 "stac_collection",
-                path={"collection_id": project.category.id},
+                path={"collection_id": category.id},
                 query={**_token.query},
             ),
         },
@@ -624,7 +631,7 @@ def _build_stac_item_default_values(
             "href": url_for(
                 _request,
                 "stac_collection",
-                path={"collection_id": project.category.id},
+                path={"collection_id": category.id},
                 query={**_token.query},
             ),
         },
@@ -635,7 +642,8 @@ def _build_stac_item_default_values(
 
 def _get_tags(project: ProjectReference) -> list[str]:
     project_topics = list(project.topics)
-    project_topics.remove(project.category.gitlab_topic)
+    for category in project.categories:
+        project_topics.remove(category.gitlab_topic)
     return project_topics
 
 
@@ -759,8 +767,10 @@ def _retrieve_providers(project: Project, metadata: dict) -> list[dict]:
     return providers
 
 
-def _retrieve_sharinghub_properties(project: Project, metadata: dict) -> dict:
-    features = project.category.features
+def _retrieve_sharinghub_properties(
+    project: Project, category: Category, metadata: dict
+) -> dict:
+    features = category.features
     dvc_init = FeatureVal.ENABLE
     if project.files and not [
         fpath for fpath in project.files if fpath.startswith(".dvc/")
@@ -897,7 +907,8 @@ def __retrieve_assets_rules(
     if not isinstance(metadata_assets, list):
         metadata_assets = []
 
-    assets_rules.extend(__process_assets_rules(project.category.assets))
+    for category in project.categories:
+        assets_rules.extend(__process_assets_rules(category.assets))
     assets_rules.extend(__process_assets_rules(metadata_assets))
 
     return assets_rules
