@@ -165,11 +165,13 @@ class GitlabGraphQL_Project(GitlabGraphQL_ProjectReference):
 class _GitlabGraphQL_Repository1(TypedDict):
     rootRef: str | None
     readme: "_GitlabGraphQL_RepositoryRawBlobs"
+    preview: "_GitlabGraphQL_RepositoryPathBlobs"
 
 
 class _GitlabGraphQL_Repository2(TypedDict):
     rootRef: str | None
     readme: "_GitlabGraphQL_RepositoryRawBlobs"
+    preview: "_GitlabGraphQL_RepositoryPathBlobs"
     tree: "_GitlabGraphQL_Tree"
 
 
@@ -179,6 +181,14 @@ class _GitlabGraphQL_RepositoryRawBlobs(TypedDict):
 
 class _GitlabGraphQL_RepositoryRawBlobNode(TypedDict):
     rawBlob: str
+
+
+class _GitlabGraphQL_RepositoryPathBlobs(TypedDict):
+    nodes: list["_GitlabGraphQL_RepositoryPathBlobNode"]
+
+
+class _GitlabGraphQL_RepositoryPathBlobNode(TypedDict):
+    path: str
 
 
 class _GitlabGraphQL_Tree(TypedDict):
@@ -270,6 +280,11 @@ fragment projectFields on Project {
         rawBlob
       }
     }
+    preview: blobs(paths: ["preview.png", "preview.jpg", "preview.jpeg"]) {
+      nodes {
+        path
+      }
+    }
   }
 }
 """
@@ -293,6 +308,11 @@ fragment projectFields on Project {
     readme: blobs(paths: ["README.md", "readme.md"]) {
       nodes {
         rawBlob
+      }
+    }
+    preview: blobs(paths: ["preview.png", "preview.jpg", "preview.jpeg"]) {
+      nodes {
+        path
       }
     }
     tree(path: "/", recursive: true) {
@@ -1152,6 +1172,11 @@ def _process_readme_and_metadata(
             project_data["_metadata"] = metadata
     else:
         readme, metadata = "", {}
+
+    if project_data["repository"]["preview"]["nodes"]:
+        preview_path = project_data["repository"]["preview"]["nodes"][0]["path"]
+        metadata.setdefault("preview", preview_path)
+
     return readme, metadata
 
 
