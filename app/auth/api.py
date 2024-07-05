@@ -47,9 +47,6 @@ def init_oauth() -> OAuth:
             },
             **gitlab_oauth_conf,
         )
-    else:
-        msg = "GitLab authentication not configured"
-        raise ValueError(msg)
     return _oauth
 
 

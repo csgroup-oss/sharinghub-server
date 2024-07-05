@@ -19,7 +19,7 @@ from typing import Annotated
 from authlib.integrations.starlette_client import StarletteOAuth2App
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import APIKeyHeader, APIKeyQuery
-from starlette.status import HTTP_401_UNAUTHORIZED
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.session import SessionDep
 
@@ -39,7 +39,13 @@ gitlab_token_header = APIKeyHeader(
 
 
 def get_oauth() -> StarletteOAuth2App:
-    return oauth.create_client(GITLAB_OAUTH_NAME)
+    auth_app = oauth.create_client(GITLAB_OAUTH_NAME)
+    if not auth_app:
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="No oauth2 configured.",
+        )
+    return auth_app
 
 
 async def get_session_auth(session: SessionDep) -> dict:
