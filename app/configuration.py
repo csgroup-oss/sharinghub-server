@@ -16,6 +16,8 @@
 
 from fastapi.routing import APIRouter
 
+from app.auth.api import oauth
+from app.auth.settings import GITLAB_OAUTH_NAME
 from app.settings import (
     ALERT_MESSAGE,
     DOCS_URL,
@@ -37,6 +39,7 @@ async def configuration() -> dict:
     text_keys = ["title", "description", "name"]
     exclude_keys = ["locales"]
     return {
+        "auth": "oauth2" if oauth.create_client(GITLAB_OAUTH_NAME) else "token",
         "store": S3_ENABLE,
         "gitlab": {"url": GITLAB_URL},
         "jupyterlab": {"url": JUPYTERLAB_URL},
