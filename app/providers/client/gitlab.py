@@ -164,21 +164,21 @@ class GitlabGraphQL_Project(GitlabGraphQL_ProjectReference):
 
 class _GitlabGraphQL_Repository1(TypedDict):
     rootRef: str | None
-    blobs: "_GitlabGraphQL_RepositoryBlobs"
-
-
-class _GitlabGraphQL_RepositoryBlobs(TypedDict):
-    nodes: list["_GitlabGraphQL_RepositoryBlobNode"]
-
-
-class _GitlabGraphQL_RepositoryBlobNode(TypedDict):
-    rawBlob: str
+    readme: "_GitlabGraphQL_RepositoryRawBlobs"
 
 
 class _GitlabGraphQL_Repository2(TypedDict):
     rootRef: str | None
-    blobs: "_GitlabGraphQL_RepositoryBlobs"
+    readme: "_GitlabGraphQL_RepositoryRawBlobs"
     tree: "_GitlabGraphQL_Tree"
+
+
+class _GitlabGraphQL_RepositoryRawBlobs(TypedDict):
+    nodes: list["_GitlabGraphQL_RepositoryRawBlobNode"]
+
+
+class _GitlabGraphQL_RepositoryRawBlobNode(TypedDict):
+    rawBlob: str
 
 
 class _GitlabGraphQL_Tree(TypedDict):
@@ -265,7 +265,7 @@ fragment projectFields on Project {
   topics
   repository {
     rootRef
-    blobs(paths: ["README.md"]) {
+    readme: blobs(paths: ["README.md", "readme.md"]) {
       nodes {
         rawBlob
       }
@@ -290,7 +290,7 @@ fragment projectFields on Project {
   }
   repository {
     rootRef
-    blobs(paths: ["README.md"]) {
+    readme: blobs(paths: ["README.md", "readme.md"]) {
       nodes {
         rawBlob
       }
@@ -1143,9 +1143,9 @@ def _process_readme_and_metadata(
 ) -> tuple[str, dict]:
     if all(e in project_data for e in ["_readme", "_metadata"]):
         readme, metadata = project_data["_readme"], project_data["_metadata"]
-    elif project_data["repository"]["blobs"]["nodes"]:
+    elif project_data["repository"]["readme"]["nodes"]:
         readme, metadata = md.parse(
-            project_data["repository"]["blobs"]["nodes"][0]["rawBlob"],
+            project_data["repository"]["readme"]["nodes"][0]["rawBlob"],
         )
         if save:
             project_data["_readme"] = readme
