@@ -1,28 +1,36 @@
+# You can override the included template(s) by including variable overrides
+# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/pipeline/#customization
+# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
+# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
 include:
-  - component: gitlab.si.c-s.fr/to-be-continuous/gitleaks/gitlab-ci-gitleaks@2.5.2
-  - component: gitlab.si.c-s.fr/space_platforms/metis/tools/ci-precommit/gitlab-ci-precommit@3.1.0
-    inputs:
-      skip: mypy
-      fetch-refs: true
-  - component: gitlab.si.c-s.fr/to-be-continuous/docker/gitlab-ci-docker@5.10.3
-    inputs:
-      build-args: "--build-arg VERSION=$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA-$CI_JOB_STARTED_AT"
-      prod-publish-strategy: "auto"
-      hadolint-args: "--failure-threshold warning --ignore DL3008"
-      trivy-security-level-threshold: "HIGH,CRITICAL"
-
+- component: gitlab.si.c-s.fr/to-be-continuous/gitleaks/gitlab-ci-gitleaks@2.5.2
+- component: gitlab.si.c-s.fr/space_platforms/metis/tools/ci-precommit/gitlab-ci-precommit@3.1.0
+  inputs:
+    skip: mypy
+    fetch-refs: true
+- component: gitlab.si.c-s.fr/to-be-continuous/docker/gitlab-ci-docker@5.10.3
+  inputs:
+    build-args: "--build-arg VERSION=$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA-$CI_JOB_STARTED_AT"
+    prod-publish-strategy: auto
+    hadolint-args: "--failure-threshold warning --ignore DL3008"
+    trivy-security-level-threshold: HIGH,CRITICAL
+- template: Security/SAST.gitlab-ci.yml
 stages:
-  - build
-  - test
-  - package-build
-  - package-test
-  - infra
-  - deploy
-  - acceptance
-  - publish
-  - infra-prod
-  - production
-
+- build
+- test
+- package-build
+- package-test
+- infra
+- deploy
+- acceptance
+- publish
+- infra-prod
+- production
 variables:
-  KUBERNETES_MEMORY_REQUEST: '1Gi'
-  KUBERNETES_MEMORY_LIMIT: '2Gi'
+  KUBERNETES_MEMORY_REQUEST: 1Gi
+  KUBERNETES_MEMORY_LIMIT: 2Gi
+sast:
+  stage: test
