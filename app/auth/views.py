@@ -22,7 +22,8 @@ from starlette.status import HTTP_401_UNAUTHORIZED
 from app.session import PostCleanSessionDep, PreCleanSessionDep, SessionDep
 from app.utils.http import url_for
 
-from .depends import AuthAppDep, SessionAuthDep
+from .depends import AuthAppDep, GitlabTokenDep, SessionAuthDep
+from .settings import GITLAB_OAUTH_DEFAULT_TOKEN
 
 router = APIRouter()
 
@@ -30,13 +31,14 @@ REDIRECT_URI_KEY = "redirect_uri"
 
 
 @router.get("/info")
-async def auth_info(session_auth: SessionAuthDep) -> dict:
-    if session_auth:
-        return session_auth
-    raise HTTPException(
-        status_code=HTTP_401_UNAUTHORIZED,
-        detail="Not authenticated",
-    )
+async def auth_info(gitlab_token: GitlabTokenDep) -> dict:
+    if gitlab_token.value == GITLAB_OAUTH_DEFAULT_TOKEN:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated, but server default token is enabled. "
+            "Missing user token, either use login, or pass it as header or query",
+        )
+    return {"access_token": gitlab_token.value}
 
 
 @router.get("/login", dependencies=[PreCleanSessionDep])
