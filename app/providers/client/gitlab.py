@@ -28,6 +28,7 @@ from shapely.geometry.base import BaseGeometry
 from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.providers.schemas import (
+    AccessLevel,
     License,
     Project,
     ProjectPreview,
@@ -1124,13 +1125,13 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
 
     gitlab_access_level = project_data["maxAccessLevel"]["integerValue"]
     if gitlab_access_level >= MAINTAINER_ACCESS_LEVEL:
-        access_level = 3
+        access_level = AccessLevel.ADMINISTRATOR
     elif gitlab_access_level >= DEVELOPER_ACCESS_LEVEL:
-        access_level = 2
+        access_level = AccessLevel.CONTRIBUTOR
     elif gitlab_access_level >= GUEST_ACCESS_LEVEL:
-        access_level = 1
+        access_level = AccessLevel.VISITOR
     else:
-        access_level = 0
+        access_level = AccessLevel.NO_ACCESS
 
     return Project(
         id=int(project_data["id"].split("/")[-1]),

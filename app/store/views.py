@@ -26,7 +26,8 @@ from starlette.status import HTTP_403_FORBIDDEN
 
 from app.auth import GitlabTokenDep
 from app.auth.api import GitlabToken
-from app.providers.client.gitlab import DEVELOPER_ACCESS_LEVEL, GitlabClient
+from app.providers.client.gitlab import GitlabClient
+from app.providers.schemas import AccessLevel
 from app.settings import GITLAB_URL
 from app.stac.api.category import FeatureVal
 from app.utils.cache import cache
@@ -80,7 +81,7 @@ async def check_access(token: GitlabToken, project_id: int) -> None:
                 status_code=HTTP_403_FORBIDDEN,
                 detail="S3 store is not enabled for this project's category",
             )
-        has_access = project.access_level >= DEVELOPER_ACCESS_LEVEL
+        has_access = project.access_level >= AccessLevel.CONTRIBUTOR
         await cache.set(("access", user, project_path), has_access)
 
     if not has_access:

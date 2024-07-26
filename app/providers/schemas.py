@@ -16,6 +16,7 @@
 
 import logging
 from datetime import datetime
+from enum import IntEnum
 from typing import Any
 
 from pydantic import AnyHttpUrl, BaseModel, Field
@@ -24,6 +25,13 @@ from shapely.geometry.base import BaseGeometry
 from app.stac.api.category import Category
 
 logger = logging.getLogger("app")
+
+
+class AccessLevel(IntEnum):
+    NO_ACCESS = 0
+    VISITOR = 1
+    CONTRIBUTOR = 2
+    ADMINISTRATOR = 3
 
 
 class License(BaseModel):
