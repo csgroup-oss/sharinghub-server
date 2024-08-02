@@ -33,6 +33,8 @@ repos:
     rev: v3.16.0
     hooks:
       - id: commitizen
+      - id: commitizen-branch
+        stages: [push]
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.16
