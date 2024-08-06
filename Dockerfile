@@ -28,6 +28,7 @@ RUN useradd -mrU -d /home/app -s /bin/bash app
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends mailcap && \
+    pip install --no-cache-dir --upgrade pip setuptools && \
     rm -rf /var/lib/apt/lists/*
 
 USER app
