@@ -33,6 +33,8 @@ repos:
     rev: v3.16.0
     hooks:
       - id: commitizen
+      - id: commitizen-branch
+        stages: [push]
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.16
@@ -46,6 +48,15 @@ repos:
       args: [ --disable=MD013 ]
     - id: markdownlint
       args: [ --disable=MD013 ]
+
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+    - id: hadolint-docker
+      args: [
+        "--failure-threshold=warning",
+        "--ignore=DL3008",
+      ]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.4.5
