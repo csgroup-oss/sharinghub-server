@@ -39,8 +39,6 @@ jobs:
       SKIP: "gitleaks"
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -58,8 +56,6 @@ jobs:
     needs: [build]
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -111,7 +107,7 @@ jobs:
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           severity: "HIGH,CRITICAL"
-          vuln-type: "os"
+          vuln-type: "library"
           format: "table"
           exit-code: "1"
           ignore-unfixed: true
