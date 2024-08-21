@@ -40,6 +40,8 @@ COPY --chown=app:app --from=installer /usr/src/app/wheels wheels
 RUN pip install --user --no-cache-dir wheels/* && \
     rm -rf wheels
 
+COPY resources/gunicorn.conf.py .
+
 EXPOSE 8000
 
-CMD ["gunicorn", "app.main:app", "--bind", "0.0.0.0:8000", "--workers", "4",  "--worker-class", "uvicorn.workers.UvicornWorker"]
+CMD ["gunicorn", "app.main:app"]
