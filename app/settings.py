@@ -16,6 +16,7 @@
 
 import os
 from pathlib import Path
+from typing import Literal
 
 from dotenv import load_dotenv
 
@@ -146,10 +147,16 @@ GITLAB_IGNORE_TOPICS: list[str] = conf(
 )
 TAGS_OPTIONS: dict = conf("tags", default={}, cast=dict)
 
+# ____ MLflow ____ #
+
+MLFLOW_TYPE: Literal["mlflow", "mlflow-sharinghub", "gitlab"] | None = conf(
+    "mlflow.type", "MLFLOW_TYPE", default="mlflow-sharinghub", cast=str
+)
+MLFLOW_URL: str | None = conf("mlflow.url", "MLFLOW_URL", cast=str)
+
 # __ URLS __ #
 
 JUPYTERLAB_URL: str | None = conf("jupyterlab.url", "JUPYTERLAB_URL", cast=str)
-MLFLOW_URL: str | None = conf("mlflow.url", "MLFLOW_URL", cast=str)
 DOCS_URL: str | None = conf("docs.url", "DOCS_URL", cast=str)
 
 # __ DEPLOYMENT SPACES ___ #

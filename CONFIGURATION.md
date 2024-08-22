@@ -42,7 +42,9 @@ Content:
     - [Presigned expiration](#presigned-expiration)
     - [Upload chunk size](#upload-chunk-size)
   - [JupyterLab: URL](#jupyterlab-url)
-  - [MLflow: URL](#mlflow-url)
+  - [MLflow](#mlflow)
+    - [MLflow Type](#mlflow-type)
+    - [MLflow URL](#mlflow-url)
   - [SPACES: Deployment conf](#spaces-deployment-conf)
   - [Documentation: URL](#documentation-url)
   - [STAC](#stac)
@@ -506,20 +508,38 @@ Content:
       url: https://nb.example.com
     ```
 
-### MLflow: URL
+### MLflow
+
+#### MLflow Type
+
+- Type: string (possible values: "mlflow", "mlflow-sharinghub", "gitlab")
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `MLFLOW_TYPE`
+  - Example value: `mlflow-sharinghub`
+- YAML:
+  - Path: `mlflow.type`
+  - Example value:
+
+    ```yaml
+    mlflow:
+      type: gitlab
+    ```
+
+#### MLflow URL
 
 - Type: string
 - Default: read from [config file](./app/config.yaml)
 - Environment variable:
   - Name: `MLFLOW_URL`
-  - Example value: `https://mlflow.p2.csgroup.space`
+  - Example value: `https://sharinghub.example.com/mlflow`
 - YAML:
   - Path: `mlflow.url`
   - Example value:
 
     ```yaml
     mlflow:
-      url: https://mlflow.p2.csgroup.space
+      url: https://sharinghub.example.com/mlflow
     ```
 
 ### SPACES: Deployment conf
@@ -533,7 +553,7 @@ Content:
   ```yaml
     spaces:
        streamlit:
-         url: "https://example.p2.csgroup.space/deploy/"
+         url: "https://example.example.com/deploy/"
          assets:
             - streamlit_app.py
             - file.example
@@ -552,7 +572,7 @@ Content:
 
     ```yaml
     docs:
-      url:https://sharinghub.p2.csgroup.space/docs
+      url:https://sharinghub.example.com/docs
     ```
 
 ### STAC
