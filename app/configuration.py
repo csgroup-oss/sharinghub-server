@@ -24,6 +24,7 @@ from app.settings import (
     EXTERNAL_URLS,
     GITLAB_URL,
     JUPYTERLAB_URL,
+    MLFLOW_TYPE,
     MLFLOW_URL,
     SPACES,
     TAGS_OPTIONS,
@@ -43,7 +44,7 @@ async def configuration() -> dict:
         "store": S3_ENABLE,
         "gitlab": {"url": GITLAB_URL},
         "jupyterlab": {"url": JUPYTERLAB_URL},
-        "mlflow": {"url": MLFLOW_URL},
+        "mlflow": {"type": MLFLOW_TYPE, "url": MLFLOW_URL},
         "docs": {"url": DOCS_URL},
         "spaces": {**SPACES},
         "root": {
