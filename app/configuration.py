@@ -26,6 +26,7 @@ from app.settings import (
     JUPYTERLAB_URL,
     MLFLOW_TYPE,
     MLFLOW_URL,
+    SHARINGHUB_WIZARD_URL,
     SPACES,
     TAGS_OPTIONS,
 )
@@ -92,6 +93,7 @@ async def configuration() -> dict:
             },
         },
         "default_tags": {**TAGS_OPTIONS},
+        "sharinghub_wizard": {"url": SHARINGHUB_WIZARD_URL},
     }
 
 

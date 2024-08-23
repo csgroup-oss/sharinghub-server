@@ -42,6 +42,7 @@ Content:
     - [Presigned expiration](#presigned-expiration)
     - [Upload chunk size](#upload-chunk-size)
   - [JupyterLab: URL](#jupyterlab-url)
+  - [Sharinghub Wizard: URL](#sharinghub-wizard-url)
   - [MLflow](#mlflow)
     - [MLflow Type](#mlflow-type)
     - [MLflow URL](#mlflow-url)
@@ -506,6 +507,22 @@ Content:
     ```yaml
     jupyterlab:
       url: https://nb.example.com
+    ```
+
+### SharingHub Wizard: URL
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `SHARINGHUB_WIZARD_URL`
+  - Example value: `https://example.com/wizard`
+- YAML:
+  - Path: `sharinghub.wizard.url`
+  - Example value:
+
+    ```yaml
+    jupyterlab:
+      url: https://example.com/wizard
     ```
 
 ### MLflow
