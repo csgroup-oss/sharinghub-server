@@ -42,7 +42,10 @@ def init_oauth() -> OAuth:
         _oauth.register(
             name=GITLAB_OAUTH_NAME,
             client_kwargs={
-                "scope": "openid email read_user profile api",
+                "scope": (
+                    "openid email read_user profile api "
+                    "read_repository write_repository"
+                ),
                 "timeout": 10.0,
             },
             **gitlab_oauth_conf,

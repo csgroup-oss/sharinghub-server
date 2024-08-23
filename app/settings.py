@@ -162,8 +162,6 @@ DOCS_URL: str | None = conf("docs.url", "DOCS_URL", cast=str)
 # __ DEPLOYMENT SPACES ___ #
 SPACES: dict = conf("spaces", "SPACES", default={}, cast=dict)
 
-# __ SHARINGHUB WIZARDS ___
+# __ WIZARD ___
 
-SHARINGHUB_WIZARD_URL: str | None = conf(
-    "sharinghub_wizard.url", "SHARINGHUB_WIZARD_URL", cast=str
-)
+WIZARD_URL: str | None = conf("wizard.url", "WIZARD_URL", cast=str)
