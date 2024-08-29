@@ -1154,6 +1154,7 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         last_commit=last_commit,
         files=files,
         latest_release=release,
+        mlflow=None,
         access_level=access_level,
     )
 

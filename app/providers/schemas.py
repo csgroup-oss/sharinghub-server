@@ -46,6 +46,17 @@ class Release(BaseModel):
     commit: str
 
 
+class RegisteredModel(BaseModel):
+    name: str
+    latest_version: str
+    mlflow_uri: str
+
+
+class MLflow(BaseModel):
+    tracking_uri: str
+    registered_models: list[RegisteredModel]
+
+
 class ProjectReference(BaseModel):
     id: int
     name: str
@@ -76,6 +87,7 @@ class Project(ProjectPreview):
     last_commit: str | None
     files: list[str] | None
     latest_release: Release | None
+    mlflow: MLflow | None
     # 0 for no access
     # 1 for read-only (visitor)
     # 2 for modification allowed (contributor)

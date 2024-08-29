@@ -35,7 +35,7 @@ from app.stac.settings import (
 )
 from app.utils import geo
 from app.utils import markdown as md
-from app.utils.http import is_local, url_for
+from app.utils.http import is_local, slugify, url_for
 
 from .category import Category, FeatureVal
 from .search import STACPagination
@@ -533,6 +533,24 @@ def build_stac_item(
                 "href": license_.url,
             },
         )
+
+    if project.mlflow:
+        stac_links.append(
+            {
+                "rel": "mlflow",
+                "title": "Tracking URI",
+                "href": project.mlflow.tracking_uri,
+            },
+        )
+        for rm in project.mlflow.registered_models:
+            model_name = rm.name.removesuffix(f"({project.id})").rstrip()
+            rm_asset = {
+                "href": rm.mlflow_uri,
+                "title": f"{model_name} v{rm.latest_version}",
+                "description": rm.mlflow_uri,
+                "roles": ["mlflow"],
+            }
+            stac_assets[f"model:/{slugify(model_name)}"] = rm_asset
 
     if doi := extensions_properties.get("sci:doi"):
         stac_links.append({"rel": "cite-as", "href": f"{DOI_URL}{doi}"})
