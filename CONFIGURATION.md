@@ -42,6 +42,7 @@ Content:
     - [Presigned expiration](#presigned-expiration)
     - [Upload chunk size](#upload-chunk-size)
   - [JupyterLab: URL](#jupyterlab-url)
+  - [Wizard: URL](#wizard-url)
   - [MLflow](#mlflow)
     - [MLflow Type](#mlflow-type)
     - [MLflow URL](#mlflow-url)
@@ -506,6 +507,22 @@ Content:
     ```yaml
     jupyterlab:
       url: https://nb.example.com
+    ```
+
+### Wizard: URL
+
+- Type: string
+- Default: read from [config file](./app/config.yaml)
+- Environment variable:
+  - Name: `WIZARD_URL`
+  - Example value: `https://example.com/wizard`
+- YAML:
+  - Path: `wizard.url`
+  - Example value:
+
+    ```yaml
+    wizard:
+      url: https://example.com/wizard
     ```
 
 ### MLflow
