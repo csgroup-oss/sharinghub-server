@@ -149,7 +149,7 @@ TAGS_OPTIONS: dict = conf("tags", default={}, cast=dict)
 
 # ____ MLflow ____ #
 
-MLFLOW_TYPE: Literal["mlflow", "mlflow-sharinghub", "gitlab"] | None = conf(
+MLFLOW_TYPE: Literal["mlflow", "mlflow-sharinghub", "gitlab"] = conf(
     "mlflow.type", "MLFLOW_TYPE", default="mlflow-sharinghub", cast=str
 )
 MLFLOW_URL: str | None = conf("mlflow.url", "MLFLOW_URL", cast=str)

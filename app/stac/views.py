@@ -18,22 +18,25 @@ import asyncio
 import json
 import logging
 import time
+from typing import Literal
 
 from fastapi import HTTPException, Request
 from fastapi.routing import APIRouter
 
 from app.auth import GitlabTokenDep
 from app.providers.client import CursorPagination, GitlabClient
-from app.providers.schemas import Project
-from app.settings import ENABLE_CACHE, GITLAB_URL
+from app.providers.schemas import MLflow, Project, RegisteredModel
+from app.settings import ENABLE_CACHE, GITLAB_URL, MLFLOW_TYPE, MLFLOW_URL
 from app.stac.api.category import (
     Category,
     CategoryFromCollectionIdDep,
+    FeatureVal,
     get_categories,
     get_category,
 )
 from app.utils import geo
 from app.utils.cache import cache
+from app.utils.http import AiohttpClient, clean_url
 
 from .api.build import (
     build_features_collection,
@@ -190,6 +193,12 @@ async def stac_collection_feature(
             return cached_stac["stac"]
 
     await _resolve_license(project, gitlab_client)
+    await _collect_registered_models(
+        project,
+        mlflow_type=MLFLOW_TYPE,
+        mlflow_url=MLFLOW_URL,
+        auth_token=token.value,
+    )
 
     project_stac = build_stac_item(
         project=project,
@@ -401,6 +410,15 @@ async def _stac_search(  # noqa: C901
             count = len(projects)
             await asyncio.gather(
                 *(_resolve_license(p, gitlab_client) for p in projects),
+                *(
+                    _collect_registered_models(
+                        p,
+                        mlflow_type=MLFLOW_TYPE,
+                        mlflow_url=MLFLOW_URL,
+                        auth_token=token.value,
+                    )
+                    for p in projects
+                ),
             )
             features = [
                 build_stac_item(p, category, request=request, token=token)
@@ -455,3 +473,53 @@ async def _resolve_license(project: Project, client: GitlabClient) -> None:
 
     if license_ and license_ != nolicense:
         project.license = license_
+
+
+async def _collect_registered_models(
+    project: Project,
+    mlflow_type: Literal["mlflow", "mlflow-sharinghub", "gitlab"],
+    mlflow_url: str | None,
+    auth_token: str,
+) -> None:
+    if mlflow_url and any(
+        c.features.get("mlflow") == FeatureVal.ENABLE for c in project.categories
+    ):
+        mlflow_url = clean_url(mlflow_url)
+        registered_models = []
+        match mlflow_type:
+            case "mlflow-sharinghub":
+                tracking_uri = f"{mlflow_url}{project.path}/tracking"
+                mlflow_api_url = tracking_uri + "/api/2.0/mlflow"
+                registered_models.extend(
+                    await _get_registered_models(mlflow_api_url, auth_token=auth_token)
+                )
+        project.mlflow = MLflow(
+            tracking_uri=tracking_uri,
+            registered_models=registered_models,
+        )
+
+
+async def _get_registered_models(
+    mlflow_api_url: str, auth_token: str
+) -> list[RegisteredModel]:
+    registered_models = []
+    req_url = mlflow_api_url + "/registered-models/search"
+    async with AiohttpClient() as client:
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        response = await client.get(req_url, headers=headers)
+        if response.ok:
+            data = await response.json()
+            all_registered_models = data.get("registered_models", [])
+            for rm_data in all_registered_models:
+                if latest_versions := rm_data.get("latest_versions", []):
+                    latest_version = latest_versions[0]
+                    model_name = rm_data["name"]
+                    model_version = latest_version["version"]
+                    registered_models.append(
+                        RegisteredModel(
+                            name=model_name,
+                            latest_version=model_version,
+                            mlflow_uri=f"models:/{model_name}/{model_version}",
+                        )
+                    )
+    return registered_models
