@@ -484,19 +484,32 @@ async def _collect_registered_models(
     if mlflow_url and any(
         c.features.get("mlflow") == FeatureVal.ENABLE for c in project.categories
     ):
-        mlflow_url = clean_url(mlflow_url)
-        registered_models = []
-        match mlflow_type:
-            case "mlflow-sharinghub":
-                tracking_uri = f"{mlflow_url}{project.path}/tracking"
-                mlflow_api_url = tracking_uri + "/api/2.0/mlflow"
-                registered_models.extend(
-                    await _get_registered_models(mlflow_api_url, auth_token=auth_token)
-                )
-        project.mlflow = MLflow(
-            tracking_uri=tracking_uri,
-            registered_models=registered_models,
-        )
+        cache_key = project.path
+        project_mlflow: MLflow | None = await cache.get(cache_key, namespace="mlflow")
+        if not project_mlflow:
+            mlflow_url = clean_url(mlflow_url)
+            registered_models = []
+            match mlflow_type:
+                case "mlflow-sharinghub":
+                    tracking_uri = f"{mlflow_url}{project.path}/tracking"
+                    mlflow_api_url = tracking_uri + "/api/2.0/mlflow"
+                    registered_models.extend(
+                        await _get_registered_models(
+                            mlflow_api_url, auth_token=auth_token
+                        )
+                    )
+            project_mlflow = MLflow(
+                tracking_uri=tracking_uri,
+                registered_models=registered_models,
+            )
+            await cache.set(
+                cache_key,
+                project_mlflow,
+                namespace="mlflow",
+                ttl=int(STAC_PROJECTS_CACHE_TIMEOUT),
+            )
+
+        project.mlflow = project_mlflow
 
 
 async def _get_registered_models(
