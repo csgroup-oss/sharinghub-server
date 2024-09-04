@@ -272,7 +272,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
         "id": category.id,
         "title": title,
         "description": description,
-        "license": "proprietary",
+        "license": "other",
         "keywords": [category.id],
         "providers": [
             {
