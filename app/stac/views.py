@@ -476,19 +476,7 @@ async def _resolve_license(project: Project, client: GitlabClient) -> None:
 
 async def _collect_containers_tags(project: Project, client: GitlabClient) -> None:
     for container in project.containers:
-        cache_key = container.name
-        container_tags: list[str] | None = await cache.get(
-            cache_key, namespace="container-tags"
-        )
-        if container_tags is None:
-            container_tags = await client.get_container_tags(container)
-            await cache.set(
-                cache_key,
-                container_tags,
-                namespace="container-tags",
-                ttl=int(STAC_PROJECTS_CACHE_TIMEOUT),
-            )
-        container.tags = container_tags
+        container.tags = await client.get_container_tags(container)
 
 
 async def _collect_registered_models(
@@ -497,27 +485,14 @@ async def _collect_registered_models(
     auth_token: str,
 ) -> None:
     if project.mlflow:
-        cache_key = project.path
-        registered_models: list[RegisteredModel] | None = await cache.get(
-            cache_key, namespace="mlflow-models"
-        )
-        if registered_models is None:
-            registered_models = []
-            match mlflow_type:
-                case "mlflow-sharinghub":
-                    mlflow_api_url = project.mlflow.tracking_uri + "api/2.0/mlflow"
-                    registered_models.extend(
-                        await _get_registered_models(
-                            mlflow_api_url, auth_token=auth_token
-                        )
-                    )
-            project.mlflow.registered_models = registered_models
-            await cache.set(
-                cache_key,
-                registered_models,
-                namespace="mlflow-models",
-                ttl=int(STAC_PROJECTS_CACHE_TIMEOUT),
-            )
+        registered_models = []
+        match mlflow_type:
+            case "mlflow-sharinghub":
+                mlflow_api_url = project.mlflow.tracking_uri + "api/2.0/mlflow"
+                registered_models.extend(
+                    await _get_registered_models(mlflow_api_url, auth_token=auth_token)
+                )
+        project.mlflow.registered_models = registered_models
 
 
 async def _get_registered_models(
