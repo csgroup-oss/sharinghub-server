@@ -17,6 +17,7 @@
 import json
 import logging
 import os
+import re
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict, cast, no_type_check
 
@@ -29,8 +30,10 @@ from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.providers.schemas import (
     AccessLevel,
+    ContainerImage,
     License,
     MLflow,
+    Package,
     Project,
     ProjectPreview,
     ProjectReference,
@@ -45,6 +48,7 @@ from app.utils.http import (
     AiohttpClient,
     HttpMethod,
     clean_url,
+    slugify,
     url_add_query_params,
     urlsafe_path,
 )
@@ -159,6 +163,8 @@ class GitlabGraphQL_Project(GitlabGraphQL_ProjectReference):
     webUrl: str
     repository: "_GitlabGraphQL_Repository2"
     releases: "_GitlabGraphQL_Releases"
+    packages: "_GitlabGraphQL_Packages"
+    containerRepositories: "_GitlabGraphQL_ContainerRepository"
     maxAccessLevel: "_GitlabGraphQL_AccessLevel"
     _metadata: NotRequired[dict[str, Any]]
     _readme: NotRequired[str]
@@ -224,6 +230,42 @@ class _GitlabGraphQL_Release(TypedDict):
 
 class _GitlabGraphQL_ReleaseCommit(TypedDict):
     sha: str
+
+
+class _GitlabGraphQL_Packages(TypedDict):
+    nodes: list["_GitlabGraphQL_PackagesNode"]
+
+
+class _GitlabGraphQL_PackagesNode(TypedDict):
+    name: str
+    packageType: str
+    _links: "_GitlabGraphQL_PackagesNodeLinks"
+
+
+class _GitlabGraphQL_PackagesNodeLinks(TypedDict):
+    webPath: str
+
+
+class _GitlabGraphQL_ContainerRepository(TypedDict):
+    nodes: list["_GitlabGraphQL_ContainerRepositoryNode"]
+
+
+class _GitlabGraphQL_ContainerRepositoryNode(TypedDict):
+    id: str
+    name: str
+    location: str
+
+
+class _GitlabGraphQL_ContainerRepositoryDetails(TypedDict):
+    tags: "_GitlabGraphQL_ContainerRepositoryDetailsTags"
+
+
+class _GitlabGraphQL_ContainerRepositoryDetailsTags(TypedDict):
+    nodes: list["_GitlabGraphQL_ContainerRepositoryDetailsTagsNode"]
+
+
+class _GitlabGraphQL_ContainerRepositoryDetailsTagsNode(TypedDict):
+    name: str
 
 
 class _GitlabGraphQL_AccessLevel(TypedDict):
@@ -339,8 +381,26 @@ fragment projectFields on Project {
       }
     }
   }
+  packages(sort: CREATED_DESC) {
+    nodes {
+      name
+      packageType
+      _links {
+        webPath
+      }
+    }
+  }
+  containerRepositories(sort: CREATED_DESC) {
+    nodes {
+      id
+      name
+      location
+    }
+  }
 }
 """
+
+CONTAINER_LAYER_TAG_PATTERN = re.compile(r"[a-fA-F0-9]{64}")
 
 
 class GitlabClient(ProviderClient):
@@ -428,6 +488,38 @@ class GitlabClient(ProviderClient):
             )
             return License(id=license_id, url=Url(_license_url))
         return None
+
+    async def get_container_tags(self, container: ContainerImage) -> list[str]:
+        graphql_query = f"""
+        query getContainerTags {{
+            containerRepository(id: "{container.gid}") {{
+                tags(sort: PUBLISHED_AT_DESC) {{
+                    nodes {{
+                        name
+                    }}
+                }}
+            }}
+        }}
+        """
+        graphql_req = await self._graphql(graphql_query)
+        if not isinstance(graphql_req, dict):
+            detail = "Unexpected response from GitLab"
+            raise HTTPException(
+                status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=detail
+            )
+
+        graphql_data: dict[str, Any] = graphql_req["data"]
+        container_repo_data: _GitlabGraphQL_ContainerRepositoryDetails = graphql_data[
+            "containerRepository"
+        ]
+        if not container_repo_data:
+            raise HTTPException(status_code=HTTP_404_NOT_FOUND)
+
+        return [
+            t["name"]
+            for t in container_repo_data["tags"]["nodes"]
+            if not CONTAINER_LAYER_TAG_PATTERN.search(t["name"])
+        ]
 
     async def _get_project_rest(self, path_or_id: str) -> GitlabREST_Project:
         path_or_id = urlsafe_path(path_or_id.strip("/"))
@@ -1126,6 +1218,39 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     else:
         release = None
 
+    if packages_data := project_data["packages"]["nodes"]:
+        _packages = {}
+        for p in packages_data:
+            if p["name"] not in _packages:
+                _packages[p["name"]] = Package(
+                    name=p["name"],
+                    pkg_type=slugify(p["packageType"].lower()),
+                    url=project_data["webUrl"].replace(
+                        project_data["fullPath"],
+                        p["_links"]["webPath"].removeprefix("/"),
+                    ),
+                )
+
+        packages = list(_packages.values())
+    else:
+        packages = []
+
+    if containers_data := project_data["containerRepositories"]["nodes"]:
+        containers = [
+            ContainerImage(
+                gid=c["id"],
+                name=c["location"],
+                url=project_data["webUrl"]
+                + "/container_registry/"
+                + c["id"].split("/")[-1],
+                tags=[],
+            )
+            for c in containers_data
+            if not c["name"].startswith("snapshot")
+        ]
+    else:
+        containers = []
+
     _mlflow = (
         MLflow(
             tracking_uri=f"{clean_url(MLFLOW_URL)}{project_data['fullPath']}/tracking/",
@@ -1167,6 +1292,8 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         last_commit=last_commit,
         files=files,
         latest_release=release,
+        packages=packages,
+        containers=containers,
         mlflow=_mlflow,
         access_level=access_level,
     )

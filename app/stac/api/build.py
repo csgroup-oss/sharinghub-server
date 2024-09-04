@@ -534,6 +534,30 @@ def build_stac_item(
             },
         )
 
+    if project.packages:
+        for pkg in project.packages:
+            stac_links.append(
+                {
+                    "rel": "package",
+                    "href": pkg.url,
+                    "title": f"Package {pkg.name}",
+                    "package:name": pkg.name,
+                    "package:type": pkg.pkg_type,
+                }
+            )
+
+    if project.containers:
+        for container in project.containers:
+            stac_links.append(
+                {
+                    "rel": "container",
+                    "href": container.url,
+                    "title": f"Image {container.name}",
+                    "container:image": container.name,
+                    "container:tags": container.tags,
+                }
+            )
+
     if project.mlflow:
         stac_links.append(
             {

@@ -192,6 +192,7 @@ async def stac_collection_feature(
             return cached_stac["stac"]
 
     await _resolve_license(project, gitlab_client)
+    await _collect_containers_tags(project, gitlab_client)
     await _collect_registered_models(
         project,
         mlflow_type=MLFLOW_TYPE,
@@ -408,6 +409,7 @@ async def _stac_search(  # noqa: C901
             count = len(projects)
             await asyncio.gather(
                 *(_resolve_license(p, gitlab_client) for p in projects),
+                *(_collect_containers_tags(p, gitlab_client) for p in projects),
                 *(
                     _collect_registered_models(
                         p,
@@ -470,6 +472,23 @@ async def _resolve_license(project: Project, client: GitlabClient) -> None:
 
     if license_ and license_ != nolicense:
         project.license = license_
+
+
+async def _collect_containers_tags(project: Project, client: GitlabClient) -> None:
+    for container in project.containers:
+        cache_key = container.name
+        container_tags: list[str] | None = await cache.get(
+            cache_key, namespace="container-tags"
+        )
+        if container_tags is None:
+            container_tags = await client.get_container_tags(container)
+            await cache.set(
+                cache_key,
+                container_tags,
+                namespace="container-tags",
+                ttl=int(STAC_PROJECTS_CACHE_TIMEOUT),
+            )
+        container.tags = container_tags
 
 
 async def _collect_registered_models(

@@ -46,6 +46,19 @@ class Release(BaseModel):
     commit: str
 
 
+class Package(BaseModel):
+    name: str
+    pkg_type: str
+    url: AnyHttpUrl
+
+
+class ContainerImage(BaseModel):
+    gid: str
+    name: str
+    url: str
+    tags: list[str]
+
+
 class RegisteredModel(BaseModel):
     name: str
     latest_version: str
@@ -87,6 +100,8 @@ class Project(ProjectPreview):
     last_commit: str | None
     files: list[str] | None
     latest_release: Release | None
+    packages: list[Package]
+    containers: list[ContainerImage]
     mlflow: MLflow | None
     # 0 for no access
     # 1 for read-only (visitor)
