@@ -55,8 +55,9 @@ async def check(
     if not projectinfo:
         project = await gitlab_client.get_project(path=project_path)
         projectinfo = project.model_dump(
-            mode="json", include={"id", "name", "path", "access_level"}
+            mode="json", include={"id", "name", "path", "access_level", "categories"}
         )
+        projectinfo["categories"] = [c["id"] for c in projectinfo["categories"]]
         await cache.set(("projectinfo", user, project_path), projectinfo)
 
     if info:

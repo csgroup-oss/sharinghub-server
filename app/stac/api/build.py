@@ -35,7 +35,7 @@ from app.stac.settings import (
 )
 from app.utils import geo
 from app.utils import markdown as md
-from app.utils.http import is_local, slugify, url_for
+from app.utils.http import is_local, url_for, urlsafe_path
 
 from .category import Category, FeatureVal
 from .search import STACPagination
@@ -272,7 +272,7 @@ def build_stac_collection(category: Category, **context: Unpack[STACContext]) ->
         "id": category.id,
         "title": title,
         "description": description,
-        "license": "proprietary",
+        "license": "other",
         "keywords": [category.id],
         "providers": [
             {
@@ -534,23 +534,53 @@ def build_stac_item(
             },
         )
 
+    if project.packages:
+        for pkg in project.packages:
+            stac_links.append(
+                {
+                    "rel": "package",
+                    "href": pkg.url,
+                    "title": f"Package {pkg.name}",
+                    "package:name": pkg.name,
+                    "package:type": pkg.pkg_type,
+                }
+            )
+
+    if project.containers:
+        for container in project.containers:
+            stac_links.append(
+                {
+                    "rel": "container",
+                    "href": container.url,
+                    "title": f"Image {container.name}",
+                    "container:image": container.name,
+                    "container:tags": container.tags,
+                }
+            )
+
     if project.mlflow:
         stac_links.append(
             {
-                "rel": "mlflow",
-                "title": "Tracking URI",
+                "rel": "mlflow:tracking-uri",
                 "href": project.mlflow.tracking_uri,
+                "title": "MLflow - Tracking URI",
             },
         )
         for rm in project.mlflow.registered_models:
+            model_url = (
+                f"{project.mlflow.tracking_uri}#/models/"
+                f"{urlsafe_path(rm.name)}/versions/{rm.latest_version}"
+            )
+            model_uri = rm.mlflow_uri
             model_name = rm.name.removesuffix(f"({project.id})").rstrip()
-            rm_asset = {
-                "href": rm.mlflow_uri,
-                "title": f"{model_name} v{rm.latest_version}",
-                "description": rm.mlflow_uri,
-                "roles": ["mlflow"],
-            }
-            stac_assets[f"model:/{slugify(model_name)}"] = rm_asset
+            stac_links.append(
+                {
+                    "rel": "mlflow:model",
+                    "href": model_url,
+                    "title": f"{model_name} v{rm.latest_version}",
+                    "mlflow:uri": model_uri,
+                }
+            )
 
     if doi := extensions_properties.get("sci:doi"):
         stac_links.append({"rel": "cite-as", "href": f"{DOI_URL}{doi}"})
