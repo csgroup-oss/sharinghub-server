@@ -25,18 +25,17 @@ from fastapi.routing import APIRouter
 
 from app.auth import GitlabTokenDep
 from app.providers.client import CursorPagination, GitlabClient
-from app.providers.schemas import MLflow, Project, RegisteredModel
-from app.settings import ENABLE_CACHE, GITLAB_URL, MLFLOW_TYPE, MLFLOW_URL
+from app.providers.schemas import Project, RegisteredModel
+from app.settings import ENABLE_CACHE, GITLAB_URL, MLFLOW_TYPE
 from app.stac.api.category import (
     Category,
     CategoryFromCollectionIdDep,
-    FeatureVal,
     get_categories,
     get_category,
 )
 from app.utils import geo
 from app.utils.cache import cache
-from app.utils.http import AiohttpClient, clean_url
+from app.utils.http import AiohttpClient
 
 from .api.build import (
     build_features_collection,
@@ -196,7 +195,6 @@ async def stac_collection_feature(
     await _collect_registered_models(
         project,
         mlflow_type=MLFLOW_TYPE,
-        mlflow_url=MLFLOW_URL,
         auth_token=token.value,
     )
 
@@ -414,7 +412,6 @@ async def _stac_search(  # noqa: C901
                     _collect_registered_models(
                         p,
                         mlflow_type=MLFLOW_TYPE,
-                        mlflow_url=MLFLOW_URL,
                         auth_token=token.value,
                     )
                     for p in projects
@@ -478,38 +475,30 @@ async def _resolve_license(project: Project, client: GitlabClient) -> None:
 async def _collect_registered_models(
     project: Project,
     mlflow_type: Literal["mlflow", "mlflow-sharinghub", "gitlab"],
-    mlflow_url: str | None,
     auth_token: str,
 ) -> None:
-    if mlflow_url and any(
-        c.features.get("mlflow") == FeatureVal.ENABLE for c in project.categories
-    ):
+    if project.mlflow:
         cache_key = project.path
-        project_mlflow: MLflow | None = await cache.get(cache_key, namespace="mlflow")
-        if not project_mlflow:
-            mlflow_url = clean_url(mlflow_url)
+        registered_models: list[RegisteredModel] | None = await cache.get(
+            cache_key, namespace="mlflow-models"
+        )
+        if registered_models is None:
             registered_models = []
             match mlflow_type:
                 case "mlflow-sharinghub":
-                    tracking_uri = f"{mlflow_url}{project.path}/tracking"
-                    mlflow_api_url = tracking_uri + "/api/2.0/mlflow"
+                    mlflow_api_url = project.mlflow.tracking_uri + "api/2.0/mlflow"
                     registered_models.extend(
                         await _get_registered_models(
                             mlflow_api_url, auth_token=auth_token
                         )
                     )
-            project_mlflow = MLflow(
-                tracking_uri=tracking_uri,
-                registered_models=registered_models,
-            )
+            project.mlflow.registered_models = registered_models
             await cache.set(
                 cache_key,
-                project_mlflow,
-                namespace="mlflow",
+                registered_models,
+                namespace="mlflow-models",
                 ttl=int(STAC_PROJECTS_CACHE_TIMEOUT),
             )
-
-        project.mlflow = project_mlflow
 
 
 async def _get_registered_models(

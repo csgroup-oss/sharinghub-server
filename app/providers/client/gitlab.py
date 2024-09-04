@@ -30,13 +30,15 @@ from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from app.providers.schemas import (
     AccessLevel,
     License,
+    MLflow,
     Project,
     ProjectPreview,
     ProjectReference,
     Release,
     Topic,
 )
-from app.stac.api.category import get_categories_from_topics
+from app.settings import MLFLOW_URL
+from app.stac.api.category import FeatureVal, get_categories_from_topics
 from app.utils import geo
 from app.utils import markdown as md
 from app.utils.http import (
@@ -1102,6 +1104,7 @@ def _adapt_graphql_project_preview(
 def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     readme, metadata = _process_readme_and_metadata(project_data, save=False)
     extent = _process_spatial_extent(project_data, save=False)
+    categories = get_categories_from_topics(project_data["topics"])
 
     if project_data["repository"]["tree"]:
         last_commit = project_data["repository"]["tree"]["lastCommit"]["shortId"]
@@ -1123,6 +1126,16 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     else:
         release = None
 
+    _mlflow = (
+        MLflow(
+            tracking_uri=f"{clean_url(MLFLOW_URL)}{project_data['fullPath']}/tracking/",
+            registered_models=[],
+        )
+        if MLFLOW_URL
+        and any(c.features.get("mlflow") == FeatureVal.ENABLE for c in categories)
+        else None
+    )
+
     gitlab_access_level = project_data["maxAccessLevel"]["integerValue"]
     if gitlab_access_level >= MAINTAINER_ACCESS_LEVEL:
         access_level = AccessLevel.ADMINISTRATOR
@@ -1142,7 +1155,7 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         topics=project_data["topics"],
         url=project_data["webUrl"],
         bug_tracker=project_data["webUrl"] + "/issues",
-        categories=get_categories_from_topics(project_data["topics"]),
+        categories=categories,
         created_at=project_data["createdAt"],
         last_update=project_data["lastActivityAt"],
         star_count=project_data["starCount"],
@@ -1154,7 +1167,7 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         last_commit=last_commit,
         files=files,
         latest_release=release,
-        mlflow=None,
+        mlflow=_mlflow,
         access_level=access_level,
     )
 
