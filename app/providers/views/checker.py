@@ -21,7 +21,7 @@ from starlette.status import HTTP_400_BAD_REQUEST
 
 from app.auth.depends import GitlabTokenDep
 from app.providers.client.gitlab import GitlabClient
-from app.settings import GITLAB_URL
+from app.settings import CHECKER_CACHE_TIMEOUT, GITLAB_URL
 from app.utils.cache import cache
 
 router = APIRouter()
@@ -37,28 +37,40 @@ async def check(
 
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
 
-    user: str | None = await cache.get(token.value)
+    user: str | None = await cache.get(token.value, namespace="user")
     if not user:
         user = await gitlab_client.get_user()
-        await cache.set(token.value, user)
+        await cache.set(token.value, user, namespace="user")
 
     if project_id_or_path.isdigit():
         project_id = int(project_id_or_path)
-        project_path: str | None = await cache.get(("path", project_id))
+        project_path: str | None = await cache.get(project_id, namespace="project-path")
         if not project_path:
             project_path = await gitlab_client.get_project_path(id=project_id)
-            await cache.set(("path", project_id), project_path)
+            await cache.set(
+                project_id,
+                project_path,
+                ttl=int(CHECKER_CACHE_TIMEOUT),
+                namespace="project-path",
+            )
     else:
         project_path = project_id_or_path
 
-    projectinfo: dict | None = await cache.get(("projectinfo", user, project_path))
+    projectinfo: dict | None = await cache.get(
+        (user, project_path), namespace="project-info"
+    )
     if not projectinfo:
         project = await gitlab_client.get_project(path=project_path)
         projectinfo = project.model_dump(
             mode="json", include={"id", "name", "path", "access_level", "categories"}
         )
         projectinfo["categories"] = [c["id"] for c in projectinfo["categories"]]
-        await cache.set(("projectinfo", user, project_path), projectinfo)
+        await cache.set(
+            (user, project_path),
+            projectinfo,
+            ttl=int(CHECKER_CACHE_TIMEOUT),
+            namespace="project-info",
+        )
 
     if info:
         return Response(

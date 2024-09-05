@@ -28,13 +28,14 @@ from app.auth import GitlabTokenDep
 from app.auth.api import GitlabToken
 from app.providers.client.gitlab import GitlabClient
 from app.providers.schemas import AccessLevel
-from app.settings import GITLAB_URL
+from app.settings import CHECKER_CACHE_TIMEOUT, GITLAB_URL
 from app.stac.api.category import FeatureVal
 from app.utils.cache import cache
 
 from .settings import (
     S3_ACCESS_KEY,
     S3_BUCKET,
+    S3_CHECK_ACCESS_CACHE_TIMEOUT,
     S3_ENDPOINT_URL,
     S3_FEATURE_NAME,
     S3_PRESIGNED_EXPIRATION,
@@ -60,17 +61,24 @@ s3_client = boto3.client(
 async def check_access(token: GitlabToken, project_id: int) -> None:
     """Checks the access permissions for a given Gitlab user token and project ID."""
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
-    user: str | None = await cache.get(token.value)
+    user: str | None = await cache.get(token.value, namespace="user")
     if not user:
         user = await gitlab_client.get_user()
-        await cache.set(token.value, user)
+        await cache.set(token.value, user, namespace="user")
 
-    project_path: str | None = await cache.get(("path", project_id))
+    project_path: str | None = await cache.get(project_id, namespace="project-path")
     if not project_path:
         project_path = await gitlab_client.get_project_path(id=project_id)
-        await cache.set(("path", project_id), project_path)
+        await cache.set(
+            project_id,
+            project_path,
+            ttl=int(CHECKER_CACHE_TIMEOUT),
+            namespace="project-path",
+        )
 
-    has_access: bool | None = await cache.get(("access", user, project_path))
+    has_access: bool | None = await cache.get(
+        (user, project_path), namespace="project-access"
+    )
     if has_access is None:
         project = await gitlab_client.get_project(project_path)
         if any(
@@ -82,7 +90,12 @@ async def check_access(token: GitlabToken, project_id: int) -> None:
                 detail="S3 store is not enabled for this project's category",
             )
         has_access = project.access_level >= AccessLevel.CONTRIBUTOR
-        await cache.set(("access", user, project_path), has_access)
+        await cache.set(
+            (user, project_path),
+            has_access,
+            ttl=int(S3_CHECK_ACCESS_CACHE_TIMEOUT),
+            namespace="project-access",
+        )
 
     if not has_access:
         raise HTTPException(

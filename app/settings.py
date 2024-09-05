@@ -133,6 +133,13 @@ ENABLE_CACHE: bool = conf(
     cast=cbool(),
 )
 
+CHECKER_CACHE_TIMEOUT: float = conf(
+    "checker.cache-timeout",
+    "CHECKER_CACHE_TIMEOUT",
+    default=60.0 * 5,
+    cast=float,
+)
+
 EXTERNAL_URLS: list = conf("external-urls", default=[], cast=clist())
 ALERT_MESSAGE: dict = conf("alerts", default={}, cast=dict)
 
