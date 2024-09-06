@@ -26,6 +26,7 @@ Content:
     - [Static UI dirname](#static-ui-dirname)
     - [HTTP client timeout](#http-client-timeout)
     - [Enable cache](#enable-cache)
+    - [Check API cache timeout](#check-api-cache-timeout)
   - [Gitlab](#gitlab)
     - [URL](#url)
     - [OAuth client id](#oauth-client-id)
@@ -41,6 +42,7 @@ Content:
     - [Endpoint url](#endpoint-url)
     - [Presigned expiration](#presigned-expiration)
     - [Upload chunk size](#upload-chunk-size)
+    - [Check access cache timeout](#check-access-cache-timeout)
   - [JupyterLab: URL](#jupyterlab-url)
   - [Wizard: URL](#wizard-url)
   - [MLflow](#mlflow)
@@ -274,6 +276,22 @@ Content:
       cache: true
     ```
 
+#### Check API cache timeout
+
+- Type: floating number
+- Default: `300.0`
+- Environment variable:
+  - Name: `CHECKER_CACHE_TIMEOUT`
+  - Example value: `15.0`
+- YAML:
+  - Path: `checker.cache-timeout`
+  - Example value:
+
+    ```yaml
+    checker:
+      cache-timeout: 15.0
+    ```
+
 ### Gitlab
 
 #### URL
@@ -490,6 +508,23 @@ Content:
     ```yaml
     s3:
       upload-chunk-size: 300000
+    ```
+
+#### Check access cache timeout
+
+- Type: floating number
+- Default: `300.0`
+- Environment variable:
+  - Name: `S3_CHECK_ACCESS_CACHE_TIMEOUT`
+  - Example value: `15.0`
+- YAML:
+  - Path: `s3.check-access.cache-timeout`
+  - Example value:
+
+    ```yaml
+    s3:
+      check-access:
+        cache-timeout: 15.0
     ```
 
 ### JupyterLab: URL
