@@ -49,12 +49,6 @@ STAC_PROJECTS_CACHE_TIMEOUT: float = conf(
 )
 
 # Search
-STAC_SEARCH_CACHE_TIMEOUT: float = conf(
-    "stac.search.cache-timeout",
-    "STAC_SEARCH_CACHE_TIMEOUT",
-    default=60.0 * 3,
-    cast=float,
-)
 STAC_SEARCH_PAGE_DEFAULT_SIZE: int = conf(
     "stac.search.page-size",
     "STAC_SEARCH_PAGE_DEFAULT_SIZE",

@@ -36,3 +36,9 @@ S3_UPLOAD_CHUNK_SIZE: int = conf(
     cast=int,
 )
 S3_FEATURE_NAME = "store-s3"
+S3_CHECK_ACCESS_CACHE_TIMEOUT: float = conf(
+    "s3.check-access.cache-timeout",
+    "S3_CHECK_ACCESS_CACHE_TIMEOUT",
+    default=60.0 * 5,
+    cast=float,
+)

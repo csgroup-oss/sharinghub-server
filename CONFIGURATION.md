@@ -26,6 +26,7 @@ Content:
     - [Static UI dirname](#static-ui-dirname)
     - [HTTP client timeout](#http-client-timeout)
     - [Enable cache](#enable-cache)
+    - [Check API cache timeout](#check-api-cache-timeout)
   - [Gitlab](#gitlab)
     - [URL](#url)
     - [OAuth client id](#oauth-client-id)
@@ -41,6 +42,7 @@ Content:
     - [Endpoint url](#endpoint-url)
     - [Presigned expiration](#presigned-expiration)
     - [Upload chunk size](#upload-chunk-size)
+    - [Check access cache timeout](#check-access-cache-timeout)
   - [JupyterLab: URL](#jupyterlab-url)
   - [Wizard: URL](#wizard-url)
   - [MLflow](#mlflow)
@@ -55,7 +57,6 @@ Content:
     - [Projects cache timeout](#projects-cache-timeout)
     - [Projects assets rules](#projects-assets-rules)
     - [Projects assets release source format](#projects-assets-release-source-format)
-    - [Search cache timeout](#search-cache-timeout)
     - [Search page default size](#search-page-default-size)
   - [Front config](#front-config)
     - [External urls](#external-urls)
@@ -273,6 +274,22 @@ Content:
     ```yaml
     server:
       cache: true
+    ```
+
+#### Check API cache timeout
+
+- Type: floating number
+- Default: `300.0`
+- Environment variable:
+  - Name: `CHECKER_CACHE_TIMEOUT`
+  - Example value: `15.0`
+- YAML:
+  - Path: `checker.cache-timeout`
+  - Example value:
+
+    ```yaml
+    checker:
+      cache-timeout: 15.0
     ```
 
 ### Gitlab
@@ -493,6 +510,23 @@ Content:
       upload-chunk-size: 300000
     ```
 
+#### Check access cache timeout
+
+- Type: floating number
+- Default: `300.0`
+- Environment variable:
+  - Name: `S3_CHECK_ACCESS_CACHE_TIMEOUT`
+  - Example value: `15.0`
+- YAML:
+  - Path: `s3.check-access.cache-timeout`
+  - Example value:
+
+    ```yaml
+    s3:
+      check-access:
+        cache-timeout: 15.0
+    ```
+
 ### JupyterLab: URL
 
 - Type: string
@@ -701,23 +735,6 @@ Content:
       projects:
         assets:
           release-source-format: tar.gz
-    ```
-
-#### Search cache timeout
-
-- Type: floating number
-- Default: `180.0`
-- Environment variable:
-  - Name: `STAC_SEARCH_CACHE_TIMEOUT`
-  - Example value: `15.0`
-- YAML:
-  - Path: `stac.search.cache-timeout`
-  - Example value:
-
-    ```yaml
-    stac:
-      search:
-        cache-timeout: 15.0
     ```
 
 #### Search page default size

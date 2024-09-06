@@ -17,7 +17,6 @@
 import asyncio
 import json
 import logging
-import time
 from typing import Literal
 
 from fastapi import HTTPException, Request
@@ -160,10 +159,10 @@ async def stac_collection_feature(
 
     gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
     project = await gitlab_client.get_project(path=feature_id)
-    user: str | None = await cache.get(token.value)
+    user: str | None = await cache.get(token.value, namespace="user")
     if not user:
         user = await gitlab_client.get_user()
-        await cache.set(token.value, user)
+        await cache.set(token.value, user, namespace="user")
 
     if category not in project.categories:
         raise HTTPException(
@@ -174,22 +173,18 @@ async def stac_collection_feature(
         )
 
     cache_key = ("stac", user, project.path)
-    if cached_stac := await cache.get(cache_key, namespace="project"):
-        elapsed_time = time.time() - cached_stac["time"]
-        if elapsed_time < STAC_PROJECTS_CACHE_TIMEOUT:
-            logger.debug(
-                f"Read project stac from cache '{project.path}' "
-                f"({elapsed_time:.3f}/{STAC_PROJECTS_CACHE_TIMEOUT} s)",
-            )
-            return cached_stac["stac"]
-        if cached_stac["checksum"] == _get_project_checksum(project):
-            logger.debug(
-                "Read project stac from cache"
-                f"'{project.path}' (no changes detected)",
-            )
-            cached_stac["time"] = time.time()
-            await cache.set(cache_key, cached_stac, namespace="project")
-            return cached_stac["stac"]
+    cached_stac = await cache.get(cache_key, namespace="project")
+    if cached_stac and cached_stac["checksum"] == _get_project_checksum(project):
+        logger.debug(
+            f"Read project stac from cache '{project.path}' (no changes detected)",
+        )
+        await cache.set(
+            cache_key,
+            cached_stac,
+            ttl=int(STAC_PROJECTS_CACHE_TIMEOUT),
+            namespace="project",
+        )
+        return cached_stac["stac"]
 
     await _resolve_license(project, gitlab_client)
     await _collect_containers_tags(project, gitlab_client)
@@ -208,11 +203,15 @@ async def stac_collection_feature(
     if ENABLE_CACHE:
         logger.debug(f"Write stac '{feature_id}' in cache")
         cached_stac = {
-            "time": time.time(),
             "checksum": _get_project_checksum(project),
             "stac": project_stac,
         }
-        await cache.set(cache_key, cached_stac, namespace="project")
+        await cache.set(
+            cache_key,
+            cached_stac,
+            ttl=int(STAC_PROJECTS_CACHE_TIMEOUT),
+            namespace="project",
+        )
 
     return project_stac
 
