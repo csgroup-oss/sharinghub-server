@@ -163,7 +163,7 @@ class GitlabGraphQL_Project(GitlabGraphQL_ProjectReference):
     webUrl: str
     repository: "_GitlabGraphQL_Repository2"
     releases: "_GitlabGraphQL_Releases"
-    packages: "_GitlabGraphQL_Packages"
+    packages: "_GitlabGraphQL_Packages | None"
     containerRepositories: "_GitlabGraphQL_ContainerRepository"
     maxAccessLevel: "_GitlabGraphQL_AccessLevel"
     _metadata: NotRequired[dict[str, Any]]
@@ -1218,9 +1218,9 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     else:
         release = None
 
-    if packages_data := project_data["packages"]["nodes"]:
+    if packages_data := project_data["packages"]:
         _packages = {}
-        for p in packages_data:
+        for p in packages_data["nodes"]:
             if p["name"] not in _packages:
                 _packages[p["name"]] = Package(
                     name=p["name"],
