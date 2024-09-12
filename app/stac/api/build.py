@@ -474,7 +474,8 @@ def build_stac_item_preview(
 
     if preview:
         stac_links.append(preview[0])
-        stac_assets["preview"] = preview[1]
+        _ext = preview[1].pop("_ext", "")
+        stac_assets[f"preview{_ext}"] = preview[1]
 
     return {
         "stac_version": "1.0.0",
@@ -523,7 +524,8 @@ def build_stac_item(
 
     if preview:
         stac_links.append(preview[0])
-        stac_assets["preview"] = preview[1]
+        _ext = preview[1].pop("_ext", "")
+        stac_assets[f"preview{_ext}"] = preview[1]
 
     if license_:
         stac_properties["license"] = license_.id
@@ -728,12 +730,14 @@ def _retrieve_preview(
             {"cache": int(STAC_PROJECTS_CACHE_TIMEOUT)},
             **context,
         )
+        _preview_path = parse.urlparse(preview).path
+        _, _preview_ext = os.path.splitext(_preview_path)
         asset = {
             "href": preview_href,
             "title": "Preview",
+            "_ext": _preview_ext,
             "roles": ["thumbnail"],
         }
-        _preview_path = parse.urlparse(preview).path
         _media_type, _ = mimetypes.guess_type(_preview_path)
         if _media_type:
             asset["type"] = _media_type
