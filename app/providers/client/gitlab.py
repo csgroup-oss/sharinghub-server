@@ -148,7 +148,7 @@ class GitlabGraphQL_ProjectPreview(GitlabGraphQL_ProjectReference):
     createdAt: str
     lastActivityAt: str
     starCount: int
-    repository: "_GitlabGraphQL_Repository1"
+    repository: "_GitlabGraphQL_Repository1 | None"
     _metadata: NotRequired[dict[str, Any]]
     _readme: NotRequired[str]
     _extent: NotRequired[BaseGeometry]
@@ -161,10 +161,10 @@ class GitlabGraphQL_Project(GitlabGraphQL_ProjectReference):
     starCount: int
     nameWithNamespace: str
     webUrl: str
-    repository: "_GitlabGraphQL_Repository2"
+    repository: "_GitlabGraphQL_Repository2 | None"
     releases: "_GitlabGraphQL_Releases"
     packages: "_GitlabGraphQL_Packages | None"
-    containerRepositories: "_GitlabGraphQL_ContainerRepository"
+    containerRepositories: "_GitlabGraphQL_ContainerRepository | None"
     maxAccessLevel: "_GitlabGraphQL_AccessLevel"
     _metadata: NotRequired[dict[str, Any]]
     _readme: NotRequired[str]
@@ -1174,6 +1174,9 @@ def _adapt_graphql_project_preview(
     project_data: GitlabGraphQL_ProjectPreview,
 ) -> ProjectPreview:
     readme, metadata = _process_readme_and_metadata(project_data, save=False)
+    default_branch = (
+        project_data["repository"]["rootRef"] if project_data["repository"] else None
+    )
     extent = _process_spatial_extent(project_data, save=False)
     return ProjectPreview(
         id=int(project_data["id"].split("/")[-1]),
@@ -1185,7 +1188,7 @@ def _adapt_graphql_project_preview(
         created_at=project_data["createdAt"],
         last_update=project_data["lastActivityAt"],
         star_count=project_data["starCount"],
-        default_branch=project_data["repository"]["rootRef"],
+        default_branch=default_branch,
         readme=readme,
         metadata=metadata,
         extent=extent,
@@ -1195,10 +1198,13 @@ def _adapt_graphql_project_preview(
 @no_type_check
 def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     readme, metadata = _process_readme_and_metadata(project_data, save=False)
+    default_branch = (
+        project_data["repository"]["rootRef"] if project_data["repository"] else None
+    )
     extent = _process_spatial_extent(project_data, save=False)
     categories = get_categories_from_topics(project_data["topics"])
 
-    if project_data["repository"]["tree"]:
+    if project_data["repository"] and project_data["repository"]["tree"]:
         last_commit = project_data["repository"]["tree"]["lastCommit"]["shortId"]
         files = [
             n["path"] for n in project_data["repository"]["tree"]["blobs"]["nodes"]
@@ -1235,7 +1241,7 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     else:
         packages = []
 
-    if containers_data := project_data["containerRepositories"]["nodes"]:
+    if containers_data := project_data["containerRepositories"]:
         containers = [
             ContainerImage(
                 gid=c["id"],
@@ -1245,7 +1251,7 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
                 + c["id"].split("/")[-1],
                 tags=[],
             )
-            for c in containers_data
+            for c in containers_data["nodes"]
             if not c["name"].startswith("snapshot")
         ]
     else:
@@ -1284,7 +1290,7 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
         created_at=project_data["createdAt"],
         last_update=project_data["lastActivityAt"],
         star_count=project_data["starCount"],
-        default_branch=project_data["repository"]["rootRef"],
+        default_branch=default_branch,
         readme=readme,
         metadata=metadata,
         extent=extent,
@@ -1305,7 +1311,7 @@ def _process_readme_and_metadata(
 ) -> tuple[str, dict]:
     if all(e in project_data for e in ["_readme", "_metadata"]):
         readme, metadata = project_data["_readme"], project_data["_metadata"]
-    elif project_data["repository"]["readme"]["nodes"]:
+    elif project_data["repository"] and project_data["repository"]["readme"]["nodes"]:
         readme, metadata = md.parse(
             project_data["repository"]["readme"]["nodes"][0]["rawBlob"],
         )
@@ -1315,7 +1321,7 @@ def _process_readme_and_metadata(
     else:
         readme, metadata = "", {}
 
-    if project_data["repository"]["preview"]["nodes"]:
+    if project_data["repository"] and project_data["repository"]["preview"]["nodes"]:
         preview_path = project_data["repository"]["preview"]["nodes"][0]["path"]
         metadata.setdefault("preview", preview_path)
 
