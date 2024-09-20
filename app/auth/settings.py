@@ -15,7 +15,11 @@
 # limitations under the License.
 
 from app.settings import conf
+from app.utils.config import cbool
 
+GITLAB_ALLOW_PUBLIC: bool = conf(
+    "gitlab.allow-public", "GITLAB_ALLOW_PUBLIC", default=False, cast=cbool()
+)
 _CLIENT_ID: str | None = conf(
     "gitlab.oauth.client-id",
     "GITLAB_OAUTH_CLIENT_ID",

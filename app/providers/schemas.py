@@ -29,9 +29,10 @@ logger = logging.getLogger("app")
 
 class AccessLevel(IntEnum):
     NO_ACCESS = 0
-    VISITOR = 1
-    CONTRIBUTOR = 2
-    ADMINISTRATOR = 3
+    GUEST = 1
+    READ_ONLY = 2
+    CONTRIBUTOR = 3
+    ADMINISTRATOR = 4
 
 
 class License(BaseModel):
@@ -107,7 +108,7 @@ class Project(ProjectPreview):
     # 1 for read-only (visitor)
     # 2 for modification allowed (contributor)
     # 3 for management permissions (administrator)
-    access_level: int = Field(ge=0, le=3)
+    access_level: int = Field(ge=0, le=4)
 
 
 class Topic(BaseModel):

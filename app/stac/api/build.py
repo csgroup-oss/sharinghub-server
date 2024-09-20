@@ -761,8 +761,13 @@ def _retrieve_extent(
 
 
 def _get_description(project: Project, **context: Unpack[STACContext]) -> str:
-    description = __resolve_links(project.readme, project, **context)
-    description = md.clean_new_lines(description)
+    if project.readme:
+        description = __resolve_links(project.readme, project, **context)
+        description = md.clean_new_lines(description)
+    elif project.description:
+        description = project.description
+    else:
+        description = ""
     return description
 
 
