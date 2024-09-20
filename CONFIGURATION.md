@@ -29,6 +29,7 @@ Content:
     - [Check API cache timeout](#check-api-cache-timeout)
   - [Gitlab](#gitlab)
     - [URL](#url)
+    - [Allow public](#allow-public)
     - [OAuth client id](#oauth-client-id)
     - [OAuth client secret](#oauth-client-secret)
     - [OAuth default token](#oauth-default-token)
@@ -308,6 +309,22 @@ Content:
     ```yaml
     gitlab:
       url: https://gitlab.example.com
+    ```
+
+#### Allow public
+
+- Type: boolean
+- Default: `False`
+- Environment variable:
+  - Name: `GITLAB_ALLOW_PUBLIC`
+  - Values: `true`, `false`
+- YAML:
+  - Path: `gitlab.allow-public`
+  - Example value:
+
+    ```yaml
+    gitlab:
+      allow-public: true
     ```
 
 #### OAuth client id
