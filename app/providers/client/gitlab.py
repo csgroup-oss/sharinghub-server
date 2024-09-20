@@ -415,7 +415,9 @@ class GitlabClient(ProviderClient):
         self.api_url = f"{self.url}/api"
         self.rest_url = f"{self.api_url}/v4"
         self.graphql_url = f"{self.api_url}/graphql"
-        self.headers = {"Authorization": f"Bearer {token}"}
+        self.headers = {}
+        if token:
+            self.headers["Authorization"] = f"Bearer {token}"
         if headers:
             self.headers |= headers
 
@@ -435,7 +437,11 @@ class GitlabClient(ProviderClient):
             )
 
         graphql_data: dict[str, Any] = graphql_req["data"]
-        return graphql_data["currentUser"]["username"]
+        return (
+            graphql_data["currentUser"]["username"]
+            if graphql_data["currentUser"]
+            else "@public"
+        )
 
     async def get_topics(self) -> list[Topic]:
         _topics: list[GitlabREST_Topic] = await self._rest_iterate(

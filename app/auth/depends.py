@@ -24,7 +24,12 @@ from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_500_INTERNAL_SERVER_ERR
 from app.session import SessionDep
 
 from .api import GitlabToken, oauth
-from .settings import GITLAB_OAUTH_DEFAULT_TOKEN, GITLAB_OAUTH_NAME, SESSION_AUTH_KEY
+from .settings import (
+    GITLAB_ALLOW_PUBLIC,
+    GITLAB_OAUTH_DEFAULT_TOKEN,
+    GITLAB_OAUTH_NAME,
+    SESSION_AUTH_KEY,
+)
 
 gitlab_token_query = APIKeyQuery(
     name="gitlab_token",
@@ -74,6 +79,12 @@ async def get_gitlab_token(
     elif GITLAB_OAUTH_DEFAULT_TOKEN:
         token = GitlabToken(
             value=GITLAB_OAUTH_DEFAULT_TOKEN,
+            query={},
+            rc_query={},
+        )
+    elif GITLAB_ALLOW_PUBLIC:
+        token = GitlabToken(
+            value="",
             query={},
             rc_query={},
         )
