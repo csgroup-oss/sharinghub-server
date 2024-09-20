@@ -76,6 +76,7 @@ GITLAB_LICENSES_SPDX_MAPPING = {
     "unlicense": "Unlicense",
 }
 
+GUEST_ACCESS_LEVEL = 10
 REPORTER_ACCESS_LEVEL = 20
 DEVELOPER_ACCESS_LEVEL = 30
 MAINTAINER_ACCESS_LEVEL = 40
@@ -1202,7 +1203,7 @@ def _adapt_graphql_project_preview(
 
 
 @no_type_check
-def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
+def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:  # noqa: C901
     readme, metadata = _process_readme_and_metadata(project_data, save=False)
     default_branch = (
         project_data["repository"]["rootRef"] if project_data["repository"] else None
@@ -1279,7 +1280,9 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     elif gitlab_access_level >= DEVELOPER_ACCESS_LEVEL:
         access_level = AccessLevel.CONTRIBUTOR
     elif gitlab_access_level >= REPORTER_ACCESS_LEVEL:
-        access_level = AccessLevel.VISITOR
+        access_level = AccessLevel.READ_ONLY
+    elif gitlab_access_level >= GUEST_ACCESS_LEVEL:
+        access_level = AccessLevel.GUEST
     else:
         access_level = AccessLevel.NO_ACCESS
 
