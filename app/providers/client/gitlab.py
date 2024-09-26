@@ -31,6 +31,7 @@ from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from app.providers.schemas import (
     AccessLevel,
     ContainerImage,
+    Contributor,
     License,
     MLflow,
     Package,
@@ -39,6 +40,7 @@ from app.providers.schemas import (
     ProjectReference,
     Release,
     Topic,
+    User,
 )
 from app.settings import MLFLOW_URL
 from app.stac.api.category import FeatureVal, get_categories_from_topics
@@ -56,7 +58,6 @@ from app.utils.http import (
 from ._base import CursorPagination, ProviderClient
 
 logger = logging.getLogger("app")
-
 
 BBOX_LEN = 4
 
@@ -135,6 +136,24 @@ class GitlabREST_Topic(TypedDict):
     name: str
     title: str
     total_projects_count: int
+
+
+class GitlabREST_User(TypedDict):
+    id: int
+    avatar_url: str
+    locked: bool
+    name: str
+    state: str
+    username: str
+    web_url: str
+
+
+class GitlabREST_Contributor(TypedDict):
+    additions: int
+    commits: int
+    deletions: int
+    email: str
+    name: str
 
 
 class GitlabGraphQL_ProjectReference(TypedDict):
@@ -299,7 +318,6 @@ GITLAB_GRAPHQL_SORTS_ALIASES = {
     "end_datetime": "updated",
 }
 GITLAB_GRAPHQL_REQUEST_MAX_SIZE = 100
-
 
 GITLAB_GRAPHQL_PROJECT_REFERENCE_FRAGMENT = """
 fragment projectFields on Project {
@@ -482,6 +500,37 @@ class GitlabClient(ProviderClient):
             raise HTTPException(status_code=HTTP_404_NOT_FOUND)
 
         return _adapt_graphql_project(project_data)
+
+    async def get_contributors(
+        self, project_id: int, order_by: str = "name", request: Request | None = None
+    ) -> list[Contributor]:
+        contributors: list[GitlabREST_Contributor] = await self._rest_iterate(
+            f"{self.rest_url}/projects/{project_id}/repository/contributors",
+            order_by=order_by,
+            request=request,
+        )
+        return [Contributor(email=c["email"], name=c["name"]) for c in contributors]
+
+    async def get_users(
+        self, order_by: str = "name", request: Request | None = None
+    ) -> list[User]:
+        users: list[GitlabREST_User] = await self._rest_iterate(
+            f"{self.rest_url}/users", order_by=order_by, request=request
+        )
+        return [
+            User(
+                name=u["name"],
+                username=u["username"],
+                web_url=u["web_url"],
+                avatar_url=u["avatar_url"],
+            )
+            for u in users
+        ]
+
+    async def get_user_avatar_url(self, request: Request) -> str | None:
+        obj = await self._request(f"{self.rest_url}/avatar", request=request)
+        data = cast(dict, obj)
+        return data.get("avatar_url")
 
     async def get_license(self, project: ProjectReference) -> License | None:
         rest_project_data = await self._get_project_rest(project.path)
@@ -1070,20 +1119,27 @@ class GitlabClient(ProviderClient):
             headers=response_headers,
         )
 
-    async def _rest_iterate(self, url: str, per_page: int = 100) -> list[Any]:
+    async def _rest_iterate(
+        self,
+        url: str,
+        per_page: int = 100,
+        order_by: str = "id",
+        sort: str = "asc",
+        request: Request | None = None,
+    ) -> list[Any]:
         logger.debug(f"Request iterate {url}")
 
         params = {
             "per_page": per_page,
             "pagination": "keyset",
-            "order_by": "id",
-            "sort": "asc",
+            "order_by": order_by,
+            "sort": sort,
         }
 
         items = []
         _url: str | None = url_add_query_params(url, params)
         while _url:
-            response = await self._send_request(_url)
+            response = await self._send_request(_url, request=request)
 
             content = await response.json()
             if not isinstance(content, list):

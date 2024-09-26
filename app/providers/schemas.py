@@ -115,3 +115,15 @@ class Topic(BaseModel):
     name: str
     title: str
     total_projects_count: int
+
+
+class User(BaseModel):
+    name: str
+    username: str
+    web_url: str
+    avatar_url: str
+
+
+class Contributor(BaseModel):
+    email: str
+    name: str
