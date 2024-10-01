@@ -20,6 +20,7 @@ from fastapi.routing import APIRouter
 
 from app.auth import GitlabTokenDep
 from app.providers.client import GitlabClient
+from app.providers.schemas import Contributor, User
 from app.settings import GITLAB_IGNORE_TOPICS, GITLAB_URL, TAGS_OPTIONS
 from app.stac.api.category import get_categories
 
@@ -46,6 +47,37 @@ async def api_get_tags(
         **TAGS_OPTIONS,
     }
     return results
+
+
+@router.get("/projects/{project_id}/contributors")
+async def get_project_contributors(
+    project_id: int,
+    token: GitlabTokenDep,
+    request: Request,
+) -> list[Contributor]:
+    gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
+    contributors = await gitlab_client.get_contributors(project_id, request=request)
+    return contributors
+
+
+@router.get("/users")
+async def get_users(
+    token: GitlabTokenDep,
+    request: Request,
+) -> list[User]:
+    gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
+    users = await gitlab_client.get_users(order_by="name", request=request)
+    return users
+
+
+@router.get("/users/avatar")
+async def get_user_avatar(
+    token: GitlabTokenDep,
+    request: Request,
+) -> str | None:
+    gitlab_client = GitlabClient(url=GITLAB_URL, token=token.value)
+    avatar_url = await gitlab_client.get_user_avatar_url(request=request)
+    return avatar_url
 
 
 @router.api_route(

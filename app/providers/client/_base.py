@@ -21,7 +21,14 @@ from fastapi import Request
 from fastapi.responses import StreamingResponse
 from shapely.geometry.base import BaseGeometry
 
-from app.providers.schemas import Project, ProjectPreview, ProjectReference, Topic
+from app.providers.schemas import (
+    Contributor,
+    Project,
+    ProjectPreview,
+    ProjectReference,
+    Topic,
+    User,
+)
 
 
 class CursorPagination(TypedDict):
@@ -34,6 +41,18 @@ class ProviderClient(Protocol):
     async def get_topics(self) -> list[Topic]: ...
 
     async def get_project(self, path: str) -> Project: ...
+
+    async def get_contributors(
+        self, project_id: int, order_by: str, request: Request | None
+    ) -> list[Contributor]: ...
+
+    async def get_users(
+        self,
+        order_by: str,
+        request: Request | None,
+    ) -> list[User]: ...
+
+    async def get_user_avatar_url(self, request: Request) -> str | None: ...
 
     async def search_references(
         self,
