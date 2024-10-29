@@ -785,12 +785,14 @@ Content:
       external-urls:
         - name: Link
           url : <url>
+          footer: <bool>
           icon: <icon>  # not required
           locales:
             fr:
               name: French Localization
         - name: Links with dropdown
           icon: <icon>
+          footer: <bool>
           locales:
             fr:
               name: French Localization

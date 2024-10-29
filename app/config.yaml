@@ -165,3 +165,17 @@ alerts:
     fr:
       title: "Bienvenue sur le SharingHub"
       message: "Pour voir tous les projets et débloquer toutes les fonctionnalités, veuillez vous connecter..."
+
+external-urls:
+  - name: Contact
+    footer: true
+    url: mailto:olivier.koko@csgroup.eu;clement.koko@csgroup.eu
+    locales:
+      fr:
+        name: Contact
+  - name: Privacy
+    footer: true
+    url: https://sharinghub.p2.csgroup.space/docs/legal/privacy/
+    locales:
+      fr:
+        name: Confidentialité
