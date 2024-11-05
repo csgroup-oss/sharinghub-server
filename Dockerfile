@@ -1,9 +1,9 @@
-FROM python:3.11-slim-bookworm as installer
+FROM python:3.11-slim-bookworm AS installer
 
 WORKDIR /usr/src/app
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Install Git for VCS versioning
 RUN apt-get update && \
@@ -20,8 +20,8 @@ ARG VERSION=latest
 
 LABEL version=${VERSION}
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends mailcap && \
