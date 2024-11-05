@@ -22,25 +22,24 @@ LABEL version=${VERSION}
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV PATH=$PATH:/home/app/.local/bin
-
-RUN useradd -mrU -d /home/app -s /bin/bash app
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends mailcap && \
     pip install --no-cache-dir --upgrade pip setuptools && \
     rm -rf /var/lib/apt/lists/*
 
+COPY resources/gunicorn.conf.py /etc/gunicorn.conf.py
+COPY --from=installer /usr/src/app/wheels /wheels
+
+RUN pip install --no-cache-dir /wheels/* && \
+    rm -rf /wheels
+
+RUN groupadd -g 1000 app && \
+    useradd -mr -d /home/app -s /bin/bash -u 1000 -g 1000 app
+
 USER app
 
 WORKDIR /home/app
-
-COPY --chown=app:app --from=installer /usr/src/app/wheels wheels
-
-RUN pip install --user --no-cache-dir wheels/* && \
-    rm -rf wheels
-
-COPY resources/gunicorn.conf.py .
 
 EXPOSE 8000
 
