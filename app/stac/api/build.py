@@ -139,13 +139,13 @@ def build_stac_root(
             {
                 "rel": "service-desc",
                 "type": "application/vnd.oai.openapi+json;version=3.1",
-                "href": url_for(_request, "index") + "openapi.json",
+                "href": url_for(_request, "@root") + "openapi.json",
                 "title": "OpenAPI definition",
             },
             {
                 "rel": "service-doc",
                 "type": "text/html",
-                "href": url_for(_request, "index") + "api/docs",
+                "href": url_for(_request, "@root") + "api/docs",
                 "title": "OpenAPI interactive docs: Swagger UI",
             },
             {

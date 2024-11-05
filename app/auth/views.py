@@ -50,15 +50,15 @@ async def auth_login(
     redirect_uri: str = "",
 ) -> RedirectResponse:
     if not redirect_uri:
-        index = True
-        redirect_uri = url_for(request, "index")
+        root = True
+        redirect_uri = url_for(request, "@root")
     else:
-        index = False
+        root = False
 
     if session_auth:  # Already logged in, redirect
         return RedirectResponse(redirect_uri)
 
-    if index:
+    if root:
         session.pop(REDIRECT_URI_KEY, None)
     else:
         session[REDIRECT_URI_KEY] = redirect_uri
@@ -77,7 +77,7 @@ async def auth_login_callback(
     token = await auth_app.authorize_access_token(request)
     session_auth["access_token"] = token.get("access_token")
 
-    redirect_uri = session.pop(REDIRECT_URI_KEY, url_for(request, "index"))
+    redirect_uri = session.pop(REDIRECT_URI_KEY, url_for(request, "@root"))
     return RedirectResponse(redirect_uri)
 
 
@@ -86,4 +86,4 @@ async def auth_logout(
     request: Request, session_auth: SessionAuthDep
 ) -> RedirectResponse:
     session_auth.clear()
-    return RedirectResponse(url_for(request, "index"))
+    return RedirectResponse(url_for(request, "@root"))

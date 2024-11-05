@@ -45,7 +45,13 @@ def url_for(
     path_params = path if path else {}
     query_params = query if query else {}
 
-    url_ = request.url_for(name, **path_params) if name else request.url
+    url_ = (
+        request.base_url
+        if name == "@root"
+        else request.url_for(name, **path_params)
+        if name
+        else request.url
+    )
     url_parsed = list(urlparse(str(url_)))
     url_parsed[0] = request.headers.get("X-Forwarded-Proto", request.url.scheme)
 
