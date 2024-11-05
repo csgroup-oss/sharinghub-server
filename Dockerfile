@@ -43,4 +43,4 @@ WORKDIR /home/app
 
 EXPOSE 8000
 
-CMD ["gunicorn", "app.main:app"]
+CMD ["gunicorn", "--config", "/etc/gunicorn.conf.py"]
