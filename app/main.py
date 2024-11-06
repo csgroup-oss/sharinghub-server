@@ -19,10 +19,9 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from logging.config import dictConfig
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -40,7 +39,7 @@ from app.settings import (
     STATIC_FILES_PATH,
     STATIC_UI_DIRNAME,
 )
-from app.utils.http import AiohttpClient, url_for
+from app.utils.http import AiohttpClient
 
 from .router import router as views_router
 
@@ -86,24 +85,21 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
-@app.get("/")
-async def index(request: Request) -> RedirectResponse:
-    if STATIC_FILES_PATH:
-        return RedirectResponse(url_for(request, STATIC_UI_DIRNAME, path={"path": ""}))
-    return RedirectResponse(url_for(request, "swagger_ui_html"))
-
-
 @app.get("/status")
 async def status() -> list[dict]:
     return [{"status": "ok"}]
 
 
+# Mount API
+app.include_router(views_router, prefix="/api")
+
+# Mount statics
 if STATIC_FILES_PATH:
     children_dirs = [d for d in STATIC_FILES_PATH.iterdir() if d.is_dir()]
     for d in children_dirs:
+        mount_path = "/" if d.name == STATIC_UI_DIRNAME else f"/{d.name}"
         app.mount(
-            f"/{d.name}",
+            mount_path,
             StaticFiles(directory=d, html=True),
             name=d.name,
         )
-app.include_router(views_router, prefix="/api")
