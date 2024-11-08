@@ -185,7 +185,7 @@ class GitlabGraphQL_Project(GitlabGraphQL_ProjectReference):
     releases: "_GitlabGraphQL_Releases"
     packages: "_GitlabGraphQL_Packages | None"
     containerRepositories: "_GitlabGraphQL_ContainerRepository | None"
-    maxAccessLevel: "_GitlabGraphQL_AccessLevel"
+    userPermissions: "_GitlabGraphQL_UserPermissions"
     _metadata: NotRequired[dict[str, Any]]
     _readme: NotRequired[str]
     _extent: NotRequired[BaseGeometry]
@@ -288,8 +288,10 @@ class _GitlabGraphQL_ContainerRepositoryDetailsTagsNode(TypedDict):
     name: str
 
 
-class _GitlabGraphQL_AccessLevel(TypedDict):
-    integerValue: int
+class _GitlabGraphQL_UserPermissions(TypedDict):
+    downloadCode: bool
+    pushCode: bool
+    adminProject: bool
 
 
 class _QueryDataEdge(TypedDict):
@@ -364,8 +366,10 @@ fragment projectFields on Project {
   lastActivityAt
   starCount
   topics
-  maxAccessLevel {
-    integerValue
+  userPermissions {
+      downloadCode
+      pushCode
+      adminProject
   }
   repository {
     rootRef
@@ -1259,7 +1263,7 @@ def _adapt_graphql_project_preview(
 
 
 @no_type_check
-def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:  # noqa: C901
+def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:
     readme, metadata = _process_readme_and_metadata(project_data, save=False)
     default_branch = (
         project_data["repository"]["rootRef"] if project_data["repository"] else None
@@ -1330,17 +1334,15 @@ def _adapt_graphql_project(project_data: GitlabGraphQL_Project) -> Project:  # n
         else None
     )
 
-    gitlab_access_level = project_data["maxAccessLevel"]["integerValue"]
-    if gitlab_access_level >= MAINTAINER_ACCESS_LEVEL:
+    user_permissions = project_data["userPermissions"]
+    if user_permissions["adminProject"]:
         access_level = AccessLevel.ADMINISTRATOR
-    elif gitlab_access_level >= DEVELOPER_ACCESS_LEVEL:
+    elif user_permissions["pushCode"]:
         access_level = AccessLevel.CONTRIBUTOR
-    elif gitlab_access_level >= REPORTER_ACCESS_LEVEL:
+    elif user_permissions["downloadCode"]:
         access_level = AccessLevel.READ_ONLY
-    elif gitlab_access_level >= GUEST_ACCESS_LEVEL:
-        access_level = AccessLevel.GUEST
     else:
-        access_level = AccessLevel.NO_ACCESS
+        access_level = AccessLevel.GUEST
 
     return Project(
         id=int(project_data["id"].split("/")[-1]),
