@@ -27,6 +27,7 @@ Content:
     - [HTTP client timeout](#http-client-timeout)
     - [Enable cache](#enable-cache)
     - [Check API cache timeout](#check-api-cache-timeout)
+    - [Services](#services)
   - [Gitlab](#gitlab)
     - [URL](#url)
     - [Allow public](#allow-public)
@@ -291,6 +292,20 @@ Content:
     ```yaml
     checker:
       cache-timeout: 15.0
+    ```
+
+#### Services
+
+- Type: mapping
+- Default: read from [config file](./app/config.yaml)
+- YAML:
+  - Path: `services`
+  - Example value:
+
+    ```yaml
+    services:
+      custom-service:
+        url: https://sharinghub.example.com/custom/service
     ```
 
 ### Gitlab

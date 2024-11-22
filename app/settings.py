@@ -16,7 +16,8 @@
 
 import os
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
+from urllib.parse import urlparse, urlunparse
 
 from dotenv import load_dotenv
 
@@ -143,6 +144,26 @@ CHECKER_CACHE_TIMEOUT: float = conf(
 EXTERNAL_URLS: list = conf("external-urls", default=[], cast=clist())
 ALERT_MESSAGE: dict = conf("alerts", default={}, cast=dict)
 
+_services: dict[str, dict[str, Any]] = conf("services", default={}, cast=dict)
+for _service in _services.values():
+    _url = urlparse(_service["url"])
+    _service["path"] = _service.get("path", _url.path)
+    _service["status-path"] = _service["path"].removesuffix("/") + _service.get(
+        "status", "/status"
+    )
+
+    _parsed_status_url = list(_url)
+    _parsed_status_url[2] = _service["status-path"]
+    _service["status"] = urlunparse(_parsed_status_url)
+
+    _parsed_openapi_url = list(_url)
+    _parsed_openapi_url[2] = _parsed_openapi_url[2].removesuffix("/") + _service.get(
+        "openapi", "/openapi.json"
+    )
+    _service["openapi"] = urlunparse(_parsed_openapi_url)
+
+SERVICES = _services
+
 # ____ GitLab ____ #
 
 GITLAB_URL: str = conf("gitlab.url", "GITLAB_URL", cast=str)
@@ -167,8 +188,9 @@ JUPYTERLAB_URL: str | None = conf("jupyterlab.url", "JUPYTERLAB_URL", cast=str)
 DOCS_URL: str | None = conf("docs.url", "DOCS_URL", cast=str)
 
 # __ DEPLOYMENT SPACES ___ #
+
 SPACES: dict = conf("spaces", "SPACES", default={}, cast=dict)
 
 # __ WIZARD ___
 
-WIZARD_URL: str | None = conf("wizard.url", "WIZARD_URL", cast=str)
+WIZARD_URL: str | None = conf("services.wizard.url", "WIZARD_URL", cast=str)

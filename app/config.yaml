@@ -4,21 +4,12 @@ gitlab:
 jupyterlab:
   url: https://nb.p2.csgroup.space
 
-wizard:
-  url: https://sharinghub.p2.csgroup.space/wizard
-
 mlflow:
   type: mlflow-sharinghub
   url: https://sharinghub.p2.csgroup.space/mlflow
 
 docs:
   url: https://sharinghub.p2.csgroup.space/docs
-
-spaces:
-  streamlit:
-    url: https://kdeployer.p3.csgroup.space/deploy/
-    assets:
-      - streamlit_app.py
 
 stac:
   extensions:
