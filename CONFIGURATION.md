@@ -35,8 +35,9 @@ Content:
     - [OAuth client secret](#oauth-client-secret)
     - [OAuth default token](#oauth-default-token)
     - [Ignore topics](#ignore-topics)
+  - [Store](#store)
+    - [Mode](#mode)
   - [S3](#s3)
-    - [Enable](#enable)
     - [Bucket](#bucket)
     - [Access key](#access-key)
     - [Secret key](#secret-key)
@@ -412,23 +413,27 @@ Content:
           - "devops"
     ```
 
-### S3
+### Store
 
-#### Enable
+#### Mode
 
-- Type: boolean
-- Default: `False`
+- Type: `"http" | "s3 | None"`
+- Default: `None`
 - Environment variable:
-  - Name: `S3_ENABLE`
-  - Values: `true`, `false`
+  - Name: `STORE_MODE`
+  - Example value: `http`
 - YAML:
-  - Path: `s3.enable`
+  - Path: `services.store.mode`
   - Example value:
 
     ```yaml
-    s3:
-      enable: true
+    services:
+      store:
+        url: https://sharinghub.example.com/api/store
+        mode: http
     ```
+
+### S3
 
 #### Bucket
 
