@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -32,6 +33,7 @@ from app.settings import (
     DEBUG,
     HTTP_CLIENT_TIMEOUT,
     LOGGING,
+    SERVICES,
     SESSION_COOKIE,
     SESSION_DOMAIN,
     SESSION_MAX_AGE,
@@ -40,6 +42,7 @@ from app.settings import (
     STATIC_UI_DIRNAME,
 )
 from app.utils.http import AiohttpClient
+from app.utils.openapi import openapi_aggregator
 
 from .router import router as views_router
 
@@ -60,13 +63,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
 app = FastAPI(
     debug=DEBUG,
     title="SharingHub API",
-    description="STAC resources generated from Gitlab repositories.",
+    description="SharingHub API server.",
     version=version,
     root_path=API_PREFIX,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
     lifespan=lifespan,
 )
+openapi_aggregator(app, SERVICES)
 
 app.add_middleware(
     SessionMiddleware,
@@ -87,7 +91,18 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.get("/status")
 async def status() -> list[dict]:
-    return [{"status": "ok"}]
+    services = list(SERVICES)
+    status_urls = [service["status"] for service in SERVICES.values()]
+    async with AiohttpClient() as client:
+        responses = await asyncio.gather(
+            *(client.get(status_url) for status_url in status_urls)
+        )
+    return [
+        {
+            "status": "ok",
+            "services": {services[i]: await r.json() for i, r in enumerate(responses)},
+        }
+    ]
 
 
 # Mount API

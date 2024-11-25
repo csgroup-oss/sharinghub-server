@@ -15,6 +15,7 @@ See project link for details.
 
 - aiohttp: https://github.com/aio-libs/aiohttp
 - boto3: https://github.com/boto/boto3
+- requests: https://github.com/psf/requests
 
 ================================================================
 The MIT License

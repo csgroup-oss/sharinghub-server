@@ -24,7 +24,7 @@ from typing import Any, NotRequired, TypedDict, cast, no_type_check
 import aiohttp
 from fastapi import HTTPException, Request
 from fastapi.responses import StreamingResponse
-from pydantic_core import Url
+from pydantic import AnyHttpUrl
 from shapely.geometry.base import BaseGeometry
 from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 
@@ -546,7 +546,7 @@ class GitlabClient(ProviderClient):
                 _license["key"],
                 _license["key"].upper(),
             )
-            return License(id=license_id, url=Url(_license_url))
+            return License(id=license_id, url=AnyHttpUrl(_license_url))
         return None
 
     async def get_container_tags(self, container: ContainerImage) -> list[str]:

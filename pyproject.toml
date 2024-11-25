@@ -38,6 +38,7 @@ dependencies = [
     "pydantic", # fastapi
     "python-dotenv",
     "pyyaml",
+    "requests",
     "shapely",
     "starlette", # fastapi
     "typing-extensions",
@@ -55,6 +56,7 @@ dev = [
     "pre-commit",
     "types-Markdown",
     "types-PyYAML",
+    "types-requests",
     "uvicorn",
 ]
 prod = [

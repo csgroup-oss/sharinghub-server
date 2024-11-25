@@ -27,6 +27,7 @@ Content:
     - [HTTP client timeout](#http-client-timeout)
     - [Enable cache](#enable-cache)
     - [Check API cache timeout](#check-api-cache-timeout)
+    - [Services](#services)
   - [Gitlab](#gitlab)
     - [URL](#url)
     - [Allow public](#allow-public)
@@ -34,8 +35,9 @@ Content:
     - [OAuth client secret](#oauth-client-secret)
     - [OAuth default token](#oauth-default-token)
     - [Ignore topics](#ignore-topics)
+  - [Store](#store)
+    - [Mode](#mode)
   - [S3](#s3)
-    - [Enable](#enable)
     - [Bucket](#bucket)
     - [Access key](#access-key)
     - [Secret key](#secret-key)
@@ -293,6 +295,20 @@ Content:
       cache-timeout: 15.0
     ```
 
+#### Services
+
+- Type: mapping
+- Default: read from [config file](./app/config.yaml)
+- YAML:
+  - Path: `services`
+  - Example value:
+
+    ```yaml
+    services:
+      custom-service:
+        url: https://sharinghub.example.com/custom/service
+    ```
+
 ### Gitlab
 
 #### URL
@@ -397,23 +413,27 @@ Content:
           - "devops"
     ```
 
-### S3
+### Store
 
-#### Enable
+#### Mode
 
-- Type: boolean
-- Default: `False`
+- Type: `"http" | "s3 | None"`
+- Default: `None`
 - Environment variable:
-  - Name: `S3_ENABLE`
-  - Values: `true`, `false`
+  - Name: `STORE_MODE`
+  - Example value: `http`
 - YAML:
-  - Path: `s3.enable`
+  - Path: `services.store.mode`
   - Example value:
 
     ```yaml
-    s3:
-      enable: true
+    services:
+      store:
+        url: https://sharinghub.example.com/api/store
+        mode: http
     ```
+
+### S3
 
 #### Bucket
 

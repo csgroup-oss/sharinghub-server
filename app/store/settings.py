@@ -14,10 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from app.settings import conf
-from app.utils.config import cbool
+from typing import Literal
 
-S3_ENABLE: bool = conf("s3.enable", "S3_ENABLE", default=False, cast=cbool())
+from app.settings import conf
+
+STORE_MODE: Literal["http", "s3"] | None = conf(
+    "services.store.mode", "STORE_MODE", default=None, cast=str
+)
+
 S3_BUCKET: str | None = conf("s3.bucket", "S3_BUCKET", cast=str)
 S3_ACCESS_KEY: str | None = conf("s3.access-key", "S3_ACCESS_KEY", cast=str)
 S3_SECRET_KEY: str | None = conf("s3.secret-key", "S3_SECRET_KEY", cast=str)

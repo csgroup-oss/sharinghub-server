@@ -31,7 +31,7 @@ from app.settings import (
     WIZARD_URL,
 )
 from app.stac.settings import STAC_CATEGORIES, STAC_ROOT_CONF
-from app.store.settings import S3_ENABLE
+from app.store.settings import STORE_MODE
 
 router = APIRouter()
 
@@ -42,7 +42,7 @@ async def configuration() -> dict:
     exclude_keys = ["locales"]
     return {
         "auth": "oauth2" if oauth.create_client(GITLAB_OAUTH_NAME) else "token",
-        "store": S3_ENABLE,
+        "store": STORE_MODE,
         "gitlab": {"url": GITLAB_URL},
         "jupyterlab": {"url": JUPYTERLAB_URL},
         "mlflow": {"type": MLFLOW_TYPE, "url": MLFLOW_URL},
