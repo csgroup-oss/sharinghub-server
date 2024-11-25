@@ -35,7 +35,7 @@ dependencies = [
     "itsdangerous", # fastapi
     "markdown",
     "markdown-full-yaml-metadata",
-    "pydantic", # fastapi
+    "pydantic<2.10", # fastapi
     "python-dotenv",
     "pyyaml",
     "requests",
