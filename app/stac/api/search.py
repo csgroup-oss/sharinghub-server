@@ -52,7 +52,7 @@ class STACSearchQuery(BaseModel):
         Field(default=STAC_SEARCH_PAGE_DEFAULT_SIZE, strict=True, gt=0),
     ]
     sortby: str | list[STACSearchSortBy] | None = Field(default=None)
-    bbox: list[float] | None = Field(default_factory=list)
+    bbox: list[float] = Field(default_factory=list)
     datetime: str | None = Field(default=None)
     intersects: dict[str, Any] | None = Field(default=None)
     ids: list[str] = Field(default_factory=list)
