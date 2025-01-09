@@ -1,4 +1,4 @@
-# Copyright 2024, CS GROUP - France, https://www.csgroup.eu/
+# Copyright 2025, CS GROUP - France, https://www.csgroup.eu/
 #
 # This file is part of SharingHub project
 #
