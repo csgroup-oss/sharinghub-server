@@ -14,7 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from fastapi import HTTPException, Request
+from typing import Annotated
+
+from fastapi import Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 from starlette.status import HTTP_401_UNAUTHORIZED
@@ -28,6 +30,10 @@ from .settings import GITLAB_OAUTH_DEFAULT_TOKEN
 router = APIRouter()
 
 REDIRECT_URI_KEY = "redirect_uri"
+
+
+def get_redirect_uri(request: Request, redirect_uri: str = "") -> str:
+    return redirect_uri or url_for(request, "@root")
 
 
 @router.get("/info")
@@ -47,21 +53,12 @@ async def auth_login(
     auth_app: AuthAppDep,
     session: SessionDep,
     session_auth: SessionAuthDep,
-    redirect_uri: str = "",
+    redirect_uri: Annotated[str, Depends(get_redirect_uri)],
 ) -> RedirectResponse:
-    if not redirect_uri:
-        root = True
-        redirect_uri = url_for(request, "@root")
-    else:
-        root = False
-
     if session_auth:  # Already logged in, redirect
         return RedirectResponse(redirect_uri)
 
-    if root:
-        session.pop(REDIRECT_URI_KEY, None)
-    else:
-        session[REDIRECT_URI_KEY] = redirect_uri
+    session[REDIRECT_URI_KEY] = redirect_uri
 
     callback_uri = url_for(request, "auth_login_callback")
     return await auth_app.authorize_redirect(request, redirect_uri=callback_uri)
@@ -83,7 +80,8 @@ async def auth_login_callback(
 
 @router.get("/logout")
 async def auth_logout(
-    request: Request, session_auth: SessionAuthDep
+    session_auth: SessionAuthDep,
+    redirect_uri: Annotated[str, Depends(get_redirect_uri)],
 ) -> RedirectResponse:
     session_auth.clear()
-    return RedirectResponse(url_for(request, "@root"))
+    return RedirectResponse(redirect_uri)
