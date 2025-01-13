@@ -35,12 +35,14 @@ from app.stac.settings import (
 )
 from app.utils import geo
 from app.utils import markdown as md
-from app.utils.http import is_local, url_for, urlsafe_path
+from app.utils.http import is_local, slugify, url_for
 
 from .category import Category, FeatureVal
 from .search import STACPagination
 
 logger = logging.getLogger("app")
+
+mimetypes.add_type("application/onnx", ".onnx")
 
 MEDIA_TYPES = {
     "text": "text/plain",
@@ -496,7 +498,7 @@ def build_stac_item_preview(
     }
 
 
-def build_stac_item(
+def build_stac_item(  # noqa: C901
     project: Project,
     category: Category,
     **context: Unpack[STACContext],
@@ -568,19 +570,34 @@ def build_stac_item(
                 "title": "MLflow - Tracking URI",
             },
         )
-        for rm in project.mlflow.registered_models:
-            model_url = (
-                f"{project.mlflow.tracking_uri}#/models/"
-                f"{urlsafe_path(rm.name)}/versions/{rm.latest_version}"
+
+        roles = ["data"]
+        if any("ml-model" in schema for schema in stac_extensions):
+            roles.append("ml-model:checkpoint")
+
+        for model in project.mlflow.registered_models:
+            model_name = model.name.removesuffix(f"({project.id})").rstrip()
+            model_title = f"{model_name} v{model.version}"
+            model_path = Path(model.artifact_path)
+            model_asset = model_path.name.replace(
+                model_path.stem, slugify(model_title.lower())
             )
-            model_uri = rm.mlflow_uri
-            model_name = rm.name.removesuffix(f"({project.id})").rstrip()
+
+            _media_type, _ = mimetypes.guess_type(model_path.name)
+            _media_type = _media_type or "application/octet-stream"
+
+            stac_assets[model_asset] = {
+                "href": model.download_url,
+                "title": model_title,
+                "roles": roles,
+                "type": _media_type,
+            }
             stac_links.append(
                 {
                     "rel": "mlflow:model",
-                    "href": model_url,
-                    "title": f"{model_name} v{rm.latest_version}",
-                    "mlflow:uri": model_uri,
+                    "href": model.web_url,
+                    "title": model_title,
+                    "mlflow:uri": model.mlflow_uri,
                 }
             )
 
