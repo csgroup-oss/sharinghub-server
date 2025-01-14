@@ -62,8 +62,11 @@ class ContainerImage(BaseModel):
 
 class RegisteredModel(BaseModel):
     name: str
-    latest_version: str
+    version: str
+    web_url: str
     mlflow_uri: str
+    artifact_path: str
+    download_url: str
 
 
 class MLflow(BaseModel):

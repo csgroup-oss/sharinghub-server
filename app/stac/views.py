@@ -19,6 +19,8 @@ import json
 import logging
 from typing import Literal
 
+import aiohttp
+import yaml
 from fastapi import HTTPException, Request
 from fastapi.routing import APIRouter
 
@@ -34,7 +36,7 @@ from app.stac.api.category import (
 )
 from app.utils import geo
 from app.utils.cache import cache
-from app.utils.http import AiohttpClient
+from app.utils.http import AiohttpClient, url_add_query_params, urlsafe_path
 
 from .api.build import (
     build_features_collection,
@@ -487,34 +489,108 @@ async def _collect_registered_models(
         registered_models = []
         match mlflow_type:
             case "mlflow-sharinghub":
-                mlflow_api_url = project.mlflow.tracking_uri + "api/2.0/mlflow"
                 registered_models.extend(
-                    await _get_registered_models(mlflow_api_url, auth_token=auth_token)
+                    await _get_registered_models(
+                        project.mlflow.tracking_uri, auth_token=auth_token
+                    )
                 )
         project.mlflow.registered_models = registered_models
 
 
 async def _get_registered_models(
-    mlflow_api_url: str, auth_token: str
+    mlflow_url: str, auth_token: str
 ) -> list[RegisteredModel]:
-    registered_models = []
-    req_url = mlflow_api_url + "/registered-models/search"
+    mlflow_api_url = mlflow_url + "api/2.0/mlflow"
+    headers = {"Authorization": f"Bearer {auth_token}"}
+
+    registered_models: list[RegisteredModel] = []
     async with AiohttpClient() as client:
-        headers = {"Authorization": f"Bearer {auth_token}"}
-        response = await client.get(req_url, headers=headers)
-        if response.ok:
-            data = await response.json()
-            all_registered_models = data.get("registered_models", [])
-            for rm_data in all_registered_models:
-                if latest_versions := rm_data.get("latest_versions", []):
-                    latest_version = latest_versions[0]
-                    model_name = rm_data["name"]
-                    model_version = latest_version["version"]
-                    registered_models.append(
-                        RegisteredModel(
-                            name=model_name,
-                            latest_version=model_version,
-                            mlflow_uri=f"models:/{model_name}/{model_version}",
-                        )
-                    )
+        search_req = await client.get(
+            url=mlflow_api_url + "/registered-models/search", headers=headers
+        )
+        if not search_req.ok:
+            return registered_models
+
+        search_data = await search_req.json()
+        all_registered_models = search_data.get("registered_models", [])
+        for rm_data in all_registered_models:
+            # Read latest version metadata
+            latest_versions = rm_data.get("latest_versions", [])
+            if not latest_versions:
+                continue
+            latest_version = latest_versions[0]
+
+            # Determine model informations
+            model_name = latest_version["name"]
+            model_version = latest_version["version"]
+            mlflow_uri = f"models:/{model_name}/{model_version}"
+            mlflow_run = latest_version["run_id"]
+            model_url = (
+                f"{mlflow_url}#/models/"
+                f"{urlsafe_path(model_name)}/versions/{model_version}"
+            )
+
+            model_artifact_path = await _get_model_artifact_path(
+                mlflow_url=mlflow_url,
+                mlflow_run=mlflow_run,
+                mlflow_source=latest_version["source"],
+                client=client,
+                headers=headers,
+            )
+            if not model_artifact_path:
+                continue
+
+            registered_models.append(
+                RegisteredModel(
+                    name=model_name,
+                    version=model_version,
+                    web_url=model_url,
+                    mlflow_uri=mlflow_uri,
+                    artifact_path=model_artifact_path,
+                    download_url=url_add_query_params(
+                        mlflow_url + "get-artifact",
+                        {"path": model_artifact_path, "run_uuid": mlflow_run},
+                    ),
+                )
+            )
     return registered_models
+
+
+async def _get_model_artifact_path(
+    mlflow_url: str,
+    mlflow_run: str,
+    mlflow_source: str,
+    client: aiohttp.ClientSession,
+    headers: dict[str, str],
+) -> str | None:
+    # Resolve model artifacts dir path
+    source_artifacts_split = mlflow_source.split("/artifacts/", 1)
+    if len(source_artifacts_split) != 2:  # noqa: PLR2004
+        return None
+    artifact_path = source_artifacts_split[1]
+
+    # Retrieve model mlflow metadata
+    model_metadata_req = await client.get(
+        url=url_add_query_params(
+            mlflow_url + "get-artifact",
+            {"path": artifact_path + "/MLmodel", "run_uuid": mlflow_run},
+        ),
+        headers=headers,
+    )
+    if not model_metadata_req.ok:
+        return None
+    model_metadata_content = await model_metadata_req.text()
+    model_metadata = yaml.load(model_metadata_content, Loader=yaml.SafeLoader)
+
+    python_flavor = model_metadata.get("flavors", {}).get("python_function", {})
+    if not python_flavor:
+        return None
+
+    _model_path = python_flavor.get("model_path")
+    _data = python_flavor.get("data")
+
+    model_path: str | None = _model_path or _data
+    if not model_path:
+        return None
+
+    return artifact_path + "/" + model_path
