@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.4.0 (March 2025)
+
+### Bug fixes
+
+- Add redirect_uri to logout
+- Pin pydantic<2.10 to avoid url serialization regression
+- Project GraphQL query use userPermissions instead of maxAccessLevel
+
+### Features
+
+- Add mlflow registered models checkpoint files to assets
+- Add external url for support contact
+- OpenAPI aggregator for services
+- Store enable changed to mode, describing http or s3 store
+
+### Internal
+
+- Fix mypy
+- Mount UI at root
+- Update copyright headers
+- Update gitleaks v8.21.2
+- Docker: fix format, uppercase 'as' and use 'ENV name=value'
+- Docker: move gunicorn app parameter to conf file
+- Docker: minimize use of app user home
+
 ## 0.3.0 (October 2024)
 
 ### Bug fixes
