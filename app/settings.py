@@ -103,11 +103,11 @@ SESSION_DOMAIN: str | None = conf(
     default=None,
     cast=str,
 )
-SESSION_MAX_AGE: float = conf(
+SESSION_MAX_AGE: int = conf(
     "server.session.max-age",
     "SESSION_MAX_AGE",
-    default=3600.0,
-    cast=float,
+    default=3600,
+    cast=int,
 )
 
 STATIC_FILES_PATH: Path | None = conf(

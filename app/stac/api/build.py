@@ -802,7 +802,7 @@ def _retrieve_license(project: Project, metadata: dict) -> License | None:
             license_url = str(license_url)
         else:
             license_url = f"https://spdx.org/licenses/{license_id}.html"
-        return License(id=license_id, url=license_url)
+        return License(id=license_id, url=license_url)  # type: ignore[arg-type]
     return None
 
 
