@@ -498,7 +498,7 @@ def build_stac_item_preview(
     }
 
 
-def build_stac_item(  # noqa: C901
+def build_stac_item(
     project: Project,
     category: Category,
     **context: Unpack[STACContext],
@@ -571,27 +571,9 @@ def build_stac_item(  # noqa: C901
             },
         )
 
-        roles = ["data"]
-        if any("ml-model" in schema for schema in stac_extensions):
-            roles.append("ml-model:checkpoint")
-
         for model in project.mlflow.registered_models:
             model_name = model.name.removesuffix(f"({project.id})").rstrip()
             model_title = f"{model_name} v{model.version}"
-            model_path = Path(model.artifact_path)
-            model_asset = model_path.name.replace(
-                model_path.stem, slugify(model_title.lower())
-            )
-
-            _media_type, _ = mimetypes.guess_type(model_path.name)
-            _media_type = _media_type or "application/octet-stream"
-
-            stac_assets[model_asset] = {
-                "href": model.download_url,
-                "title": model_title,
-                "roles": roles,
-                "type": _media_type,
-            }
             stac_links.append(
                 {
                     "rel": "mlflow:model",
@@ -802,7 +784,7 @@ def _retrieve_license(project: Project, metadata: dict) -> License | None:
             license_url = str(license_url)
         else:
             license_url = f"https://spdx.org/licenses/{license_id}.html"
-        return License(id=license_id, url=license_url)
+        return License(id=license_id, url=license_url)  # type: ignore[arg-type]
     return None
 
 
@@ -1003,22 +985,37 @@ def __create_assets(
     assets_rules: list[dict[str, Any]],
     **context: Unpack[STACContext],
 ) -> dict[str, dict[str, Any]]:
-    assets = {}
+    raw_assets = {}
 
-    _files = [Path(file) for file in project.files] if project.files else []
+    for fpath in project.files if project.files else []:
+        raw_assets[fpath] = {
+            "href": fpath,
+            "title": fpath,
+            "path": fpath,
+        }
+    if project.mlflow:
+        for model in project.mlflow.registered_models:
+            model_name = model.name.removesuffix(f"({project.id})").rstrip()
+            model_title = f"{model_name} v{model.version}"
+            model_path = Path(model.artifact_path)
+            model_asset = model_path.name.replace(
+                model_path.stem, slugify(model_title.lower())
+            )
+            raw_assets[model_asset] = {
+                "href": model.download_url,
+                "title": model_title,
+                "path": model_path.name,
+            }
+
+    assets = {}
     for ar in assets_rules:
         glob = ar.pop("glob", ar.pop("path", None))
         if glob:
-            for fpath in _files:
-                if fpath.match(glob):
+            for asset_name in raw_assets:
+                if Path(asset_name).match(glob):
                     a = __prepare_asset(
                         project,
-                        {
-                            **ar,
-                            "key": ar.pop("key", None),
-                            "href": str(fpath),
-                            "path": str(fpath),
-                        },
+                        {"key": asset_name, **raw_assets[asset_name], **ar},
                         **context,
                     )
                     if a:
@@ -1033,30 +1030,36 @@ def __prepare_asset(
     asset_def: dict[str, Any],
     **context: Unpack[STACContext],
 ) -> tuple[str, dict[str, Any]] | None:
-    href = asset_def.get("href")
-    path = asset_def.get("path", "")
-    key = asset_def.get("key")
+    key = asset_def.pop("key", None)
+    href = asset_def.pop("href", None)
+    path = asset_def.pop("path", "")
     key = key if key else path
     if key and href:
         key = key.replace("{path}", path)
         asset = {
             "href": __resolve_href(href, project, **context),
-            "roles": asset_def.get("roles", ["data"]),
+            "roles": asset_def.pop("roles", ["data"]),
         }
-        if _title := asset_def.get("title"):
+
+        if _title := asset_def.pop("title", None):
             asset["title"] = _title.replace("{key}", key).replace("{path}", path)
-        if _desc := asset_def.get("description"):
+        if _desc := asset_def.pop("description", None):
             asset["description"] = _desc.replace("{key}", key).replace("{path}", path)
 
-        _type_as = cast(str, asset_def.get("type-as", ""))
-        _raw_type = cast(str, asset_def.get("type", ""))
+        _type_as = cast(str, asset_def.pop("type-as", ""))
+        _raw_type = cast(str, asset_def.pop("type", ""))
         if _type := MEDIA_TYPES.get(_type_as, _raw_type):
             asset["type"] = _type
         else:
             href_parsed = parse.urlparse(href)
-            media_type, _ = mimetypes.guess_type(href_parsed.path)
+            path_media_type, _ = mimetypes.guess_type(href_parsed.path)
+            href_media_type, _ = mimetypes.guess_type(href_parsed.path)
+            media_type = (
+                path_media_type or href_media_type or "application/octet-stream"
+            )
             if media_type:
                 asset["type"] = media_type
+        asset |= asset_def
         return key, asset
     return None
 
