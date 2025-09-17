@@ -620,6 +620,12 @@ def build_stac_item(
         "links": [
             *default_links,
             {
+                "rel": "repository",
+                "type": "text/html",
+                "href": project.url,
+                "title": "Repository",
+            },
+            {
                 "rel": "bug_tracker",
                 "type": "text/html",
                 "href": project.bug_tracker,
