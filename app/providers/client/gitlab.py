@@ -341,7 +341,7 @@ fragment projectFields on Project {
   topics
   repository {
     rootRef
-    readme: blobs(paths: ["README.md", "readme.md"]) {
+    readme: blobs(paths: ["README.md"]) {
       nodes {
         rawBlob
       }
@@ -373,7 +373,7 @@ fragment projectFields on Project {
   }
   repository {
     rootRef
-    readme: blobs(paths: ["README.md", "readme.md"]) {
+    readme: blobs(paths: ["README.md"]) {
       nodes {
         rawBlob
       }
