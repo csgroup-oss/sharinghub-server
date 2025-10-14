@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.1 (October 2025)
+
+### Bug fixes
+
+- Migrate config stac extension ml-model to mlm
+- STAC: customization of mlflow models assets with regular assets rules
+- STAC: add missing repository link in project stac item
+
+### Internal
+
+- Reduce graphql queries complexity
+
 ## 0.4.0 (March 2025)
 
 ### Bug fixes
