@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.2 (June 2026)
+
+### Bug fixes
+
+- STAC Search lower internal GitLab GraphQL maximum limit per request to reduce
+  request complexity and avoid complexity error when not authenticated.
+
+### Security
+
+- CI: Pin trivy to fix CVE-2026-33634
+
 ## 0.4.1 (October 2025)
 
 ### Bug fixes
