@@ -319,7 +319,7 @@ GITLAB_GRAPHQL_SORTS_ALIASES = {
     "start_datetime": "created",
     "end_datetime": "updated",
 }
-GITLAB_GRAPHQL_REQUEST_MAX_SIZE = 100
+GITLAB_GRAPHQL_REQUEST_MAX_SIZE = 50
 
 GITLAB_GRAPHQL_PROJECT_REFERENCE_FRAGMENT = """
 fragment projectFields on Project {
@@ -723,7 +723,11 @@ class GitlabClient(ProviderClient):
 
         local_filtering = any((extent, datetime_range, flags))
         search_size = limit if not local_filtering else limit + 1
-        req_limit = limit if not local_filtering else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
+        req_limit = (
+            min(limit, GITLAB_GRAPHQL_REQUEST_MAX_SIZE)
+            if not local_filtering
+            else GITLAB_GRAPHQL_REQUEST_MAX_SIZE
+        )
 
         # Flags
         starred = "starred" in flags
